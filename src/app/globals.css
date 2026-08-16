@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #0b1e3d;
+  --surface: #f6f7fb;
+  --surface-elevated: #ffffff;
+  --border: #e3e6ee;
+  --muted: #5b6473;
+
+  --navy: #0b1e3d;
+  --navy-light: #14315f;
+  --gold: #b8912f;
+  --gold-soft: #d4af37;
+}
+
+.dark {
+  --background: #071227;
+  --foreground: #f4f5f8;
+  --surface: #0e1f3d;
+  --surface-elevated: #102547;
+  --border: #1c3358;
+  --muted: #9aa4b8;
+
+  --navy: #0b1e3d;
+  --navy-light: #14315f;
+  --gold: #d4af37;
+  --gold-soft: #e8c766;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-navy: var(--navy);
+  --color-navy-light: var(--navy-light);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

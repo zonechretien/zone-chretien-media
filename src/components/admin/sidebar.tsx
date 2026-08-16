@@ -1,0 +1,99 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  BookMarked,
+  Users,
+  Sparkles,
+  HandHeart,
+  Quote,
+  UserRound,
+  Newspaper,
+  FolderTree,
+  Tags,
+  Megaphone,
+  Settings,
+  LayoutDashboard,
+  Music4,
+  Video,
+  Wand2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+type NavSection = { title: string; items: NavItem[] };
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    title: "Vue d'ensemble",
+    items: [{ href: "/admin", label: "Tableau de bord", icon: LayoutDashboard, exact: true }],
+  },
+  {
+    title: "Contenus",
+    items: [
+      { href: "/admin/chansons", label: "Chansons", icon: Music4 },
+      { href: "/admin/artistes", label: "Artistes", icon: Users },
+      { href: "/admin/videos", label: "Vidéos", icon: Video },
+      { href: "/admin/articles", label: "Articles", icon: Newspaper },
+      { href: "/admin/inspirations", label: "Inspirations", icon: Sparkles },
+      { href: "/admin/devotions", label: "Dévotions", icon: BookMarked },
+      { href: "/admin/prieres", label: "Prières", icon: HandHeart },
+      { href: "/admin/versets", label: "Versets", icon: Quote },
+      { href: "/admin/temoignages", label: "Témoignages", icon: UserRound },
+    ],
+  },
+  {
+    title: "Organisation",
+    items: [
+      { href: "/admin/categories", label: "Catégories", icon: FolderTree },
+      { href: "/admin/tags", label: "Tags", icon: Tags },
+    ],
+  },
+  {
+    title: "Assistant IA",
+    items: [{ href: "/admin/ia", label: "Générateur IA", icon: Wand2 }],
+  },
+  {
+    title: "Site",
+    items: [
+      { href: "/admin/banners", label: "Monétisation", icon: Megaphone },
+      { href: "/admin/parametres", label: "Paramètres", icon: Settings },
+    ],
+  },
+];
+
+export function AdminSidebar() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-6">
+      {NAV_SECTIONS.map((section) => (
+        <div key={section.title}>
+          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-white/40">
+            {section.title}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {section.items.map((item) => {
+              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white",
+                    active && "bg-gold/15 text-gold hover:bg-gold/15 hover:text-gold",
+                  )}
+                >
+                  <Icon size={16} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+}

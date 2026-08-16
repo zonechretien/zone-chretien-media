@@ -1,0 +1,457 @@
+// Zone-Chrétien Media — Schéma Prisma complet
+// Base de données : Turso (libSQL, compatible SQLite) — voir CORRECTION 1 du cahier des charges.
+// Le provider reste "sqlite" (libSQL est un fork compatible SQLite). Depuis Prisma 7, l'URL de
+// connexion et le driver adapter (@prisma/adapter-libsql) ne se déclarent plus ici : ils sont
+// configurés dans prisma.config.ts (Migrate) et dans le constructeur PrismaClient (runtime),
+// mis en place à l'étape 2 (Config Turso + migration initiale).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+enum PrayerCategory {
+  MORNING
+  MIDDAY
+  EVENING
+  FAMILY
+  HEALING
+  PROTECTION
+}
+
+enum BannerType {
+  ADSENSE
+  ARTIST_SPONSOR
+  EVENT_SPONSOR
+  PARTNER_BANNER
+}
+
+enum ContentType {
+  SONG
+  ARTICLE
+  ARTIST
+  VIDEO
+  INSPIRATION
+  DEVOTION
+  PRAYER
+  VERSE
+  TESTIMONY
+}
+
+enum AIProvider {
+  GEMINI
+  OLLAMA
+}
+
+// ============================================================================
+// AUTHENTIFICATION (NextAuth / Auth.js) — CMS Administrateur
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String? // hash bcrypt — connexion email + mot de passe
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(EDITOR)
+
+  accounts Account[]
+  sessions Session[]
+  articles Article[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// TAXONOMIE PARTAGÉE
+// ============================================================================
+
+model Category {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  type        ContentType
+  description String?
+
+  songs        Song[]
+  articles     Article[]
+  videos       Video[]
+  inspirations Inspiration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  songs    Song[]
+  articles Article[]
+
+  createdAt DateTime @default(now())
+
+  @@map("tags")
+}
+
+// ============================================================================
+// ARTISTES & CHANSONS
+// ============================================================================
+
+model Artist {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  photoUrl     String?
+  bio          String?
+  facebookUrl  String?
+  instagramUrl String?
+  youtubeUrl   String?
+  tiktokUrl    String?
+  twitterUrl   String?
+  isSponsored  Boolean @default(false)
+
+  songs  Song[]
+  videos Video[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("artists")
+}
+
+model Song {
+  id          String  @id @default(cuid())
+  title       String
+  slug        String  @unique
+  description String?
+  imageUrl    String
+  audioUrl    String? // URL externe uniquement — aucun fichier hébergé sur le site
+  youtubeUrl  String?
+
+  artistId   String
+  artist     Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  tags       Tag[]
+
+  metaTitle       String?
+  metaDescription String?
+
+  views     Int     @default(0)
+  featured  Boolean @default(false)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+  @@map("songs")
+}
+
+// ============================================================================
+// VIDÉOS
+// ============================================================================
+
+model Video {
+  id           String  @id @default(cuid())
+  title        String
+  slug         String  @unique
+  description  String?
+  youtubeUrl   String
+  thumbnailUrl String?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  artistId   String?
+  artist     Artist?   @relation(fields: [artistId], references: [id])
+
+  views     Int     @default(0)
+  featured  Boolean @default(false)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+  @@map("videos")
+}
+
+// ============================================================================
+// INSPIRATIONS
+// ============================================================================
+
+model Inspiration {
+  id       String  @id @default(cuid())
+  title    String
+  slug     String  @unique
+  content  String
+  imageUrl String?
+  author   String?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  views     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+  @@map("inspirations")
+}
+
+// ============================================================================
+// DÉVOTIONS
+// ============================================================================
+
+model Devotion {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  mainVerseRef  String
+  mainVerseText String
+  reflection    String
+  application   String
+  prayer        String
+  imageUrl      String?
+  date          DateTime @default(now())
+
+  views     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, date])
+  @@map("devotions")
+}
+
+// ============================================================================
+// PRIÈRES
+// ============================================================================
+
+model Prayer {
+  id       String         @id @default(cuid())
+  title    String
+  slug     String         @unique
+  content  String
+  category PrayerCategory
+  imageUrl String?
+
+  views     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, category])
+  @@map("prayers")
+}
+
+// ============================================================================
+// VERSET DU JOUR
+// ============================================================================
+
+model Verse {
+  id          String   @id @default(cuid())
+  reference   String
+  text        String
+  explanation String?
+  imageUrl    String?
+  date        DateTime @unique
+
+  views     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, date])
+  @@map("verses")
+}
+
+// ============================================================================
+// TÉMOIGNAGES
+// ============================================================================
+
+model Testimony {
+  id         String  @id @default(cuid())
+  title      String
+  slug       String  @unique
+  content    String
+  authorName String
+  imageUrl   String?
+
+  views     Int     @default(0)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+  @@map("testimonies")
+}
+
+// ============================================================================
+// BLOG CHRÉTIEN (ARTICLES)
+// ============================================================================
+
+model Article {
+  id            String  @id @default(cuid())
+  title         String
+  slug          String  @unique
+  excerpt       String?
+  content       String // HTML éditeur riche
+  coverImageUrl String?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  tags       Tag[]
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  metaTitle       String?
+  metaDescription String?
+
+  views       Int       @default(0)
+  featured    Boolean   @default(false)
+  published   Boolean   @default(true)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+  @@map("articles")
+}
+
+// ============================================================================
+// STATISTIQUES DE VUES (tableau de bord, stats mensuelles)
+// ============================================================================
+
+model ViewLog {
+  id          String      @id @default(cuid())
+  contentType ContentType
+  contentId   String
+  viewedAt    DateTime    @default(now())
+
+  @@index([contentType, contentId])
+  @@index([viewedAt])
+  @@map("view_logs")
+}
+
+// ============================================================================
+// MONÉTISATION — zones configurables
+// ============================================================================
+
+model Banner {
+  id              String     @id @default(cuid())
+  type            BannerType
+  title           String
+  imageUrl        String?
+  linkUrl         String?
+  adsenseSlotCode String? // code AdSense brut (<ins> / script), collé tel quel
+  position        String? // ex: "sidebar", "header", "in-content"
+  active          Boolean    @default(true)
+  startDate       DateTime?
+  endDate         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("banners")
+}
+
+// ============================================================================
+// PARAMÈTRES DU SITE (singleton)
+// ============================================================================
+
+model Settings {
+  id String @id @default("settings")
+
+  siteName        String  @default("Zone-Chrétien Media")
+  siteDescription String  @default("La musique, l'inspiration et la Parole pour édifier les nations.")
+  logoUrl         String?
+  faviconUrl      String?
+  primaryColor    String  @default("#0B1E3D")
+  accentColor     String  @default("#D4AF37")
+
+  facebookUrl    String?
+  youtubeUrl     String?
+  instagramUrl   String?
+  tiktokUrl      String?
+  whatsappNumber String?
+  contactEmail   String?
+
+  adsenseClientId String?
+
+  aiProvider AIProvider @default(GEMINI)
+
+  maintenanceMode Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
