@@ -16,8 +16,8 @@ export function VideoCard({
     <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-elevated">
       <div className="group relative aspect-video overflow-hidden bg-navy">
         {embedUrl ? (
-          <details className="h-full w-full">
-            <summary className="absolute inset-0 flex cursor-pointer list-none items-center justify-center [&::-webkit-details-marker]:hidden">
+          <details className="group/video h-full w-full">
+            <summary className="absolute inset-0 flex cursor-pointer list-none items-center justify-center group-open/video:hidden [&::-webkit-details-marker]:hidden">
               {thumbnail && (
                 <Image
                   src={thumbnail}
