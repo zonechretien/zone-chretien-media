@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Music4, User } from "lucide-react";
 import { getArtistBySlug } from "@/lib/queries/artists";
+import { renderMarkdown, markdownToText } from "@/lib/markdown";
 import { SongCard } from "@/components/cards/song-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SectionHeading } from "@/components/shared/section-heading";
@@ -17,7 +18,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const artist = await getArtistBySlug(slug);
   if (!artist) return {};
 
-  const description = artist.bio ?? `Découvrez les chansons de ${artist.name} sur Zone-Chrétien Media.`;
+  const description = artist.bio
+    ? markdownToText(artist.bio)
+    : `Découvrez les chansons de ${artist.name} sur Zone-Chrétien Media.`;
 
   return {
     title: artist.name,
@@ -54,7 +57,7 @@ export default async function ArtistPage({ params }: Props) {
           name: artist.name,
           url: absoluteUrl(`/artistes/${artist.slug}`),
           image: artist.photoUrl ?? undefined,
-          description: artist.bio ?? undefined,
+          description: artist.bio ? markdownToText(artist.bio) : undefined,
           sameAs: [artist.facebookUrl, artist.instagramUrl, artist.youtubeUrl, artist.twitterUrl].filter(
             (v): v is string => Boolean(v),
           ),
@@ -81,7 +84,12 @@ export default async function ArtistPage({ params }: Props) {
               </span>
             )}
           </div>
-          {artist.bio && <p className="max-w-2xl text-muted">{artist.bio}</p>}
+          {artist.bio && (
+            <div
+              className="prose prose-neutral max-w-2xl text-muted dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(artist.bio) }}
+            />
+          )}
           {socials.length > 0 && (
             <div className="mt-2 flex gap-3">
               {socials.map(({ href, icon: Icon, label }) => (

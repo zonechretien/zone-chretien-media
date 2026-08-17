@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils";
 import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
+import { renderMarkdown, markdownToText } from "@/lib/markdown";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const testimony = await getTestimonyBySlug(slug);
   if (!testimony) return {};
 
-  const description = testimony.content.slice(0, 160);
+  const description = markdownToText(testimony.content).slice(0, 160);
 
   return {
     title: testimony.title,
@@ -48,7 +49,7 @@ export default async function TestimonyPage({ params }: Props) {
           "@type": "CreativeWork",
           name: testimony.title,
           headline: testimony.title,
-          description: testimony.content.slice(0, 160),
+          description: markdownToText(testimony.content).slice(0, 160),
           image: testimony.imageUrl ?? undefined,
           author: { "@type": "Person", name: testimony.authorName },
           datePublished: testimony.createdAt.toISOString(),
@@ -77,9 +78,10 @@ export default async function TestimonyPage({ params }: Props) {
         {testimony.title}
       </h1>
 
-      <div className="prose prose-neutral mt-8 max-w-none whitespace-pre-line leading-relaxed text-foreground/90 dark:prose-invert">
-        {testimony.content}
-      </div>
+      <div
+        className="prose prose-neutral mt-8 max-w-none leading-relaxed text-foreground/90 dark:prose-invert"
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(testimony.content) }}
+      />
 
       <div className="mt-10 border-t border-border pt-6">
         <ShareButtons url={`/temoignages/${testimony.slug}`} title={testimony.title} />

@@ -13,6 +13,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { SongCard } from "@/components/cards/song-card";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
+import { renderMarkdown, markdownToText } from "@/lib/markdown";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!song) return {};
 
   const title = song.metaTitle ?? `${song.title} — ${song.artist.name}`;
-  const description = song.metaDescription ?? song.description ?? undefined;
+  const description = song.metaDescription ?? (song.description ? markdownToText(song.description) : undefined);
 
   return {
     title,
@@ -58,7 +59,7 @@ export default async function SongPage({ params }: Props) {
           url: absoluteUrl(`/chansons/${song.slug}`),
           image: song.imageUrl,
           datePublished: song.createdAt.toISOString(),
-          description: song.description ?? undefined,
+          description: song.description ? markdownToText(song.description) : undefined,
           genre: song.category?.name,
           byArtist: {
             "@type": "MusicGroup",
@@ -107,7 +108,10 @@ export default async function SongPage({ params }: Props) {
       </div>
 
       {song.description && (
-        <p className="mt-8 max-w-3xl leading-relaxed text-foreground/90">{song.description}</p>
+        <div
+          className="prose prose-neutral mt-8 max-w-3xl leading-relaxed text-foreground/90 dark:prose-invert"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(song.description) }}
+        />
       )}
 
       <div className="mt-8 flex flex-col gap-6">

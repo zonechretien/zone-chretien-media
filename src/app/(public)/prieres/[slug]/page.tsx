@@ -7,6 +7,7 @@ import { PRAYER_CATEGORY_LABELS } from "@/lib/validations/prayers";
 import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
+import { renderMarkdown, markdownToText } from "@/lib/markdown";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const prayer = await getPrayerBySlug(slug);
   if (!prayer) return {};
 
-  const description = prayer.content.slice(0, 160);
+  const description = markdownToText(prayer.content).slice(0, 160);
 
   return {
     title: prayer.title,
@@ -46,7 +47,7 @@ export default async function PrayerPage({ params }: Props) {
           "@type": "CreativeWork",
           name: prayer.title,
           headline: prayer.title,
-          description: prayer.content.slice(0, 160),
+          description: markdownToText(prayer.content).slice(0, 160),
           about: PRAYER_CATEGORY_LABELS[prayer.category],
           datePublished: prayer.createdAt.toISOString(),
           url: absoluteUrl(`/prieres/${prayer.slug}`),
@@ -58,9 +59,10 @@ export default async function PrayerPage({ params }: Props) {
       <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
         {prayer.title}
       </h1>
-      <div className="prose prose-neutral mt-8 max-w-none whitespace-pre-line leading-relaxed text-foreground/90 dark:prose-invert">
-        {prayer.content}
-      </div>
+      <div
+        className="prose prose-neutral mt-8 max-w-none leading-relaxed text-foreground/90 dark:prose-invert"
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(prayer.content) }}
+      />
       <div className="mt-10 border-t border-border pt-6">
         <ShareButtons url={`/prieres/${prayer.slug}`} title={prayer.title} />
       </div>

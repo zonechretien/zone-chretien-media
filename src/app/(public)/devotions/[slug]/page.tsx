@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils";
 import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
+import { renderMarkdown, markdownToText } from "@/lib/markdown";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const devotion = await getDevotionBySlug(slug);
   if (!devotion) return {};
 
-  const description = devotion.reflection.slice(0, 160);
+  const description = markdownToText(devotion.reflection).slice(0, 160);
 
   return {
     title: devotion.title,
@@ -49,7 +50,7 @@ export default async function DevotionPage({ params }: Props) {
           "@id": absoluteUrl(`/devotions/${devotion.slug}`),
           name: devotion.title,
           headline: devotion.title,
-          description: devotion.reflection.slice(0, 160),
+          description: markdownToText(devotion.reflection).slice(0, 160),
           image: devotion.imageUrl ?? undefined,
           datePublished: devotion.date.toISOString(),
           url: absoluteUrl(`/devotions/${devotion.slug}`),
@@ -86,27 +87,30 @@ export default async function DevotionPage({ params }: Props) {
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-foreground">Réflexion</h2>
-        <p className="mt-2 whitespace-pre-line leading-relaxed text-foreground/90">
-          {devotion.reflection}
-        </p>
+        <div
+          className="prose prose-neutral mt-2 max-w-none leading-relaxed text-foreground/90 dark:prose-invert"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(devotion.reflection) }}
+        />
       </section>
 
       <section className="mt-8 rounded-2xl border border-border bg-surface p-6">
         <div className="flex items-center gap-2 text-sm font-semibold text-gold">
           <Lightbulb size={16} /> Application pratique
         </div>
-        <p className="mt-2 whitespace-pre-line leading-relaxed text-foreground/90">
-          {devotion.application}
-        </p>
+        <div
+          className="prose prose-neutral mt-2 max-w-none leading-relaxed text-foreground/90 dark:prose-invert"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(devotion.application) }}
+        />
       </section>
 
       <section className="mt-8">
         <div className="flex items-center gap-2 text-sm font-semibold text-gold">
           <HandHeart size={16} /> Prière
         </div>
-        <p className="mt-2 whitespace-pre-line leading-relaxed text-foreground/90">
-          {devotion.prayer}
-        </p>
+        <div
+          className="prose prose-neutral mt-2 max-w-none leading-relaxed text-foreground/90 dark:prose-invert"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(devotion.prayer) }}
+        />
       </section>
 
       <div className="mt-10 border-t border-border pt-6">

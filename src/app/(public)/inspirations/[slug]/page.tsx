@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils";
 import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
+import { renderMarkdown, markdownToText } from "@/lib/markdown";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const inspiration = await getInspirationBySlug(slug);
   if (!inspiration) return {};
 
-  const description = inspiration.content.slice(0, 160);
+  const description = markdownToText(inspiration.content).slice(0, 160);
 
   return {
     title: inspiration.title,
@@ -48,7 +49,7 @@ export default async function InspirationPage({ params }: Props) {
           "@type": "CreativeWork",
           name: inspiration.title,
           headline: inspiration.title,
-          description: inspiration.content.slice(0, 160),
+          description: markdownToText(inspiration.content).slice(0, 160),
           image: inspiration.imageUrl ?? undefined,
           author: inspiration.author ? { "@type": "Person", name: inspiration.author } : undefined,
           datePublished: inspiration.createdAt.toISOString(),
@@ -87,9 +88,10 @@ export default async function InspirationPage({ params }: Props) {
         </div>
       )}
 
-      <div className="prose prose-neutral mt-8 max-w-none whitespace-pre-line leading-relaxed text-foreground/90 dark:prose-invert">
-        {inspiration.content}
-      </div>
+      <div
+        className="prose prose-neutral mt-8 max-w-none leading-relaxed text-foreground/90 dark:prose-invert"
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(inspiration.content) }}
+      />
 
       <div className="mt-10 border-t border-border pt-6">
         <ShareButtons url={`/inspirations/${inspiration.slug}`} title={inspiration.title} />

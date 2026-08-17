@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/utils";
 import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
+import { renderMarkdown } from "@/lib/markdown";
 
 type Props = { params: Promise<{ date: string }> };
 
@@ -60,9 +61,10 @@ export default async function VersePage({ params }: Props) {
       {verse.explanation && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-foreground">Explication</h2>
-          <p className="mt-2 whitespace-pre-line leading-relaxed text-foreground/90">
-            {verse.explanation}
-          </p>
+          <div
+            className="prose prose-neutral mt-2 max-w-none leading-relaxed text-foreground/90 dark:prose-invert"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(verse.explanation) }}
+          />
         </section>
       )}
 
