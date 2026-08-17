@@ -162,6 +162,7 @@ model Artist {
   name         String
   slug         String  @unique
   photoUrl     String?
+  role         String? // titre court (ex. "Artiste gospel", "Évangéliste & Chanteur")
   bio          String?
   facebookUrl  String?
   instagramUrl String?

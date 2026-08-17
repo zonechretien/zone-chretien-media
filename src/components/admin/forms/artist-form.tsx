@@ -36,6 +36,7 @@ export function ArtistForm({ artist }: { artist?: Artist }) {
       ? {
           name: artist.name,
           slug: artist.slug,
+          role: artist.role ?? "",
           bio: artist.bio ?? "",
           photoUrl: artist.photoUrl ?? "",
           facebookUrl: artist.facebookUrl ?? "",
@@ -72,6 +73,17 @@ export function ArtistForm({ artist }: { artist?: Artist }) {
           <FieldError error={errors.slug} />
         </FormRow>
       </FormGrid>
+
+      <FormRow>
+        <FieldLabel htmlFor="role">Rôle / titre court</FieldLabel>
+        <input
+          id="role"
+          className={inputClass}
+          placeholder="Ex. Artiste gospel, Évangéliste & Chanteur"
+          {...register("role")}
+        />
+        <FieldError error={errors.role} />
+      </FormRow>
 
       <FormRow>
         <FieldLabel htmlFor="bio">Biographie</FieldLabel>

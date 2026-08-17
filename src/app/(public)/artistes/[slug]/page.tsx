@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { Dancing_Script } from "next/font/google";
 import { notFound } from "next/navigation";
 import { Music4, User } from "lucide-react";
 import { getArtistBySlug } from "@/lib/queries/artists";
@@ -10,6 +11,8 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { FacebookIcon, InstagramIcon, XIcon, YoutubeIcon } from "@/components/icons/social-icons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
+
+const dancingScript = Dancing_Script({ subsets: ["latin"], weight: ["600", "700"] });
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -48,6 +51,8 @@ export default async function ArtistPage({ params }: Props) {
     { href: artist.twitterUrl, icon: XIcon, label: "X" },
   ].filter((s) => s.href);
 
+  const bioExcerpt = artist.bio ? markdownToText(artist.bio) : null;
+
   return (
     <div>
       <JsonLd
@@ -63,50 +68,98 @@ export default async function ArtistPage({ params }: Props) {
           ),
         }}
       />
-      <div className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-12 text-center sm:px-6 lg:px-8">
-          <div className="relative h-32 w-32 overflow-hidden rounded-full bg-navy shadow-lg">
-            {artist.photoUrl ? (
-              <Image src={artist.photoUrl} alt={artist.name} fill className="object-cover" sizes="128px" priority />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-gold">
-                <User size={40} />
+
+      <div className="mx-auto max-w-4xl px-4 pt-10 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-3xl border border-border shadow-lg">
+          <div className="flex flex-col sm:flex-row">
+            <div className="relative h-64 w-full shrink-0 bg-navy sm:h-auto sm:w-[42%]">
+              {artist.photoUrl ? (
+                <Image
+                  src={artist.photoUrl}
+                  alt={artist.name}
+                  fill
+                  className="object-cover"
+                  sizes="(min-width: 640px) 42vw, 100vw"
+                  priority
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-gold">
+                  <User size={56} />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-1 flex-col">
+              <div className="flex-1 bg-surface-elevated px-6 py-6 sm:px-8 sm:py-8">
+                <p className={`${dancingScript.className} text-4xl text-gold sm:text-5xl`}>Bienvenue</p>
+                <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
+                  Découvrez le parcours et la musique de {artist.name}, et laissez-vous porter par un
+                  témoignage vivant à travers le chant.
+                </p>
               </div>
-            )}
+
+              <div className="relative bg-navy px-6 py-6 text-white sm:px-8 sm:py-8">
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{artist.name}</h1>
+                <div className="my-3 h-px w-16 bg-gold" />
+                {artist.role && (
+                  <p className="text-sm font-semibold uppercase tracking-wide text-gold">{artist.role}</p>
+                )}
+                {bioExcerpt && (
+                  <p className="mt-2 line-clamp-3 max-w-md text-sm leading-relaxed text-white/80">
+                    {bioExcerpt}
+                  </p>
+                )}
+                <svg
+                  viewBox="0 0 60 40"
+                  className="absolute bottom-3 right-4 h-8 w-12 text-gold/70 sm:bottom-4 sm:right-6"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 6C4 26 20 34 40 30"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M31 24L41 30.5L33.5 37"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              {artist.name}
-            </h1>
-            {artist.isSponsored && (
-              <span className="rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
-                Sponsorisé
-              </span>
-            )}
+        </div>
+
+        {socials.length > 0 && (
+          <div className="mt-6 flex justify-center gap-3">
+            {socials.map(({ href, icon: Icon, label }) => (
+              <a
+                key={label}
+                href={href ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold"
+              >
+                <Icon size={16} />
+              </a>
+            ))}
           </div>
-          {artist.bio && (
+        )}
+
+        {artist.bio && (
+          <div className="mt-10">
+            <SectionHeading title="Biographie" className="mb-4" />
             <div
-              className="prose prose-neutral max-w-2xl text-muted dark:prose-invert"
+              className="prose prose-neutral max-w-none text-muted dark:prose-invert"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(artist.bio) }}
             />
-          )}
-          {socials.length > 0 && (
-            <div className="mt-2 flex gap-3">
-              {socials.map(({ href, icon: Icon, label }) => (
-                <a
-                  key={label}
-                  href={href ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold"
-                >
-                  <Icon size={16} />
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">

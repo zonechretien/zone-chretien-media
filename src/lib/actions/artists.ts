@@ -12,6 +12,7 @@ function toData(input: ArtistInput) {
   return {
     name: input.name,
     slug: slugify(input.slug),
+    role: input.role || null,
     bio: input.bio || null,
     photoUrl: input.photoUrl || null,
     facebookUrl: input.facebookUrl || null,
