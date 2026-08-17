@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import type { Inspiration } from "@prisma/client";
 import { formatDateShort, truncate } from "@/lib/utils";
+import { markdownToText } from "@/lib/markdown";
 
 export function InspirationCard({ inspiration }: { inspiration: Inspiration }) {
   return (
@@ -27,7 +28,7 @@ export function InspirationCard({ inspiration }: { inspiration: Inspiration }) {
       </div>
       <div className="flex flex-1 flex-col gap-2 p-5">
         <h3 className="line-clamp-2 font-semibold text-foreground">{inspiration.title}</h3>
-        <p className="line-clamp-2 text-sm text-muted">{truncate(inspiration.content, 110)}</p>
+        <p className="line-clamp-2 text-sm text-muted">{truncate(markdownToText(inspiration.content), 110)}</p>
         <div className="mt-auto flex items-center justify-between pt-2 text-xs text-muted">
           <span>{inspiration.author ?? "Zone-Chrétien"}</span>
           <span>{formatDateShort(inspiration.createdAt)}</span>

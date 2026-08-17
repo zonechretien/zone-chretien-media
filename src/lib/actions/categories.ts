@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
+import { slugify } from "@/lib/utils";
 import { categorySchema, type CategoryInput } from "@/lib/validations/categories";
 
 export async function createCategory(input: CategoryInput): Promise<{ error?: string }> {
@@ -14,7 +15,7 @@ export async function createCategory(input: CategoryInput): Promise<{ error?: st
 
   try {
     await prisma.category.create({
-      data: { ...parsed.data, description: parsed.data.description || null },
+      data: { ...parsed.data, slug: slugify(parsed.data.slug), description: parsed.data.description || null },
     });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -35,7 +36,7 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
   try {
     await prisma.category.update({
       where: { id },
-      data: { ...parsed.data, description: parsed.data.description || null },
+      data: { ...parsed.data, slug: slugify(parsed.data.slug), description: parsed.data.description || null },
     });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

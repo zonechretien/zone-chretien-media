@@ -2,6 +2,7 @@ import Image from "next/image";
 import { PlayCircle } from "lucide-react";
 import type { Artist, Category, Video } from "@prisma/client";
 import { getYoutubeEmbedUrl, getYoutubeThumbnail } from "@/lib/utils";
+import { markdownToText } from "@/lib/markdown";
 
 export function VideoCard({
   video,
@@ -47,7 +48,7 @@ export function VideoCard({
       <div className="p-4">
         <h3 className="line-clamp-1 font-semibold text-foreground">{video.title}</h3>
         {video.description && (
-          <p className="mt-1 line-clamp-2 text-sm text-muted">{video.description}</p>
+          <p className="mt-1 line-clamp-2 text-sm text-muted">{markdownToText(video.description)}</p>
         )}
         {(video.artist || video.category) && (
           <p className="mt-2 text-xs text-gold">

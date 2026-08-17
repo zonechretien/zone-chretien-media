@@ -5,12 +5,13 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
+import { slugify } from "@/lib/utils";
 import { prayerSchema, type PrayerInput } from "@/lib/validations/prayers";
 
 function toData(input: PrayerInput) {
   return {
     title: input.title,
-    slug: input.slug,
+    slug: slugify(input.slug),
     content: input.content,
     category: input.category,
     imageUrl: input.imageUrl || null,

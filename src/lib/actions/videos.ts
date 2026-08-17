@@ -5,12 +5,13 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
+import { slugify } from "@/lib/utils";
 import { videoSchema, type VideoInput } from "@/lib/validations/videos";
 
 function toData(input: VideoInput) {
   return {
     title: input.title,
-    slug: input.slug,
+    slug: slugify(input.slug),
     description: input.description || null,
     youtubeUrl: input.youtubeUrl,
     thumbnailUrl: input.thumbnailUrl || null,

@@ -6,13 +6,14 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { slugify } from "@/lib/utils";
 import { articleSchema, type ArticleInput } from "@/lib/validations/articles";
 
 function toData(input: ArticleInput, authorId: string, existingPublishedAt: Date | null) {
   const published = input.published ?? true;
   return {
     title: input.title,
-    slug: input.slug,
+    slug: slugify(input.slug),
     excerpt: input.excerpt || null,
     content: sanitizeHtml(input.content),
     coverImageUrl: input.coverImageUrl || null,

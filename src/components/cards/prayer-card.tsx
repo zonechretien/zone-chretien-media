@@ -3,6 +3,7 @@ import { HandHeart } from "lucide-react";
 import type { Prayer } from "@prisma/client";
 import { PRAYER_CATEGORY_LABELS } from "@/lib/validations/prayers";
 import { truncate } from "@/lib/utils";
+import { markdownToText } from "@/lib/markdown";
 
 export function PrayerCard({ prayer }: { prayer: Prayer }) {
   return (
@@ -15,7 +16,7 @@ export function PrayerCard({ prayer }: { prayer: Prayer }) {
         {PRAYER_CATEGORY_LABELS[prayer.category]}
       </div>
       <h3 className="mt-2 line-clamp-2 font-semibold text-foreground">{prayer.title}</h3>
-      <p className="mt-2 line-clamp-3 text-sm text-muted">{truncate(prayer.content, 140)}</p>
+      <p className="mt-2 line-clamp-3 text-sm text-muted">{truncate(markdownToText(prayer.content), 140)}</p>
     </Link>
   );
 }

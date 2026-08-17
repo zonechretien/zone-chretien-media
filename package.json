@@ -14,7 +14,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "admin:create": "tsx --env-file=.env scripts/create-admin.ts",
-    "artists:fix-slugs": "tsx --env-file=.env scripts/fix-artist-slugs.ts",
+    "content:fix-slugs": "tsx --env-file=.env scripts/fix-all-slugs.ts",
     "lance_app": "lance_app.bat"
   },
   "dependencies": {

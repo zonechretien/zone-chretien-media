@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
+import { slugify } from "@/lib/utils";
 import { tagSchema, type TagInput } from "@/lib/validations/categories";
 
 export async function createTag(input: TagInput): Promise<{ error?: string }> {
@@ -13,7 +14,7 @@ export async function createTag(input: TagInput): Promise<{ error?: string }> {
   if (!parsed.success) return { error: "Formulaire invalide." };
 
   try {
-    await prisma.tag.create({ data: parsed.data });
+    await prisma.tag.create({ data: { ...parsed.data, slug: slugify(parsed.data.slug) } });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return { error: "Ce slug est déjà utilisé." };
@@ -31,7 +32,7 @@ export async function updateTag(id: string, input: TagInput): Promise<{ error?: 
   if (!parsed.success) return { error: "Formulaire invalide." };
 
   try {
-    await prisma.tag.update({ where: { id }, data: parsed.data });
+    await prisma.tag.update({ where: { id }, data: { ...parsed.data, slug: slugify(parsed.data.slug) } });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return { error: "Ce slug est déjà utilisé." };

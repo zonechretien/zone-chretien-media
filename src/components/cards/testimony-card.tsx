@@ -3,6 +3,7 @@ import Link from "next/link";
 import { UserRound } from "lucide-react";
 import type { Testimony } from "@prisma/client";
 import { formatDateShort, truncate } from "@/lib/utils";
+import { markdownToText } from "@/lib/markdown";
 
 export function TestimonyCard({ testimony }: { testimony: Testimony }) {
   return (
@@ -26,7 +27,7 @@ export function TestimonyCard({ testimony }: { testimony: Testimony }) {
         </div>
       </div>
       <h3 className="mt-3 line-clamp-2 font-semibold text-foreground">{testimony.title}</h3>
-      <p className="mt-2 line-clamp-3 text-sm text-muted">{truncate(testimony.content, 140)}</p>
+      <p className="mt-2 line-clamp-3 text-sm text-muted">{truncate(markdownToText(testimony.content), 140)}</p>
     </Link>
   );
 }
