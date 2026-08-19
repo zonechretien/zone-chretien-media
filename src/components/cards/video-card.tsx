@@ -6,6 +6,7 @@ import type { Artist, Category, Video } from "@prisma/client";
 import { getYoutubeEmbedUrl, getYoutubeThumbnail } from "@/lib/utils";
 import { markdownToText } from "@/lib/markdown";
 import { useVideoModal } from "@/components/shared/video-modal-provider";
+import { ShareButtons } from "@/components/shared/share-buttons";
 
 export function VideoCard({
   video,
@@ -57,6 +58,7 @@ export function VideoCard({
             {video.category?.name}
           </p>
         )}
+        <ShareButtons url={video.youtubeUrl} title={video.title} compact className="mt-3" />
       </div>
     </div>
   );

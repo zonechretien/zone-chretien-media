@@ -8,11 +8,14 @@ export function ShareButtons({
   url,
   title,
   className,
+  compact = false,
 }: {
   /** Chemin relatif (ex: "/chansons/mon-titre") ou URL absolue. */
   url: string;
   title: string;
   className?: string;
+  /** Sans le libellé "Partager :" et avec des boutons plus petits, pour les espaces réduits (cards). */
+  compact?: boolean;
 }) {
   // Le rendu initial (SSR + premier rendu client) doit être identique pour
   // éviter une erreur d'hydratation : on part de `url` tel quel, et on ne
@@ -45,17 +48,21 @@ export function ShareButtons({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <span className="text-sm font-medium text-muted">Partager :</span>
+      {!compact && <span className="text-sm font-medium text-muted">Partager :</span>}
       {links.map(({ label, icon: Icon, href }) => (
         <a
           key={label}
           href={href}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
           aria-label={`Partager sur ${label}`}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold"
+          className={cn(
+            "flex items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold",
+            compact ? "h-7 w-7" : "h-9 w-9",
+          )}
         >
-          <Icon size={16} />
+          <Icon size={compact ? 13 : 16} />
         </a>
       ))}
     </div>
