@@ -62,7 +62,7 @@ export default async function SongsPage({
           <>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {songs.map((song) => (
-                <SongCard key={song.id} song={song} />
+                <SongCard key={song.id} song={song} queue={songs} />
               ))}
             </div>
             <Pagination

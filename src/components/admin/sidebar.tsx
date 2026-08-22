@@ -18,6 +18,7 @@ import {
   Music4,
   Video,
   Wand2,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "Site",
     items: [
+      { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
       { href: "/admin/banners", label: "Monétisation", icon: Megaphone },
       { href: "/admin/parametres", label: "Paramètres", icon: Settings },
     ],

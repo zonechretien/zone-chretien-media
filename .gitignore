@@ -52,3 +52,6 @@ next-env.d.ts
 
 # Claude Code — état/paramètres locaux de l'outil, pas du projet
 /.claude/
+
+.vercel
+.env*

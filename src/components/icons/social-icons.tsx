@@ -50,6 +50,14 @@ export function XIcon(props: IconProps) {
   );
 }
 
+export function TiktokIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M16.6 5.82c-.94-.83-1.53-2.02-1.6-3.32h-3.02v13.94a2.9 2.9 0 1 1-2.05-2.77V10.6a5.9 5.9 0 1 0 5.07 5.84V9.4a8.15 8.15 0 0 0 4.66 1.46V7.83a4.85 4.85 0 0 1-3.06-2.01Z" />
+    </BaseIcon>
+  );
+}
+
 export function WhatsappIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

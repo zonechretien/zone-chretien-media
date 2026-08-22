@@ -1,13 +1,18 @@
 import { Header } from "@/components/layout/header";
+import { TopBar } from "@/components/layout/top-bar";
 import { Footer } from "@/components/layout/footer";
 import { VideoModalProvider } from "@/components/shared/video-modal-provider";
+import { AudioPlayerProvider } from "@/components/shared/audio-player-provider";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <VideoModalProvider>
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </VideoModalProvider>
+    <AudioPlayerProvider>
+      <VideoModalProvider>
+        <TopBar />
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </VideoModalProvider>
+    </AudioPlayerProvider>
   );
 }

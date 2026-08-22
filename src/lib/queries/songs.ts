@@ -49,6 +49,15 @@ export function getLatestSongs(limit = 8) {
   });
 }
 
+export function getTopSongs(limit = 5) {
+  return prisma.song.findMany({
+    where: { published: true },
+    orderBy: { views: "desc" },
+    include: { artist: true, category: true },
+    take: limit,
+  });
+}
+
 export function getFeaturedSong() {
   return prisma.song.findFirst({
     where: { published: true, featured: true },

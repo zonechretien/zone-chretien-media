@@ -15,6 +15,29 @@
   --navy-light: #14315f;
   --gold: #b8912f;
   --gold-soft: #d4af37;
+
+  /* ── Nouvelle charte du site public (maquette de référence "GlorySound") ──
+     Tokens volontairement distincts de ceux ci-dessus : le CMS admin utilise
+     encore --navy/--gold/--background/etc., qui restent inchangés. Le site
+     public migrera composant par composant vers ces tokens brand-* (étapes B+). */
+  --brand-navy: #0a1628;
+  --brand-navy-light: #132238;
+  --brand-navy-mid: #1a3055;
+  --brand-blue: #1e5fa8;
+  --brand-blue-bright: #2d7dd2;
+  --brand-gold: #e8a020;
+  --brand-gold-light: #f5c842;
+  --brand-red: #d94f3b;
+  --brand-white: #ffffff;
+  --brand-off-white: #f5f7fa;
+  --brand-gray-light: #e8ecf2;
+  --brand-gray: #8a97aa;
+  --brand-gray-dark: #4a5568;
+  --brand-text: #1a2535;
+
+  --brand-shadow-sm: 0 2px 12px rgba(10, 22, 40, 0.08);
+  --brand-shadow-md: 0 8px 32px rgba(10, 22, 40, 0.14);
+  --brand-shadow-lg: 0 20px 60px rgba(10, 22, 40, 0.22);
 }
 
 .dark {
@@ -29,6 +52,14 @@
   --navy-light: #14315f;
   --gold: #d4af37;
   --gold-soft: #e8c766;
+
+  /* Brand tokens : navy/gold/blue/red restent identiques en sombre (comme dans la
+     maquette de référence, qui ne fait varier que les surfaces neutres). */
+  --brand-off-white: #0e1b2e;
+  --brand-white: #132238;
+  --brand-gray-light: #1e3050;
+  --brand-text: #e8ecf2;
+  --brand-gray-dark: #8a97aa;
 }
 
 @theme inline {
@@ -44,6 +75,29 @@
   --color-gold-soft: var(--gold-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-light: var(--brand-navy-light);
+  --color-brand-navy-mid: var(--brand-navy-mid);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-bright: var(--brand-blue-bright);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-gold-light: var(--brand-gold-light);
+  --color-brand-red: var(--brand-red);
+  --color-brand-white: var(--brand-white);
+  --color-brand-off-white: var(--brand-off-white);
+  --color-brand-gray-light: var(--brand-gray-light);
+  --color-brand-gray: var(--brand-gray);
+  --color-brand-gray-dark: var(--brand-gray-dark);
+  --color-brand-text: var(--brand-text);
+
+  --font-display: var(--font-playfair);
+  --font-body: var(--font-dm-sans);
+  --font-accent: var(--font-bebas);
+
+  --shadow-brand-sm: var(--brand-shadow-sm);
+  --shadow-brand-md: var(--brand-shadow-md);
+  --shadow-brand-lg: var(--brand-shadow-lg);
 }
 
 * {

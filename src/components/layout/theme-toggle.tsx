@@ -21,9 +21,9 @@ export function ThemeToggle() {
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold"
+      className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-brand-gray-light bg-brand-off-white text-brand-gray-dark transition hover:border-brand-navy hover:bg-brand-navy hover:text-brand-gold"
     >
-      {isDark ? <Sun size={18} /> : <Moon size={18} />}
+      {isDark ? <Sun size={16} /> : <Moon size={16} />}
     </button>
   );
 }

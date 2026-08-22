@@ -2,25 +2,28 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { getVerseOfDay } from "@/lib/queries/verses";
 import { getFeaturedSong, getLatestSongs } from "@/lib/queries/songs";
-import { getFeaturedArticle } from "@/lib/queries/articles";
 import { getLatestInspirations } from "@/lib/queries/inspirations";
 import { getLatestDevotions } from "@/lib/queries/devotions";
 import { getLatestTestimonies } from "@/lib/queries/testimonies";
 import { getPopularArtists } from "@/lib/queries/artists";
 import { getCategories } from "@/lib/queries/categories";
+import { getLatestArticles } from "@/lib/queries/articles";
+import { getLatestVideos } from "@/lib/queries/videos";
 
 import { Hero } from "@/components/home/hero";
 import { VerseOfDay } from "@/components/home/verse-of-day";
 import { FeaturedSong } from "@/components/home/featured-song";
 import { PopularArtists } from "@/components/home/popular-artists";
 import { CategoryGrid } from "@/components/home/category-grid";
+import { NewsSection } from "@/components/home/news-section";
+import { VideosSection } from "@/components/home/videos-section";
+import { TestimonialsSection } from "@/components/home/testimonials-section";
+import { NewsletterSection } from "@/components/home/newsletter-section";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SongCard } from "@/components/cards/song-card";
 import { InspirationCard } from "@/components/cards/inspiration-card";
 import { DevotionCard } from "@/components/cards/devotion-card";
-import { TestimonyCard } from "@/components/cards/testimony-card";
-import { ArticleCard } from "@/components/cards/article-card";
 import { Music4 } from "lucide-react";
 
 export const revalidate = 300;
@@ -34,24 +37,26 @@ export default async function HomePage() {
     settings,
     verse,
     featuredSong,
-    featuredArticle,
     latestSongs,
     latestInspirations,
     latestDevotions,
     latestTestimonies,
     popularArtists,
     categories,
+    latestArticles,
+    latestVideos,
   ] = await Promise.all([
     prisma.settings.findUnique({ where: { id: "settings" } }),
     getVerseOfDay(),
     getFeaturedSong(),
-    getFeaturedArticle(),
     getLatestSongs(8),
     getLatestInspirations(3),
     getLatestDevotions(3),
     getLatestTestimonies(4),
     getPopularArtists(8),
     getCategories(),
+    getLatestArticles(4),
+    getLatestVideos(3),
   ]);
 
   return (
@@ -129,30 +134,13 @@ export default async function HomePage() {
         </section>
       )}
 
-      {featuredArticle && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <SectionHeading eyebrow="À lire" title="Article vedette" className="mb-6" />
-          <div className="max-w-xl">
-            <ArticleCard article={featuredArticle} />
-          </div>
-        </section>
-      )}
+      <NewsSection articles={latestArticles} />
 
-      {latestTestimonies.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <SectionHeading
-            eyebrow="Vies transformées"
-            title="Derniers témoignages"
-            href="/temoignages"
-            className="mb-6"
-          />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {latestTestimonies.map((testimony) => (
-              <TestimonyCard key={testimony.id} testimony={testimony} />
-            ))}
-          </div>
-        </section>
-      )}
+      <VideosSection videos={latestVideos} />
+
+      <TestimonialsSection testimonies={latestTestimonies} />
+
+      <NewsletterSection />
     </div>
   );
 }

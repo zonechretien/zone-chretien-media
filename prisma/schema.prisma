@@ -185,6 +185,7 @@ model Song {
   title       String
   slug        String  @unique
   description String?
+  lyrics      String?
   imageUrl    String
   audioUrl    String? // URL externe uniquement — aucun fichier hébergé sur le site
   youtubeUrl  String?
@@ -423,6 +424,20 @@ model Banner {
   updatedAt DateTime @updatedAt
 
   @@map("banners")
+}
+
+// ============================================================================
+// NEWSLETTER
+// ============================================================================
+
+model NewsletterSubscriber {
+  id        String  @id @default(cuid())
+  email     String  @unique
+  firstName String?
+
+  createdAt DateTime @default(now())
+
+  @@map("newsletter_subscribers")
 }
 
 // ============================================================================

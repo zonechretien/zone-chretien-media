@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Eye, Calendar, Tag as TagIcon } from "lucide-react";
-import { getSimilarSongs, getSongBySlug } from "@/lib/queries/songs";
+import { ChevronRight, PenLine, Tag as TagIcon, LayoutGrid } from "lucide-react";
+import { YoutubeIcon } from "@/components/icons/social-icons";
+import { getSimilarSongs, getSongBySlug, getTopSongs } from "@/lib/queries/songs";
+import { getLatestArticles } from "@/lib/queries/articles";
+import { getPopularArtists } from "@/lib/queries/artists";
 import { trackView } from "@/lib/queries/shared";
-import { formatDate, formatViews } from "@/lib/utils";
-import { AudioPlayer } from "@/components/shared/audio-player";
+import { formatDate } from "@/lib/utils";
 import { YoutubeEmbed } from "@/components/shared/youtube-embed";
 import { ShareButtons } from "@/components/shared/share-buttons";
-import { SectionHeading } from "@/components/shared/section-heading";
 import { SongCard } from "@/components/cards/song-card";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
 import { renderMarkdown, markdownToText } from "@/lib/markdown";
+import { SongHero } from "@/components/songs/song-hero";
+import { SongLyrics } from "@/components/songs/song-lyrics";
+import { SongArtistCard } from "@/components/songs/song-artist-card";
+import { SectionLabel } from "@/components/songs/section-label";
+import { SongSidebar } from "@/components/songs/song-sidebar";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -47,10 +52,19 @@ export default async function SongPage({ params }: Props) {
 
   trackView("SONG", song.id);
 
-  const similarSongs = await getSimilarSongs(song.id, song.categoryId, song.artistId);
+  const [similarSongs, recentArticles, topSongs, popularArtists] = await Promise.all([
+    getSimilarSongs(song.id, song.categoryId, song.artistId),
+    getLatestArticles(4),
+    getTopSongs(5),
+    getPopularArtists(4),
+  ]);
+
+  const plainDescription = song.description ? markdownToText(song.description) : null;
+  const readingMinutes = plainDescription ? Math.max(1, Math.round(plainDescription.split(/\s+/).length / 200)) : null;
+  const excerpt = plainDescription ? (plainDescription.length > 220 ? `${plainDescription.slice(0, 220).trim()}…` : plainDescription) : null;
 
   return (
-    <article className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+    <article>
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -59,7 +73,7 @@ export default async function SongPage({ params }: Props) {
           url: absoluteUrl(`/chansons/${song.slug}`),
           image: song.imageUrl,
           datePublished: song.createdAt.toISOString(),
-          description: song.description ? markdownToText(song.description) : undefined,
+          description: plainDescription ?? undefined,
           genre: song.category?.name,
           byArtist: {
             "@type": "MusicGroup",
@@ -68,67 +82,113 @@ export default async function SongPage({ params }: Props) {
           },
         }}
       />
-      <div className="grid gap-8 sm:grid-cols-[280px_1fr]">
-        <div className="relative aspect-square overflow-hidden rounded-2xl border border-border bg-navy">
-          <Image src={song.imageUrl} alt={song.title} fill className="object-cover" sizes="280px" priority />
+
+      <SongHero
+        data={{
+          track: {
+            id: song.id,
+            slug: song.slug,
+            title: song.title,
+            artistName: song.artist.name,
+            artistSlug: song.artist.slug,
+            imageUrl: song.imageUrl,
+            audioUrl: song.audioUrl ?? "",
+          },
+          categoryName: song.category?.name ?? null,
+          featured: song.featured,
+          dateLabel: formatDate(song.createdAt),
+          views: song.views,
+          readingMinutes,
+          excerpt,
+          hasLyrics: !!song.lyrics,
+          hasVideo: !!song.youtubeUrl,
+        }}
+      />
+
+      <div className="border-b border-brand-gray-light bg-brand-white py-2.5">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 font-body text-[12.5px] text-brand-gray sm:px-6 lg:px-8">
+          <Link href="/" className="text-brand-blue hover:underline">Accueil</Link>
+          <ChevronRight size={10} />
+          <Link href="/chansons" className="text-brand-blue hover:underline">Chansons</Link>
+          {song.category && (
+            <>
+              <ChevronRight size={10} />
+              <span>{song.category.name}</span>
+            </>
+          )}
+          <ChevronRight size={10} />
+          <span className="truncate">{song.title}</span>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 py-9 sm:px-6 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-9 lg:px-8">
+      <div className="min-w-0">
+        {song.youtubeUrl && (
+          <div id="video" className="mb-7 scroll-mt-24 overflow-hidden rounded-2xl bg-brand-white shadow-brand-sm">
+            <div className="flex items-center gap-2.5 border-b border-brand-gray-light px-5 py-4">
+              <YoutubeIcon size={20} className="text-brand-red" />
+              <h3 className="font-body text-[15px] font-semibold text-brand-text">Regarder le clip officiel</h3>
+            </div>
+            <YoutubeEmbed url={song.youtubeUrl} title={song.title} />
+          </div>
+        )}
+
+        {song.description && (
+          <div className="mb-7 rounded-2xl bg-brand-white p-6 shadow-brand-sm sm:p-8">
+            <SectionLabel icon={PenLine}>À propos du morceau</SectionLabel>
+            <div
+              className="prose prose-neutral max-w-none font-body text-[15.5px] leading-[1.8] text-brand-text/90"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(song.description) }}
+            />
+          </div>
+        )}
+
+        {song.lyrics && <SongLyrics lyrics={song.lyrics} />}
+
+        <div className="mb-7">
+          <SectionLabel>L&apos;artiste</SectionLabel>
+          <SongArtistCard artist={song.artist} />
         </div>
 
-        <div className="flex flex-col justify-center gap-3">
-          {song.category && (
-            <span className="w-fit rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
-              {song.category.name}
-            </span>
-          )}
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            {song.title}
-          </h1>
-          <Link href={`/artistes/${song.artist.slug}`} className="w-fit text-lg text-gold hover:underline">
-            {song.artist.name}
-          </Link>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
-            <span className="flex items-center gap-1">
-              <Calendar size={14} /> {formatDate(song.createdAt)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Eye size={14} /> {formatViews(song.views)} vues
-            </span>
-          </div>
-          {song.tags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-              <TagIcon size={12} />
+        <div className="mb-7 rounded-2xl bg-brand-white p-6 shadow-brand-sm sm:p-7">
+          <p className="mb-4 font-body text-[13px] font-semibold uppercase tracking-wide text-brand-gray">
+            Partager cette chanson
+          </p>
+          <ShareButtons url={`/chansons/${song.slug}`} title={`${song.title} — ${song.artist.name}`} />
+        </div>
+
+        {song.tags.length > 0 && (
+          <div className="mb-9">
+            <SectionLabel icon={TagIcon}>Tags</SectionLabel>
+            <div className="flex flex-wrap gap-2">
               {song.tags.map((tag) => (
-                <span key={tag.id} className="rounded-full bg-surface px-2.5 py-1">
-                  {tag.name}
+                <span
+                  key={tag.id}
+                  className="rounded-full border-[1.5px] border-brand-gray-light bg-brand-off-white px-3.5 py-1.5 font-body text-[12.5px] text-brand-gray-dark"
+                >
+                  #{tag.name}
                 </span>
               ))}
             </div>
-          )}
-          <ShareButtons url={`/chansons/${song.slug}`} title={`${song.title} — ${song.artist.name}`} />
-        </div>
-      </div>
-
-      {song.description && (
-        <div
-          className="prose prose-neutral mt-8 max-w-3xl leading-relaxed text-foreground/90 dark:prose-invert"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(song.description) }}
-        />
-      )}
-
-      <div className="mt-8 flex flex-col gap-6">
-        {song.audioUrl && <AudioPlayer src={song.audioUrl} title={song.title} />}
-        {song.youtubeUrl && <YoutubeEmbed url={song.youtubeUrl} title={song.title} />}
-      </div>
-
-      {similarSongs.length > 0 && (
-        <section className="mt-16">
-          <SectionHeading eyebrow="À découvrir" title="Chansons similaires" className="mb-6" />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {similarSongs.map((s) => (
-              <SongCard key={s.id} song={s} />
-            ))}
           </div>
-        </section>
-      )}
+        )}
+
+        {similarSongs.length > 0 && (
+          <section>
+            <SectionLabel icon={LayoutGrid}>Chansons similaires</SectionLabel>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {similarSongs.map((s) => (
+                <SongCard key={s.id} song={s} />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      <div className="mt-9 lg:sticky lg:top-24 lg:mt-0 lg:self-start">
+        <SongSidebar recentArticles={recentArticles} topSongs={topSongs} popularArtists={popularArtists} />
+      </div>
+      </div>
     </article>
   );
 }

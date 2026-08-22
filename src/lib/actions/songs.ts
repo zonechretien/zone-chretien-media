@@ -13,6 +13,7 @@ function toData(input: SongInput) {
     title: input.title,
     slug: slugify(input.slug),
     description: input.description || null,
+    lyrics: input.lyrics || null,
     imageUrl: input.imageUrl,
     audioUrl: input.audioUrl || null,
     youtubeUrl: input.youtubeUrl || null,

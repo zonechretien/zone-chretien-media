@@ -55,6 +55,7 @@ export function SongForm({
           title: song.title,
           slug: song.slug,
           description: song.description ?? "",
+          lyrics: song.lyrics ?? "",
           imageUrl: song.imageUrl,
           audioUrl: song.audioUrl ?? "",
           youtubeUrl: song.youtubeUrl ?? "",
@@ -148,6 +149,17 @@ export function SongForm({
         </div>
         <textarea id="description" className={textareaClass} {...register("description")} />
         {aiError && <p className="mt-1 text-xs text-red-500">{aiError}</p>}
+      </FormRow>
+
+      <FormRow>
+        <FieldLabel htmlFor="lyrics">Paroles (lyrics)</FieldLabel>
+        <textarea
+          id="lyrics"
+          className={textareaClass}
+          rows={8}
+          placeholder="Couplet 1…&#10;&#10;Refrain…"
+          {...register("lyrics")}
+        />
       </FormRow>
 
       <FormRow>
