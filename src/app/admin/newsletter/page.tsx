@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireSession } from "@/lib/admin/session";
+import { requireAdminRole } from "@/lib/admin/session";
 import { prisma } from "@/lib/db";
 import { formatDateShort } from "@/lib/utils";
 import { AdminTable } from "@/components/admin/admin-table";
@@ -10,7 +10,7 @@ import { deleteNewsletterSubscriber } from "@/lib/actions/newsletter";
 export const metadata: Metadata = { title: "Newsletter" };
 
 export default async function AdminNewsletterPage() {
-  await requireSession();
+  await requireAdminRole();
   const subscribers = await prisma.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" } });
 
   return (

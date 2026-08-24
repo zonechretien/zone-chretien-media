@@ -18,6 +18,7 @@ datasource db {
 // ============================================================================
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   EDITOR
 }
@@ -67,6 +68,7 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(EDITOR)
+  active        Boolean   @default(true) // compte désactivé = connexion refusée (voir auth.ts)
 
   accounts Account[]
   sessions Session[]

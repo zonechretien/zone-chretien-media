@@ -1,6 +1,6 @@
 "use server";
 
-import { requireSession } from "@/lib/admin/session";
+import { requireAdminRole } from "@/lib/admin/session";
 import { AIProviderError } from "@/lib/ai/types";
 import {
   generateDevotion,
@@ -25,7 +25,7 @@ function toResult<T>(promise: Promise<T>): Promise<Result<T>> {
 }
 
 export async function generateDevotionAction(topic?: string): Promise<Result<DevotionDraft>> {
-  await requireSession();
+  await requireAdminRole();
   return toResult(generateDevotion(topic));
 }
 
@@ -33,17 +33,17 @@ export async function generatePrayerAction(
   categoryLabel: string,
   topic?: string,
 ): Promise<Result<PrayerDraft>> {
-  await requireSession();
+  await requireAdminRole();
   return toResult(generatePrayer(categoryLabel, topic));
 }
 
 export async function generateVerseAction(theme?: string): Promise<Result<VerseDraft>> {
-  await requireSession();
+  await requireAdminRole();
   return toResult(generateVerse(theme));
 }
 
 export async function generateInspirationAction(topic?: string): Promise<Result<InspirationDraft>> {
-  await requireSession();
+  await requireAdminRole();
   return toResult(generateInspiration(topic));
 }
 
@@ -52,7 +52,7 @@ export async function generateSongDescriptionAction(input: {
   artistName: string;
   theme?: string;
 }): Promise<Result<string>> {
-  await requireSession();
+  await requireAdminRole();
   return toResult(generateSongDescription(input));
 }
 
@@ -62,6 +62,6 @@ export async function generateSocialPostAction(input: {
   contentTypeLabel: string;
   url?: string;
 }): Promise<Result<string>> {
-  await requireSession();
+  await requireAdminRole();
   return toResult(generateSocialPost(input));
 }

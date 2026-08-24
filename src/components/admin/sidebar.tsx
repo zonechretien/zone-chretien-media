@@ -19,10 +19,13 @@ import {
   Video,
   Wand2,
   Mail,
+  ShieldCheck,
 } from "lucide-react";
+import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { canAccessAdminPath } from "@/lib/admin/permissions";
 
-type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; superAdminOnly?: boolean };
 type NavSection = { title: string; items: NavItem[] };
 
 const NAV_SECTIONS: NavSection[] = [
@@ -56,6 +59,10 @@ const NAV_SECTIONS: NavSection[] = [
     items: [{ href: "/admin/ia", label: "Générateur IA", icon: Wand2 }],
   },
   {
+    title: "Équipe",
+    items: [{ href: "/admin/utilisateurs", label: "Utilisateurs", icon: ShieldCheck, superAdminOnly: true }],
+  },
+  {
     title: "Site",
     items: [
       { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
@@ -65,12 +72,20 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-export function AdminSidebar() {
+export function AdminSidebar({ role }: { role: Role }) {
   const pathname = usePathname();
+
+  const sections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => {
+      if (item.superAdminOnly) return role === "SUPER_ADMIN";
+      return canAccessAdminPath(role, item.href);
+    }),
+  })).filter((section) => section.items.length > 0);
 
   return (
     <nav className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-6">
-      {NAV_SECTIONS.map((section) => (
+      {sections.map((section) => (
         <div key={section.title}>
           <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-white/40">
             {section.title}

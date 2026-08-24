@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/admin/session";
+import { requireAdminRole } from "@/lib/admin/session";
 import { newsletterSchema, type NewsletterInput } from "@/lib/validations/newsletter";
 
 export async function subscribeNewsletter(input: NewsletterInput): Promise<{ error?: string }> {
@@ -21,6 +21,6 @@ export async function subscribeNewsletter(input: NewsletterInput): Promise<{ err
 }
 
 export async function deleteNewsletterSubscriber(id: string): Promise<{ error?: string } | void> {
-  await requireSession();
+  await requireAdminRole();
   await prisma.newsletterSubscriber.delete({ where: { id } });
 }

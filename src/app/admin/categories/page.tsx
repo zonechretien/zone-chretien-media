@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireSession } from "@/lib/admin/session";
+import { requireAdminRole } from "@/lib/admin/session";
 import { prisma } from "@/lib/db";
 import { AdminPageHeader, AdminTable } from "@/components/admin/admin-table";
 import { RowActions } from "@/components/admin/row-actions";
@@ -9,7 +9,7 @@ import { CATEGORY_TYPE_LABELS } from "@/lib/validations/categories";
 export const metadata: Metadata = { title: "Catégories" };
 
 export default async function AdminCategoriesPage() {
-  await requireSession();
+  await requireAdminRole();
   const categories = await prisma.category.findMany({ orderBy: [{ type: "asc" }, { name: "asc" }] });
 
   return (

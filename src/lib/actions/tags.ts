@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/admin/session";
+import { requireAdminRole } from "@/lib/admin/session";
 import { slugify } from "@/lib/utils";
 import { tagSchema, type TagInput } from "@/lib/validations/categories";
 
 export async function createTag(input: TagInput): Promise<{ error?: string }> {
-  await requireSession();
+  await requireAdminRole();
   const parsed = tagSchema.safeParse(input);
   if (!parsed.success) return { error: "Formulaire invalide." };
 
@@ -27,7 +27,7 @@ export async function createTag(input: TagInput): Promise<{ error?: string }> {
 }
 
 export async function updateTag(id: string, input: TagInput): Promise<{ error?: string }> {
-  await requireSession();
+  await requireAdminRole();
   const parsed = tagSchema.safeParse(input);
   if (!parsed.success) return { error: "Formulaire invalide." };
 
@@ -45,7 +45,7 @@ export async function updateTag(id: string, input: TagInput): Promise<{ error?: 
 }
 
 export async function deleteTag(id: string): Promise<{ error?: string } | void> {
-  await requireSession();
+  await requireAdminRole();
   await prisma.tag.delete({ where: { id } });
   revalidatePath("/admin/tags");
 }

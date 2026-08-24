@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireSession } from "@/lib/admin/session";
+import { requireAdminRole } from "@/lib/admin/session";
 import { DevotionGenerator } from "@/components/admin/ai/devotion-generator";
 import { PrayerGenerator } from "@/components/admin/ai/prayer-generator";
 import { VerseGenerator } from "@/components/admin/ai/verse-generator";
@@ -10,7 +10,7 @@ import { SocialPostGenerator } from "@/components/admin/ai/social-post-generator
 export const metadata: Metadata = { title: "Générateur IA" };
 
 export default async function AdminAIPage() {
-  await requireSession();
+  await requireAdminRole();
 
   return (
     <div>

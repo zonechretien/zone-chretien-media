@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireSession } from "@/lib/admin/session";
+import { requireAdminRole } from "@/lib/admin/session";
 import { prisma } from "@/lib/db";
 import { AdminPageHeader, AdminTable } from "@/components/admin/admin-table";
 import { RowActions } from "@/components/admin/row-actions";
@@ -8,7 +8,7 @@ import { deleteTag } from "@/lib/actions/tags";
 export const metadata: Metadata = { title: "Tags" };
 
 export default async function AdminTagsPage() {
-  await requireSession();
+  await requireAdminRole();
   const tags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
 
   return (

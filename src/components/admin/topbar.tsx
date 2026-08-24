@@ -27,7 +27,9 @@ export function AdminTopbar({
         </button>
         <div>
           <p className="text-sm font-semibold text-foreground">{name}</p>
-          <p className="text-xs text-muted">{role === "ADMIN" ? "Administrateur" : "Éditeur"}</p>
+          <p className="text-xs text-muted">
+            {role === "SUPER_ADMIN" ? "Super Admin" : role === "ADMIN" ? "Administrateur" : "Éditeur"}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2">

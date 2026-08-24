@@ -26,7 +26,7 @@ export function AdminShell({
           </span>
           <span className="text-sm font-semibold text-white">Zone-Chrétien CMS</span>
         </div>
-        <AdminSidebar />
+        <AdminSidebar role={role} />
       </aside>
 
       {mobileOpen && (
@@ -44,7 +44,7 @@ export function AdminShell({
                 <X size={18} />
               </button>
             </div>
-            <AdminSidebar />
+            <AdminSidebar role={role} />
           </aside>
         </div>
       )}

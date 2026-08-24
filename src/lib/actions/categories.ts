@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/admin/session";
+import { requireAdminRole } from "@/lib/admin/session";
 import { slugify } from "@/lib/utils";
 import { categorySchema, type CategoryInput } from "@/lib/validations/categories";
 
 export async function createCategory(input: CategoryInput): Promise<{ error?: string }> {
-  await requireSession();
+  await requireAdminRole();
   const parsed = categorySchema.safeParse(input);
   if (!parsed.success) return { error: "Formulaire invalide." };
 
@@ -29,7 +29,7 @@ export async function createCategory(input: CategoryInput): Promise<{ error?: st
 }
 
 export async function updateCategory(id: string, input: CategoryInput): Promise<{ error?: string }> {
-  await requireSession();
+  await requireAdminRole();
   const parsed = categorySchema.safeParse(input);
   if (!parsed.success) return { error: "Formulaire invalide." };
 
@@ -50,7 +50,7 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
 }
 
 export async function deleteCategory(id: string): Promise<{ error?: string } | void> {
-  await requireSession();
+  await requireAdminRole();
   // Les contenus liés (songs/articles/videos/inspirations) passent categoryId
   // à NULL automatiquement (ON DELETE SET NULL défini dans le schéma).
   await prisma.category.delete({ where: { id } });
