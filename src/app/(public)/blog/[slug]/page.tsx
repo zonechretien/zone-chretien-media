@@ -64,7 +64,7 @@ export default async function ArticlePage({ params }: Props) {
         }}
       />
       {article.category && (
-        <span className="w-fit rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
+        <span className="w-fit rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-navy dark:text-gold-soft">
           {article.category.name}
         </span>
       )}
@@ -94,7 +94,7 @@ export default async function ArticlePage({ params }: Props) {
       )}
 
       <div
-        className="prose prose-neutral mt-8 max-w-none leading-relaxed dark:prose-invert prose-headings:text-foreground prose-a:text-gold"
+        className="prose prose-neutral mt-8 max-w-none leading-relaxed dark:prose-invert prose-headings:text-foreground prose-a:text-navy dark:prose-a:text-gold-soft"
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }}
       />
 

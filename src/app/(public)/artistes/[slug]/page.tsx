@@ -91,7 +91,7 @@ export default async function ArtistPage({ params }: Props) {
 
             <div className="flex flex-1 flex-col">
               <div className="flex-1 bg-surface-elevated px-6 py-6 sm:px-8 sm:py-8">
-                <p className={`${dancingScript.className} text-4xl text-gold sm:text-5xl`}>Bienvenue</p>
+                <p className={`${dancingScript.className} text-4xl text-navy dark:text-gold-soft sm:text-5xl`}>Bienvenue</p>
                 <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
                   Découvrez le parcours et la musique de {artist.name}, et laissez-vous porter par un
                   témoignage vivant à travers le chant.
@@ -143,7 +143,7 @@ export default async function ArtistPage({ params }: Props) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-navy hover:text-navy dark:hover:border-gold-soft dark:hover:text-gold-soft"
               >
                 <Icon size={16} />
               </a>

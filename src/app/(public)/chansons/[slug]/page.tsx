@@ -106,10 +106,10 @@ export default async function SongPage({ params }: Props) {
       />
 
       <div className="border-b border-brand-gray-light bg-brand-white py-2.5">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 font-body text-[12.5px] text-brand-gray sm:px-6 lg:px-8">
-          <Link href="/" className="text-brand-blue hover:underline">Accueil</Link>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 font-body text-[12.5px] text-brand-gray-dark sm:px-6 lg:px-8">
+          <Link href="/" className="text-brand-blue hover:underline dark:text-brand-text">Accueil</Link>
           <ChevronRight size={10} />
-          <Link href="/chansons" className="text-brand-blue hover:underline">Chansons</Link>
+          <Link href="/chansons" className="text-brand-blue hover:underline dark:text-brand-text">Chansons</Link>
           {song.category && (
             <>
               <ChevronRight size={10} />
@@ -151,7 +151,7 @@ export default async function SongPage({ params }: Props) {
         </div>
 
         <div className="mb-7 rounded-2xl bg-brand-white p-6 shadow-brand-sm sm:p-7">
-          <p className="mb-4 font-body text-[13px] font-semibold uppercase tracking-wide text-brand-gray">
+          <p className="mb-4 font-body text-[13px] font-semibold uppercase tracking-wide text-brand-gray-dark">
             Partager cette chanson
           </p>
           <ShareButtons url={`/chansons/${song.slug}`} title={`${song.title} — ${song.artist.name}`} />

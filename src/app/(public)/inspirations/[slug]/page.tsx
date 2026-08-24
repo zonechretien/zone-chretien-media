@@ -57,7 +57,7 @@ export default async function InspirationPage({ params }: Props) {
         }}
       />
       {inspiration.category && (
-        <span className="w-fit rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
+        <span className="w-fit rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-navy dark:text-gold-soft">
           {inspiration.category.name}
         </span>
       )}

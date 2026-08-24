@@ -27,7 +27,7 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
               href={`${config.basePath}?categorie=${category.slug}`}
               className="flex items-center gap-3 rounded-2xl border border-border bg-surface-elevated p-4 transition hover:border-gold hover:shadow-md"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-gold">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-navy dark:text-gold-soft">
                 <Icon size={18} />
               </span>
               <span className="font-medium text-foreground">{category.name}</span>

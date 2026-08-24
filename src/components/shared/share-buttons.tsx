@@ -9,6 +9,7 @@ export function ShareButtons({
   title,
   className,
   compact = false,
+  dark = false,
 }: {
   /** Chemin relatif (ex: "/chansons/mon-titre") ou URL absolue. */
   url: string;
@@ -16,6 +17,10 @@ export function ShareButtons({
   className?: string;
   /** Sans le libellé "Partager :" et avec des boutons plus petits, pour les espaces réduits (cards). */
   compact?: boolean;
+  /** À utiliser quand le composant est posé sur un fond sombre (ex. carte navy),
+   * indépendamment du thème clair/sombre du site — sinon le texte foncé par défaut
+   * devient illisible sur ce fond. */
+  dark?: boolean;
 }) {
   // Le rendu initial (SSR + premier rendu client) doit être identique pour
   // éviter une erreur d'hydratation : on part de `url` tel quel, et on ne
@@ -48,7 +53,9 @@ export function ShareButtons({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      {!compact && <span className="text-sm font-medium text-muted">Partager :</span>}
+      {!compact && (
+        <span className={cn("text-sm font-medium", dark ? "text-white/70" : "text-muted")}>Partager :</span>
+      )}
       {links.map(({ label, icon: Icon, href }) => (
         <a
           key={label}
@@ -58,7 +65,10 @@ export function ShareButtons({
           onClick={(e) => e.stopPropagation()}
           aria-label={`Partager sur ${label}`}
           className={cn(
-            "flex items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold",
+            "flex items-center justify-center rounded-full border transition",
+            dark
+              ? "border-white/25 text-white/80 hover:border-gold-soft hover:text-gold-soft"
+              : "border-border text-foreground/70 hover:border-navy hover:text-navy dark:hover:border-gold-soft dark:hover:text-gold-soft",
             compact ? "h-7 w-7" : "h-9 w-9",
           )}
         >

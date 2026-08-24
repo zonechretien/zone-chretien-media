@@ -33,7 +33,7 @@ export function TestimonialsSection({ testimonies }: { testimonies: Testimony[] 
                 « {truncate(markdownToText(testimony.content), 160)} »
               </p>
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-blue to-brand-gold font-accent text-base text-brand-navy">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-gold font-accent text-base text-brand-navy">
                   {initials(testimony.authorName)}
                 </span>
                 <span className="font-body text-[13px] font-semibold text-white">{testimony.authorName}</span>

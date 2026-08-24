@@ -53,7 +53,7 @@ export default async function PrayerPage({ params }: Props) {
           url: absoluteUrl(`/prieres/${prayer.slug}`),
         }}
       />
-      <span className="flex w-fit items-center gap-2 rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
+      <span className="flex w-fit items-center gap-2 rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-navy dark:text-gold-soft">
         <HandHeart size={12} /> {PRAYER_CATEGORY_LABELS[prayer.category]}
       </span>
       <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">

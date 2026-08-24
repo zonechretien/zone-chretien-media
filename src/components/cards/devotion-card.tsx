@@ -10,7 +10,7 @@ export function DevotionCard({ devotion }: { devotion: Devotion }) {
       href={`/devotions/${devotion.slug}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-elevated p-5 transition hover:border-gold hover:shadow-lg"
     >
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gold">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-navy dark:text-gold-soft">
         <BookMarked size={14} />
         {formatDate(devotion.date)}
       </div>

@@ -23,7 +23,7 @@ function WidgetCard({
         className={
           dark
             ? "mb-4 flex items-center gap-2 border-b border-white/10 pb-3 font-body text-[13px] font-bold uppercase tracking-wide text-white/50"
-            : "mb-4 flex items-center gap-2 border-b-2 border-brand-gray-light pb-3 font-body text-[13px] font-bold uppercase tracking-wide text-brand-navy"
+            : "mb-4 flex items-center gap-2 border-b-2 border-brand-gray-light pb-3 font-body text-[13px] font-bold uppercase tracking-wide text-brand-text"
         }
       >
         <Icon size={14} />
@@ -60,10 +60,10 @@ export function SongSidebar({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="mb-1 line-clamp-2 font-body text-[13px] font-semibold leading-snug text-brand-navy">
+                  <p className="mb-1 line-clamp-2 font-body text-[13px] font-semibold leading-snug text-brand-text">
                     {article.title}
                   </p>
-                  <p className="font-body text-[11px] text-brand-gray">
+                  <p className="font-body text-[11px] text-brand-gray-dark">
                     {formatDateShort(article.publishedAt ?? article.createdAt)}
                   </p>
                 </div>
@@ -118,8 +118,8 @@ export function SongSidebar({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate font-body text-sm font-semibold text-brand-navy">{artist.name}</p>
-                  <p className="font-body text-[11px] text-brand-gray">
+                  <p className="truncate font-body text-sm font-semibold text-brand-text">{artist.name}</p>
+                  <p className="font-body text-[11px] text-brand-gray-dark">
                     {artist._count.songs} titre{artist._count.songs > 1 ? "s" : ""}
                   </p>
                 </div>

@@ -52,7 +52,7 @@ export async function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 border-b border-white/[0.06] px-4 py-12 sm:px-6 lg:grid-cols-[2fr_1fr_1fr_1fr] lg:px-8">
         <div>
           <Link href="/" className="mb-4 flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-blue to-brand-gold text-brand-navy">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-gold text-brand-navy">
               <Music4 size={20} />
             </span>
             <span className="font-accent text-2xl tracking-wide text-white">

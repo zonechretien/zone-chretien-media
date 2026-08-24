@@ -11,7 +11,7 @@ export function PrayerCard({ prayer }: { prayer: Prayer }) {
       href={`/prieres/${prayer.slug}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-elevated p-5 transition hover:border-gold hover:shadow-lg"
     >
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gold">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-navy dark:text-gold-soft">
         <HandHeart size={14} />
         {PRAYER_CATEGORY_LABELS[prayer.category]}
       </div>

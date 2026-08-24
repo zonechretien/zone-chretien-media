@@ -21,7 +21,7 @@ export function VerseOfDay({ verse }: { verse: Verse }) {
         </Link>
         <p className="mt-4 text-lg font-semibold text-gold">{verse.reference}</p>
         <div className="mt-6">
-          <ShareButtons url={url} title={`${verse.reference} — ${verse.text}`} />
+          <ShareButtons url={url} title={`${verse.reference} — ${verse.text}`} dark />
         </div>
       </div>
     </section>

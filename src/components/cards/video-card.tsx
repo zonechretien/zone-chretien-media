@@ -52,7 +52,7 @@ export function VideoCard({
           <p className="mt-1 line-clamp-2 text-sm text-muted">{markdownToText(video.description)}</p>
         )}
         {(video.artist || video.category) && (
-          <p className="mt-2 text-xs text-gold">
+          <p className="mt-2 text-xs text-navy dark:text-gold-soft">
             {video.artist?.name}
             {video.artist && video.category && " · "}
             {video.category?.name}

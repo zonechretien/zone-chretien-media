@@ -11,7 +11,7 @@ export function HomeSectionHeader({ title, href }: { title: string; href?: strin
       {href && (
         <Link
           href={href}
-          className="flex items-center gap-1.5 font-body text-[13px] font-semibold text-brand-blue transition hover:text-brand-gold"
+          className="flex items-center gap-1.5 font-body text-[13px] font-semibold text-brand-blue transition hover:text-brand-gold dark:text-brand-text"
         >
           Voir tout <ArrowRight size={14} />
         </Link>

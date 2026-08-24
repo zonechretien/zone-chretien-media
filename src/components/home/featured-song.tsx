@@ -34,7 +34,7 @@ export function FeaturedSong({
         </div>
         <div className="flex flex-col justify-center gap-3 p-8">
           {song.category && (
-            <span className="w-fit rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
+            <span className="w-fit rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-navy dark:text-gold-soft">
               {song.category.name}
             </span>
           )}

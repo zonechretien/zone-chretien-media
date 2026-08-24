@@ -57,7 +57,7 @@ export default async function DevotionPage({ params }: Props) {
           publisher: { "@type": "Organization", name: "Zone-Chrétien Media" },
         }}
       />
-      <span className="flex w-fit items-center gap-2 rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
+      <span className="flex w-fit items-center gap-2 rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-navy dark:text-gold-soft">
         <Calendar size={12} /> {formatDate(devotion.date)}
       </span>
       <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -94,7 +94,7 @@ export default async function DevotionPage({ params }: Props) {
       </section>
 
       <section className="mt-8 rounded-2xl border border-border bg-surface p-6">
-        <div className="flex items-center gap-2 text-sm font-semibold text-gold">
+        <div className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-gold-soft">
           <Lightbulb size={16} /> Application pratique
         </div>
         <div
@@ -104,7 +104,7 @@ export default async function DevotionPage({ params }: Props) {
       </section>
 
       <section className="mt-8">
-        <div className="flex items-center gap-2 text-sm font-semibold text-gold">
+        <div className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-gold-soft">
           <HandHeart size={16} /> Prière
         </div>
         <div

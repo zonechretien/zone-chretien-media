@@ -65,7 +65,7 @@ function PageLink({
   return (
     <Link
       href={href}
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition hover:border-gold hover:text-gold"
+      className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition hover:border-navy hover:text-navy dark:hover:border-gold-soft dark:hover:text-gold-soft"
       {...props}
     >
       {children}

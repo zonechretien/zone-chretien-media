@@ -62,14 +62,14 @@ export function Header() {
           className="flex shrink-0 items-center gap-2.5"
           onClick={() => setOpen(false)}
         >
-          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-gradient-to-br from-brand-navy to-brand-blue text-brand-gold">
+          <span className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-brand-navy text-brand-gold">
             <Music4 size={20} />
           </span>
           <span className="hidden leading-none sm:block">
             <span className="block font-accent text-2xl tracking-[2px] text-brand-text">
               Zone-Chrétien
             </span>
-            <span className="block text-[10px] uppercase tracking-[1px] text-brand-gray">
+            <span className="block text-[10px] uppercase tracking-[1px] text-brand-gray-dark">
               Media Gospel &amp; Chrétienne
             </span>
           </span>
@@ -85,8 +85,8 @@ export function Header() {
                   aria-expanded={edificationOpen}
                   aria-haspopup="true"
                   className={cn(
-                    "flex items-center gap-1 rounded-md px-3.5 py-2 font-body text-[13.5px] font-medium text-brand-gray-dark transition hover:bg-brand-off-white hover:text-brand-navy",
-                    (isEdificationActive || edificationOpen) && "bg-brand-off-white text-brand-navy",
+                    "flex items-center gap-1 rounded-md px-3.5 py-2 font-body text-[13.5px] font-medium text-brand-gray-dark transition hover:bg-brand-off-white hover:text-brand-text",
+                    (isEdificationActive || edificationOpen) && "bg-brand-off-white text-brand-text",
                   )}
                 >
                   {link.label}
@@ -100,8 +100,8 @@ export function Header() {
                         href={child.href}
                         onClick={() => setEdificationOpen(false)}
                         className={cn(
-                          "block px-4 py-2 font-body text-[13.5px] text-brand-gray-dark transition hover:bg-brand-off-white hover:text-brand-navy",
-                          pathname.startsWith(child.href) && "text-brand-blue",
+                          "block px-4 py-2 font-body text-[13.5px] text-brand-gray-dark transition hover:bg-brand-off-white hover:text-brand-text",
+                          pathname.startsWith(child.href) && "text-brand-text font-semibold",
                         )}
                       >
                         {child.label}
@@ -115,8 +115,8 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative rounded-md px-3.5 py-2 font-body text-[13.5px] font-medium text-brand-gray-dark transition hover:bg-brand-off-white hover:text-brand-navy",
-                  isLinkActive(link.href, link.exact) && "bg-brand-off-white text-brand-navy",
+                  "relative rounded-md px-3.5 py-2 font-body text-[13.5px] font-medium text-brand-gray-dark transition hover:bg-brand-off-white hover:text-brand-text",
+                  isLinkActive(link.href, link.exact) && "bg-brand-off-white text-brand-text",
                 )}
               >
                 {link.label}
@@ -160,7 +160,7 @@ export function Header() {
                     aria-expanded={mobileEdificationOpen}
                     className={cn(
                       "flex w-full items-center justify-between rounded-lg px-3 py-2.5 font-body text-sm font-medium text-brand-gray-dark transition hover:bg-brand-off-white",
-                      isEdificationActive && "text-brand-navy",
+                      isEdificationActive && "text-brand-text",
                     )}
                   >
                     {link.label}
@@ -181,7 +181,7 @@ export function Header() {
                           }}
                           className={cn(
                             "rounded-lg px-3 py-2 font-body text-sm text-brand-gray-dark transition hover:bg-brand-off-white",
-                            pathname.startsWith(child.href) && "text-brand-blue",
+                            pathname.startsWith(child.href) && "text-brand-text font-semibold",
                           )}
                         >
                           {child.label}
@@ -197,7 +197,7 @@ export function Header() {
                   onClick={() => setOpen(false)}
                   className={cn(
                     "rounded-lg px-3 py-2.5 font-body text-sm font-medium text-brand-gray-dark transition hover:bg-brand-off-white",
-                    isLinkActive(link.href, link.exact) && "bg-brand-off-white text-brand-navy",
+                    isLinkActive(link.href, link.exact) && "bg-brand-off-white text-brand-text",
                   )}
                 >
                   {link.label}

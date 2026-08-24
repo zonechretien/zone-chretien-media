@@ -44,7 +44,7 @@ export function VideosSection({
                   </div>
                 )}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-brand-navy/80" />
-                <span className="absolute bottom-2.5 right-2.5 rounded bg-brand-red px-2 py-0.5 font-body text-[9px] font-bold text-white">
+                <span className="absolute bottom-2.5 right-2.5 rounded bg-[#b83a2a] px-2 py-0.5 font-body text-[9px] font-bold text-white">
                   YouTube
                 </span>
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
@@ -55,7 +55,7 @@ export function VideosSection({
               </div>
               <div className="p-3.5">
                 <h3 className="mb-1.5 line-clamp-1 font-body text-[13px] font-semibold text-white">{video.title}</h3>
-                <div className="flex items-center gap-3 font-body text-[11px] text-white/45">
+                <div className="flex items-center gap-3 font-body text-[11px] text-white/65">
                   <span className="flex items-center gap-1">
                     <Eye size={10} />
                     {video.views.toLocaleString("fr-FR")} vues

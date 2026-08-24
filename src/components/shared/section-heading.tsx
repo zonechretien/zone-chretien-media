@@ -19,7 +19,7 @@ export function SectionHeading({
     <div className={cn("flex items-end justify-between gap-4", className)}>
       <div>
         {eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-widest text-gold">
+          <p className="text-xs font-semibold uppercase tracking-widest text-navy dark:text-gold-soft">
             {eyebrow}
           </p>
         )}
@@ -30,7 +30,7 @@ export function SectionHeading({
       {href && (
         <Link
           href={href}
-          className="hidden shrink-0 items-center gap-1 text-sm font-medium text-gold transition hover:gap-2 sm:flex"
+          className="hidden shrink-0 items-center gap-1 text-sm font-medium text-navy transition hover:gap-2 hover:text-gold-soft dark:text-gold-soft sm:flex"
         >
           {hrefLabel}
           <ArrowRight size={14} />

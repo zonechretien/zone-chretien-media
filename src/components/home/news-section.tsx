@@ -37,15 +37,15 @@ export function NewsSection({
                 </div>
               )}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-brand-navy/70" />
-              <span className="absolute left-3 top-3 rounded-lg bg-brand-red px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-wide text-white">
+              <span className="absolute left-3 top-3 rounded-lg bg-[#b83a2a] px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-wide text-white">
                 {article.category?.name ?? "Actualité"}
               </span>
             </div>
             <div className="p-4">
-              <h3 className="mb-2 line-clamp-2 font-body text-sm font-bold leading-snug text-brand-navy">
+              <h3 className="mb-2 line-clamp-2 font-body text-sm font-bold leading-snug text-brand-text">
                 {article.title}
               </h3>
-              <div className="flex items-center gap-3 font-body text-[11.5px] text-brand-gray">
+              <div className="flex items-center gap-3 font-body text-[11.5px] text-brand-gray-dark">
                 <span className="flex items-center gap-1">
                   <Calendar size={10} />
                   {formatDateShort(article.publishedAt ?? article.createdAt)}

@@ -33,13 +33,13 @@ export function SearchBar({
         className,
       )}
     >
-      <Search size={size === "lg" ? 20 : 13} className="shrink-0 text-brand-gray" />
+      <Search size={size === "lg" ? 20 : 13} className="shrink-0 text-brand-gray-dark" />
       <input
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Rechercher chansons, artistes, versets, articles…"
-        className="w-full bg-transparent font-body text-brand-text placeholder:text-brand-gray focus:outline-none"
+        className="w-full bg-transparent font-body text-brand-text placeholder:text-brand-gray-dark focus:outline-none"
         aria-label="Recherche globale"
       />
     </form>
