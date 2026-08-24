@@ -23,6 +23,7 @@ import {
 import { ImageUrlField } from "@/components/admin/image-url-field";
 import { TagPicker } from "@/components/admin/tag-picker";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
+import { YoutubeEmbedCheck } from "@/components/admin/youtube-embed-check";
 
 type SongWithRelations = Song & { tags: Tag[] };
 
@@ -74,6 +75,7 @@ export function SongForm({
 
   const titleValue = watch("title");
   const artistIdValue = watch("artistId");
+  const youtubeUrlValue = watch("youtubeUrl");
 
   function handleGenerateDescription() {
     const artistName = artists.find((a) => a.id === artistIdValue)?.name;
@@ -178,6 +180,7 @@ export function SongForm({
           <FieldLabel htmlFor="youtubeUrl">Vidéo YouTube (URL)</FieldLabel>
           <input id="youtubeUrl" className={inputClass} placeholder="https://youtube.com/…" {...register("youtubeUrl")} />
           <FieldError error={errors.youtubeUrl} />
+          <YoutubeEmbedCheck url={youtubeUrlValue ?? ""} />
         </FormRow>
       </FormGrid>
 

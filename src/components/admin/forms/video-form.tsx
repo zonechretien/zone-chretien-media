@@ -20,6 +20,7 @@ import {
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
+import { YoutubeEmbedCheck } from "@/components/admin/youtube-embed-check";
 
 export function VideoForm({
   video,
@@ -57,6 +58,7 @@ export function VideoForm({
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!video);
+  const youtubeUrlValue = watch("youtubeUrl");
 
   function onSubmit(data: VideoInput) {
     setServerError(null);
@@ -90,6 +92,7 @@ export function VideoForm({
         <FieldLabel htmlFor="youtubeUrl" required>URL YouTube</FieldLabel>
         <input id="youtubeUrl" className={inputClass} placeholder="https://youtube.com/watch?v=…" {...register("youtubeUrl")} />
         <FieldError error={errors.youtubeUrl} />
+        <YoutubeEmbedCheck url={youtubeUrlValue ?? ""} />
       </FormRow>
 
       <FormRow>
