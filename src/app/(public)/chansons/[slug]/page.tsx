@@ -28,7 +28,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!song) return {};
 
   const title = song.metaTitle ?? `${song.title} — ${song.artist.name}`;
-  const description = song.metaDescription ?? (song.description ? markdownToText(song.description) : undefined);
+  const description =
+    song.metaDescription ??
+    (song.description ? markdownToText(song.description) : undefined) ??
+    (song.artist.bio ?? undefined);
 
   return {
     title,
