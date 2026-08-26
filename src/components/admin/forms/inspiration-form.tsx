@@ -9,7 +9,7 @@ import { createInspiration, updateInspiration } from "@/lib/actions/inspirations
 import { useSlugSync } from "@/lib/admin/use-slug-sync";
 import { useAIDraftPrefill } from "@/lib/admin/use-ai-draft";
 import type { InspirationDraft } from "@/lib/ai/schemas";
-import { slugify } from "@/lib/utils";
+import { slugify, dateToUrlSlug } from "@/lib/utils";
 import {
   FieldError,
   FieldLabel,
@@ -22,6 +22,7 @@ import {
   textareaClass,
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
+import { PublishedAtField } from "@/components/admin/published-at-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
 
 export function InspirationForm({
@@ -51,9 +52,10 @@ export function InspirationForm({
           imageUrl: inspiration.imageUrl ?? "",
           author: inspiration.author ?? "",
           categoryId: inspiration.categoryId ?? "",
+          publishedAt: dateToUrlSlug(inspiration.publishedAt ?? inspiration.createdAt),
           published: inspiration.published,
         }
-      : { published: true },
+      : { published: true, publishedAt: dateToUrlSlug(new Date()) },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!inspiration);
@@ -68,6 +70,7 @@ export function InspirationForm({
       author: "",
       categoryId: "",
       published: true,
+      publishedAt: dateToUrlSlug(new Date()),
     });
   });
 
@@ -122,6 +125,10 @@ export function InspirationForm({
           </select>
         </FormRow>
       </FormGrid>
+
+      <FormRow>
+        <PublishedAtField register={register("publishedAt")} />
+      </FormRow>
 
       <FormRow>
         <label className="flex items-center gap-2 text-sm text-foreground">

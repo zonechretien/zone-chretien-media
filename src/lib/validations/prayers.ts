@@ -24,6 +24,7 @@ export const prayerSchema = z.object({
   content: z.string().min(10, "Contenu requis"),
   category: z.enum(PRAYER_CATEGORIES, { message: "Catégorie requise" }),
   imageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  publishedAt: z.string().optional().or(z.literal("")),
   published: z.boolean().optional(),
 });
 

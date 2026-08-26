@@ -10,6 +10,7 @@ export const videoSchema = z.object({
   thumbnailUrl: optionalUrl,
   categoryId: z.string().optional().or(z.literal("")),
   artistId: z.string().optional().or(z.literal("")),
+  publishedAt: z.string().optional().or(z.literal("")),
   featured: z.boolean().optional(),
   published: z.boolean().optional(),
 });

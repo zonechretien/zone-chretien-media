@@ -75,7 +75,7 @@ export default async function SongPage({ params }: Props) {
           name: song.title,
           url: absoluteUrl(`/chansons/${song.slug}`),
           image: song.imageUrl,
-          datePublished: song.createdAt.toISOString(),
+          datePublished: (song.publishedAt ?? song.createdAt).toISOString(),
           description: plainDescription ?? undefined,
           genre: song.category?.name,
           byArtist: {
@@ -99,7 +99,7 @@ export default async function SongPage({ params }: Props) {
           },
           categoryName: song.category?.name ?? null,
           featured: song.featured,
-          dateLabel: formatDate(song.createdAt),
+          dateLabel: formatDate(song.publishedAt ?? song.createdAt),
           views: song.views,
           readingMinutes,
           excerpt,

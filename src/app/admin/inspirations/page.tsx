@@ -24,7 +24,7 @@ export default async function AdminInspirationsPage() {
           { header: "Titre", cell: (i) => <span className="font-medium text-foreground">{i.title}</span> },
           { header: "Catégorie", cell: (i) => i.category?.name ?? "—" },
           { header: "Statut", cell: (i) => (i.published ? "Publié" : "Brouillon") },
-          { header: "Date", cell: (i) => formatDateShort(i.createdAt) },
+          { header: "Date", cell: (i) => formatDateShort(i.publishedAt ?? i.createdAt) },
         ]}
         actions={(i) => (
           <RowActions

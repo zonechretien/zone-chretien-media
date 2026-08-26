@@ -8,6 +8,7 @@ export const playlistSchema = z.object({
   order: z.number().int().optional(),
   metaTitle: z.string().optional().or(z.literal("")),
   metaDescription: z.string().optional().or(z.literal("")),
+  publishedAt: z.string().optional().or(z.literal("")),
   published: z.boolean().optional(),
   songIds: z.array(z.string()).optional(),
 });

@@ -26,7 +26,7 @@ export default async function AdminSongsPage() {
           { header: "Catégorie", cell: (s) => s.category?.name ?? "—" },
           { header: "Vues", cell: (s) => s.views },
           { header: "Statut", cell: (s) => (s.published ? "Publié" : "Brouillon") },
-          { header: "Date", cell: (s) => formatDateShort(s.createdAt) },
+          { header: "Date", cell: (s) => formatDateShort(s.publishedAt ?? s.createdAt) },
         ]}
         actions={(s) => (
           <RowActions

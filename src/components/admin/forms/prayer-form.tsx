@@ -13,7 +13,7 @@ import {
 import { createPrayer, updatePrayer } from "@/lib/actions/prayers";
 import { useSlugSync } from "@/lib/admin/use-slug-sync";
 import { useAIDraftPrefill } from "@/lib/admin/use-ai-draft";
-import { slugify } from "@/lib/utils";
+import { slugify, dateToUrlSlug } from "@/lib/utils";
 import {
   FieldError,
   FieldLabel,
@@ -26,6 +26,7 @@ import {
   textareaClass,
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
+import { PublishedAtField } from "@/components/admin/published-at-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
 
 export function PrayerForm({ prayer }: { prayer?: Prayer }) {
@@ -48,9 +49,10 @@ export function PrayerForm({ prayer }: { prayer?: Prayer }) {
           content: prayer.content,
           category: prayer.category,
           imageUrl: prayer.imageUrl ?? "",
+          publishedAt: dateToUrlSlug(prayer.publishedAt ?? prayer.createdAt),
           published: prayer.published,
         }
-      : { published: true, category: "MORNING" },
+      : { published: true, category: "MORNING", publishedAt: dateToUrlSlug(new Date()) },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!prayer);
@@ -66,6 +68,7 @@ export function PrayerForm({ prayer }: { prayer?: Prayer }) {
         category: draft.category,
         imageUrl: "",
         published: true,
+        publishedAt: dateToUrlSlug(new Date()),
       });
     },
   );
@@ -112,6 +115,10 @@ export function PrayerForm({ prayer }: { prayer?: Prayer }) {
       <FormRow>
         <FieldLabel htmlFor="imageUrl">Image (URL)</FieldLabel>
         <ImageUrlField register={register("imageUrl")} defaultValue={prayer?.imageUrl ?? undefined} />
+      </FormRow>
+
+      <FormRow>
+        <PublishedAtField register={register("publishedAt")} />
       </FormRow>
 
       <FormRow>

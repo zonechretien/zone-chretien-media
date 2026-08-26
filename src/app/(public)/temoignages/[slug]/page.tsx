@@ -52,7 +52,7 @@ export default async function TestimonyPage({ params }: Props) {
           description: markdownToText(testimony.content).slice(0, 160),
           image: testimony.imageUrl ?? undefined,
           author: { "@type": "Person", name: testimony.authorName },
-          datePublished: testimony.createdAt.toISOString(),
+          datePublished: (testimony.publishedAt ?? testimony.createdAt).toISOString(),
           url: absoluteUrl(`/temoignages/${testimony.slug}`),
         }}
       />
@@ -69,7 +69,7 @@ export default async function TestimonyPage({ params }: Props) {
         <div>
           <p className="font-semibold text-foreground">{testimony.authorName}</p>
           <p className="flex items-center gap-1 text-xs text-muted">
-            <Calendar size={12} /> {formatDate(testimony.createdAt)}
+            <Calendar size={12} /> {formatDate(testimony.publishedAt ?? testimony.createdAt)}
           </p>
         </div>
       </div>

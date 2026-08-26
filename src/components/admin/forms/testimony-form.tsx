@@ -18,7 +18,9 @@ import {
   textareaClass,
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
+import { PublishedAtField } from "@/components/admin/published-at-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
+import { dateToUrlSlug } from "@/lib/utils";
 
 export function TestimonyForm({ testimony }: { testimony?: Testimony }) {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -39,9 +41,10 @@ export function TestimonyForm({ testimony }: { testimony?: Testimony }) {
           content: testimony.content,
           authorName: testimony.authorName,
           imageUrl: testimony.imageUrl ?? "",
+          publishedAt: dateToUrlSlug(testimony.publishedAt ?? testimony.createdAt),
           published: testimony.published,
         }
-      : { published: true },
+      : { published: true, publishedAt: dateToUrlSlug(new Date()) },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!testimony);
@@ -84,6 +87,10 @@ export function TestimonyForm({ testimony }: { testimony?: Testimony }) {
       <FormRow>
         <FieldLabel htmlFor="imageUrl">Photo de l&apos;auteur (URL)</FieldLabel>
         <ImageUrlField register={register("imageUrl")} defaultValue={testimony?.imageUrl ?? undefined} />
+      </FormRow>
+
+      <FormRow>
+        <PublishedAtField register={register("publishedAt")} />
       </FormRow>
 
       <FormRow>

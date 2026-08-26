@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
-import { slugify } from "@/lib/utils";
+import { slugify, parseDateInput } from "@/lib/utils";
 import { songSchema, type SongInput } from "@/lib/validations/songs";
 
 function toData(input: SongInput) {
@@ -21,6 +21,7 @@ function toData(input: SongInput) {
     categoryId: input.categoryId || null,
     metaTitle: input.metaTitle || null,
     metaDescription: input.metaDescription || null,
+    publishedAt: input.publishedAt ? parseDateInput(input.publishedAt) : null,
     featured: input.featured ?? false,
     published: input.published ?? true,
   };

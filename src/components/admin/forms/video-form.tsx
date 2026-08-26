@@ -19,8 +19,10 @@ import {
   textareaClass,
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
+import { PublishedAtField } from "@/components/admin/published-at-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
 import { YoutubeEmbedCheck } from "@/components/admin/youtube-embed-check";
+import { dateToUrlSlug } from "@/lib/utils";
 
 export function VideoForm({
   video,
@@ -51,10 +53,11 @@ export function VideoForm({
           thumbnailUrl: video.thumbnailUrl ?? "",
           categoryId: video.categoryId ?? "",
           artistId: video.artistId ?? "",
+          publishedAt: dateToUrlSlug(video.publishedAt ?? video.createdAt),
           featured: video.featured,
           published: video.published,
         }
-      : { published: true },
+      : { published: true, publishedAt: dateToUrlSlug(new Date()) },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!video);
@@ -121,6 +124,10 @@ export function VideoForm({
           </select>
         </FormRow>
       </FormGrid>
+
+      <FormRow>
+        <PublishedAtField register={register("publishedAt")} />
+      </FormRow>
 
       <FormRow className="flex gap-6">
         <label className="flex items-center gap-2 text-sm text-foreground">

@@ -23,7 +23,7 @@ export function TestimonyCard({ testimony }: { testimony: Testimony }) {
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">{testimony.authorName}</p>
-          <p className="text-xs text-muted">{formatDateShort(testimony.createdAt)}</p>
+          <p className="text-xs text-muted">{formatDateShort(testimony.publishedAt ?? testimony.createdAt)}</p>
         </div>
       </div>
       <h3 className="mt-3 line-clamp-2 font-semibold text-foreground">{testimony.title}</h3>

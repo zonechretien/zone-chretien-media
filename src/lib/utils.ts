@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Convertit une valeur d'input HTML `type="date"` ("AAAA-MM-JJ") en Date à
+ * minuit HEURE LOCALE (pas UTC). `new Date("AAAA-MM-JJ")` ancre à minuit UTC,
+ * ce qui décale le jour affiché d'un cran dès que le serveur n'est pas en UTC
+ * (ex. environnement de dev local) — ce helper évite ce piège classique.
+ */
+export function parseDateInput(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function formatDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("fr-FR", {

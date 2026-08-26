@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
-import { slugify } from "@/lib/utils";
+import { slugify, parseDateInput } from "@/lib/utils";
 import { prayerSchema, type PrayerInput } from "@/lib/validations/prayers";
 
 function toData(input: PrayerInput) {
@@ -15,6 +15,7 @@ function toData(input: PrayerInput) {
     content: input.content,
     category: input.category,
     imageUrl: input.imageUrl || null,
+    publishedAt: input.publishedAt ? parseDateInput(input.publishedAt) : null,
     published: input.published ?? true,
   };
 }

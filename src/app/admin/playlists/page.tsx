@@ -25,7 +25,7 @@ export default async function AdminPlaylistsPage() {
           { header: "Chansons", cell: (p) => p._count.songs },
           { header: "Ordre", cell: (p) => p.order },
           { header: "Statut", cell: (p) => (p.published ? "Publiée" : "Brouillon") },
-          { header: "Date", cell: (p) => formatDateShort(p.createdAt) },
+          { header: "Date", cell: (p) => formatDateShort(p.publishedAt ?? p.createdAt) },
         ]}
         actions={(p) => (
           <RowActions

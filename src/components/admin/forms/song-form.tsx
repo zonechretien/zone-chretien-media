@@ -22,8 +22,10 @@ import {
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
 import { TagPicker } from "@/components/admin/tag-picker";
+import { PublishedAtField } from "@/components/admin/published-at-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
 import { YoutubeEmbedCheck } from "@/components/admin/youtube-embed-check";
+import { dateToUrlSlug } from "@/lib/utils";
 
 type SongWithRelations = Song & { tags: Tag[] };
 
@@ -65,10 +67,11 @@ export function SongForm({
           tagIds: song.tags.map((t) => t.id),
           metaTitle: song.metaTitle ?? "",
           metaDescription: song.metaDescription ?? "",
+          publishedAt: dateToUrlSlug(song.publishedAt ?? song.createdAt),
           featured: song.featured,
           published: song.published,
         }
-      : { published: true, tagIds: [] },
+      : { published: true, tagIds: [], publishedAt: dateToUrlSlug(new Date()) },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!song);
@@ -203,6 +206,10 @@ export function SongForm({
           <input id="metaDescription" className={inputClass} {...register("metaDescription")} />
         </FormRow>
       </FormGrid>
+
+      <FormRow>
+        <PublishedAtField register={register("publishedAt")} />
+      </FormRow>
 
       <FormRow className="flex gap-6">
         <label className="flex items-center gap-2 text-sm text-foreground">

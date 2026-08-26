@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
-import { slugify } from "@/lib/utils";
+import { slugify, parseDateInput } from "@/lib/utils";
 import { playlistSchema, type PlaylistInput } from "@/lib/validations/playlists";
 
 function toData(input: PlaylistInput) {
@@ -17,6 +17,7 @@ function toData(input: PlaylistInput) {
     order: input.order ?? 0,
     metaTitle: input.metaTitle || null,
     metaDescription: input.metaDescription || null,
+    publishedAt: input.publishedAt ? parseDateInput(input.publishedAt) : null,
     published: input.published ?? false,
   };
 }

@@ -6,11 +6,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { slugify } from "@/lib/utils";
+import { slugify, parseDateInput } from "@/lib/utils";
 import { articleSchema, type ArticleInput } from "@/lib/validations/articles";
 
-function toData(input: ArticleInput, authorId: string, existingPublishedAt: Date | null) {
-  const published = input.published ?? true;
+function toData(input: ArticleInput, authorId: string) {
   return {
     title: input.title,
     slug: slugify(input.slug),
@@ -21,9 +20,9 @@ function toData(input: ArticleInput, authorId: string, existingPublishedAt: Date
     authorId,
     metaTitle: input.metaTitle || null,
     metaDescription: input.metaDescription || null,
+    publishedAt: input.publishedAt ? parseDateInput(input.publishedAt) : null,
     featured: input.featured ?? false,
-    published,
-    publishedAt: published ? (existingPublishedAt ?? new Date()) : null,
+    published: input.published ?? true,
   };
 }
 
@@ -35,7 +34,7 @@ export async function createArticle(input: ArticleInput): Promise<{ error?: stri
   try {
     await prisma.article.create({
       data: {
-        ...toData(parsed.data, session.user.id!, null),
+        ...toData(parsed.data, session.user.id!),
         tags: { connect: (parsed.data.tagIds ?? []).map((id) => ({ id })) },
       },
     });
@@ -57,13 +56,13 @@ export async function updateArticle(id: string, input: ArticleInput): Promise<{ 
   const parsed = articleSchema.safeParse(input);
   if (!parsed.success) return { error: "Formulaire invalide." };
 
-  const existing = await prisma.article.findUnique({ where: { id }, select: { publishedAt: true, authorId: true } });
+  const existing = await prisma.article.findUnique({ where: { id }, select: { authorId: true } });
 
   try {
     await prisma.article.update({
       where: { id },
       data: {
-        ...toData(parsed.data, existing?.authorId ?? session.user.id!, existing?.publishedAt ?? null),
+        ...toData(parsed.data, existing?.authorId ?? session.user.id!),
         tags: { set: (parsed.data.tagIds ?? []).map((id) => ({ id })) },
       },
     });

@@ -44,7 +44,7 @@ export function FeaturedSong({
             <p className="line-clamp-3 text-sm text-muted">{song.description}</p>
           )}
           <div className="mt-2 flex items-center gap-4 text-sm text-muted">
-            <span>{formatDate(song.createdAt)}</span>
+            <span>{formatDate(song.publishedAt ?? song.createdAt)}</span>
             <span className="flex items-center gap-1">
               <Eye size={14} /> {formatViews(song.views)} vues
             </span>

@@ -25,7 +25,7 @@ export default async function AdminArticlesPage() {
           { header: "Auteur", cell: (a) => a.author.name ?? a.author.email },
           { header: "Catégorie", cell: (a) => a.category?.name ?? "—" },
           { header: "Statut", cell: (a) => (a.published ? "Publié" : "Brouillon") },
-          { header: "Date", cell: (a) => formatDateShort(a.createdAt) },
+          { header: "Date", cell: (a) => formatDateShort(a.publishedAt ?? a.createdAt) },
         ]}
         actions={(a) => (
           <RowActions editHref={`/admin/articles/${a.id}`} onDelete={deleteArticle.bind(null, a.id)} itemLabel={a.title} />

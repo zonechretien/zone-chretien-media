@@ -75,7 +75,7 @@ export function SongCard({
         <h3 className="line-clamp-1 font-semibold text-foreground">{song.title}</h3>
         <p className="line-clamp-1 text-sm text-muted">{song.artist.name}</p>
         <div className="mt-2 flex items-center justify-between text-xs text-muted">
-          <span>{formatDateShort(song.createdAt)}</span>
+          <span>{formatDateShort(song.publishedAt ?? song.createdAt)}</span>
           <span className="flex items-center gap-1">
             <Eye size={12} /> {formatViews(song.views)}
           </span>

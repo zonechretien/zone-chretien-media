@@ -21,7 +21,9 @@ import {
 import { ImageUrlField } from "@/components/admin/image-url-field";
 import { TagPicker } from "@/components/admin/tag-picker";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import { PublishedAtField } from "@/components/admin/published-at-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
+import { dateToUrlSlug } from "@/lib/utils";
 
 type ArticleWithTags = Article & { tags: Tag[] };
 
@@ -57,10 +59,11 @@ export function ArticleForm({
           tagIds: article.tags.map((t) => t.id),
           metaTitle: article.metaTitle ?? "",
           metaDescription: article.metaDescription ?? "",
+          publishedAt: dateToUrlSlug(article.publishedAt ?? article.createdAt),
           featured: article.featured,
           published: article.published,
         }
-      : { published: true, content: "", tagIds: [] },
+      : { published: true, content: "", tagIds: [], publishedAt: dateToUrlSlug(new Date()) },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!article);
@@ -134,6 +137,10 @@ export function ArticleForm({
           <input id="metaDescription" className={inputClass} {...register("metaDescription")} />
         </FormRow>
       </FormGrid>
+
+      <FormRow>
+        <PublishedAtField register={register("publishedAt")} />
+      </FormRow>
 
       <FormRow className="flex gap-6">
         <label className="flex items-center gap-2 text-sm text-foreground">

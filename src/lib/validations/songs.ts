@@ -15,6 +15,7 @@ export const songSchema = z.object({
   tagIds: z.array(z.string()).optional(),
   metaTitle: z.string().optional().or(z.literal("")),
   metaDescription: z.string().optional().or(z.literal("")),
+  publishedAt: z.string().optional().or(z.literal("")),
   featured: z.boolean().optional(),
   published: z.boolean().optional(),
 });

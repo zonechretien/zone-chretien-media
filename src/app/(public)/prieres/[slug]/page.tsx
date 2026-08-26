@@ -49,7 +49,7 @@ export default async function PrayerPage({ params }: Props) {
           headline: prayer.title,
           description: markdownToText(prayer.content).slice(0, 160),
           about: PRAYER_CATEGORY_LABELS[prayer.category],
-          datePublished: prayer.createdAt.toISOString(),
+          datePublished: (prayer.publishedAt ?? prayer.createdAt).toISOString(),
           url: absoluteUrl(`/prieres/${prayer.slug}`),
         }}
       />

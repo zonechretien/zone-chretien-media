@@ -52,7 +52,7 @@ export default async function InspirationPage({ params }: Props) {
           description: markdownToText(inspiration.content).slice(0, 160),
           image: inspiration.imageUrl ?? undefined,
           author: inspiration.author ? { "@type": "Person", name: inspiration.author } : undefined,
-          datePublished: inspiration.createdAt.toISOString(),
+          datePublished: (inspiration.publishedAt ?? inspiration.createdAt).toISOString(),
           url: absoluteUrl(`/inspirations/${inspiration.slug}`),
         }}
       />
@@ -71,7 +71,7 @@ export default async function InspirationPage({ params }: Props) {
           </span>
         )}
         <span className="flex items-center gap-1">
-          <Calendar size={14} /> {formatDate(inspiration.createdAt)}
+          <Calendar size={14} /> {formatDate(inspiration.publishedAt ?? inspiration.createdAt)}
         </span>
       </div>
 

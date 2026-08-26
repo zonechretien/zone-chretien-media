@@ -193,18 +193,19 @@ model Song {
   youtubeUrl  String?
 
   artistId   String
-  artist     Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  artist     Artist         @relation(fields: [artistId], references: [id], onDelete: Cascade)
   categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id])
+  category   Category?      @relation(fields: [categoryId], references: [id])
   tags       Tag[]
   playlists  PlaylistSong[]
 
   metaTitle       String?
   metaDescription String?
 
-  views     Int     @default(0)
-  featured  Boolean @default(false)
-  published Boolean @default(true)
+  publishedAt DateTime? // date affichée publiquement, choisie par l'éditeur — repli sur createdAt si non renseignée
+  views       Int       @default(0)
+  featured    Boolean   @default(false)
+  published   Boolean   @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -229,6 +230,8 @@ model Playlist {
 
   metaTitle       String?
   metaDescription String?
+
+  publishedAt DateTime? // date affichée publiquement, choisie par l'éditeur — repli sur createdAt si non renseignée
 
   songs PlaylistSong[]
 
@@ -272,9 +275,10 @@ model Video {
   artistId   String?
   artist     Artist?   @relation(fields: [artistId], references: [id])
 
-  views     Int     @default(0)
-  featured  Boolean @default(false)
-  published Boolean @default(true)
+  publishedAt DateTime? // date affichée publiquement, choisie par l'éditeur — repli sur createdAt si non renseignée
+  views       Int       @default(0)
+  featured    Boolean   @default(false)
+  published   Boolean   @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -298,8 +302,9 @@ model Inspiration {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
 
-  views     Int     @default(0)
-  published Boolean @default(true)
+  publishedAt DateTime? // date affichée publiquement, choisie par l'éditeur — repli sur createdAt si non renseignée
+  views       Int       @default(0)
+  published   Boolean   @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -346,8 +351,9 @@ model Prayer {
   category PrayerCategory
   imageUrl String?
 
-  views     Int     @default(0)
-  published Boolean @default(true)
+  publishedAt DateTime? // date affichée publiquement, choisie par l'éditeur — repli sur createdAt si non renseignée
+  views       Int       @default(0)
+  published   Boolean   @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -390,8 +396,9 @@ model Testimony {
   authorName String
   imageUrl   String?
 
-  views     Int     @default(0)
-  published Boolean @default(true)
+  publishedAt DateTime? // date affichée publiquement, choisie par l'éditeur — repli sur createdAt si non renseignée
+  views       Int       @default(0)
+  published   Boolean   @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

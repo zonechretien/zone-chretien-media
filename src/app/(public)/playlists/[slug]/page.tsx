@@ -66,7 +66,7 @@ export default async function PlaylistPage({ params }: Props) {
           image: playlist.imageUrl ?? undefined,
           description: playlist.description ?? undefined,
           numTracks: tracks.length,
-          datePublished: playlist.createdAt.toISOString(),
+          datePublished: (playlist.publishedAt ?? playlist.createdAt).toISOString(),
           track: tracks.map((t) => ({
             "@type": "MusicRecording",
             name: t.title,

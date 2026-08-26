@@ -31,7 +31,7 @@ export function InspirationCard({ inspiration }: { inspiration: Inspiration }) {
         <p className="line-clamp-2 text-sm text-muted">{truncate(markdownToText(inspiration.content), 110)}</p>
         <div className="mt-auto flex items-center justify-between pt-2 text-xs text-muted">
           <span>{inspiration.author ?? "Zone-Chrétien"}</span>
-          <span>{formatDateShort(inspiration.createdAt)}</span>
+          <span>{formatDateShort(inspiration.publishedAt ?? inspiration.createdAt)}</span>
         </div>
       </div>
     </Link>

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
-import { slugify } from "@/lib/utils";
+import { slugify, parseDateInput } from "@/lib/utils";
 import { inspirationSchema, type InspirationInput } from "@/lib/validations/inspirations";
 
 function toData(input: InspirationInput) {
@@ -16,6 +16,7 @@ function toData(input: InspirationInput) {
     imageUrl: input.imageUrl || null,
     author: input.author || null,
     categoryId: input.categoryId || null,
+    publishedAt: input.publishedAt ? parseDateInput(input.publishedAt) : null,
     published: input.published ?? true,
   };
 }

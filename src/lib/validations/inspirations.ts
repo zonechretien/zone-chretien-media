@@ -7,6 +7,7 @@ export const inspirationSchema = z.object({
   imageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
   author: z.string().optional().or(z.literal("")),
   categoryId: z.string().optional().or(z.literal("")),
+  publishedAt: z.string().optional().or(z.literal("")),
   published: z.boolean().optional(),
 });
 

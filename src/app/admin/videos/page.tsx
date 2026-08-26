@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { AdminPageHeader, AdminTable } from "@/components/admin/admin-table";
 import { RowActions } from "@/components/admin/row-actions";
 import { deleteVideo } from "@/lib/actions/videos";
+import { formatDateShort } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Vidéos" };
 
@@ -24,6 +25,7 @@ export default async function AdminVideosPage() {
           { header: "Artiste", cell: (v) => v.artist?.name ?? "—" },
           { header: "Catégorie", cell: (v) => v.category?.name ?? "—" },
           { header: "Statut", cell: (v) => (v.published ? "Publié" : "Brouillon") },
+          { header: "Date", cell: (v) => formatDateShort(v.publishedAt ?? v.createdAt) },
         ]}
         actions={(v) => (
           <RowActions editHref={`/admin/videos/${v.id}`} onDelete={deleteVideo.bind(null, v.id)} itemLabel={v.title} />

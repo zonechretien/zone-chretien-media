@@ -61,7 +61,7 @@ export default async function VideoPage({ params }: Props) {
           name: video.title,
           url: absoluteUrl(`/videos/${video.slug}`),
           thumbnailUrl: video.thumbnailUrl ?? getYoutubeThumbnail(video.youtubeUrl) ?? undefined,
-          uploadDate: video.createdAt.toISOString(),
+          uploadDate: (video.publishedAt ?? video.createdAt).toISOString(),
           description: plainDescription ?? undefined,
           embedUrl: video.youtubeUrl,
         }}
@@ -85,7 +85,7 @@ export default async function VideoPage({ params }: Props) {
       <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted">
         <span className="flex items-center gap-1.5">
           <Calendar size={13} className="text-gold" />
-          {formatDate(video.createdAt)}
+          {formatDate(video.publishedAt ?? video.createdAt)}
         </span>
         <span className="flex items-center gap-1.5">
           <Eye size={13} className="text-gold" />

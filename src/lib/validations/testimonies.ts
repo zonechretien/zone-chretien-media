@@ -6,6 +6,7 @@ export const testimonySchema = z.object({
   content: z.string().min(10, "Contenu requis"),
   authorName: z.string().min(2, "Nom de l'auteur requis"),
   imageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  publishedAt: z.string().optional().or(z.literal("")),
   published: z.boolean().optional(),
 });
 

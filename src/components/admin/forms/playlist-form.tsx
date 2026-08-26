@@ -19,7 +19,9 @@ import {
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
 import { SongPicker, type PickableSong } from "@/components/admin/song-picker";
+import { PublishedAtField } from "@/components/admin/published-at-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
+import { dateToUrlSlug } from "@/lib/utils";
 
 export function PlaylistForm({
   playlist,
@@ -50,10 +52,11 @@ export function PlaylistForm({
           order: playlist.order,
           metaTitle: playlist.metaTitle ?? "",
           metaDescription: playlist.metaDescription ?? "",
+          publishedAt: dateToUrlSlug(playlist.publishedAt ?? playlist.createdAt),
           published: playlist.published,
           songIds: initialSongIds ?? [],
         }
-      : { published: false, order: 0, songIds: [] },
+      : { published: false, order: 0, songIds: [], publishedAt: dateToUrlSlug(new Date()) },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!playlist);
@@ -128,6 +131,10 @@ export function PlaylistForm({
           <input id="metaDescription" className={inputClass} {...register("metaDescription")} />
         </FormRow>
       </FormGrid>
+
+      <FormRow>
+        <PublishedAtField register={register("publishedAt")} />
+      </FormRow>
 
       <FormRow>
         <label className="flex items-center gap-2 text-sm text-foreground">
