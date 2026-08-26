@@ -19,6 +19,7 @@ const EDIFICATION_LINKS = [
 const NAV_LINKS = [
   { href: "/", label: "Accueil", exact: true },
   { href: "/chansons", label: "Chansons" },
+  { href: "/playlists", label: "Playlists" },
   { href: "/artistes", label: "Artistes" },
   { href: "/videos", label: "Vidéos" },
   { label: "Édification", children: EDIFICATION_LINKS },

@@ -15,6 +15,7 @@ const FOOTER_COLUMNS = [
     links: [
       { href: "/", label: "Accueil" },
       { href: "/chansons", label: "Chansons" },
+      { href: "/playlists", label: "Playlists" },
       { href: "/artistes", label: "Artistes" },
       { href: "/videos", label: "Vidéos" },
       { href: "/blog", label: "Blog chrétien" },

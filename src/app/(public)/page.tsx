@@ -9,6 +9,7 @@ import { getPopularArtists } from "@/lib/queries/artists";
 import { getCategories } from "@/lib/queries/categories";
 import { getLatestArticles } from "@/lib/queries/articles";
 import { getLatestVideos } from "@/lib/queries/videos";
+import { getFeaturedPlaylists } from "@/lib/queries/playlists";
 
 import { Hero } from "@/components/home/hero";
 import { VerseOfDay } from "@/components/home/verse-of-day";
@@ -17,6 +18,7 @@ import { PopularArtists } from "@/components/home/popular-artists";
 import { CategoryGrid } from "@/components/home/category-grid";
 import { NewsSection } from "@/components/home/news-section";
 import { VideosSection } from "@/components/home/videos-section";
+import { PlaylistsSection } from "@/components/home/playlists-section";
 import { TestimonialsSection } from "@/components/home/testimonials-section";
 import { NewsletterSection } from "@/components/home/newsletter-section";
 import { SectionHeading } from "@/components/shared/section-heading";
@@ -45,6 +47,7 @@ export default async function HomePage() {
     categories,
     latestArticles,
     latestVideos,
+    featuredPlaylists,
   ] = await Promise.all([
     prisma.settings.findUnique({ where: { id: "settings" } }),
     getVerseOfDay(),
@@ -57,6 +60,7 @@ export default async function HomePage() {
     getCategories(),
     getLatestArticles(4),
     getLatestVideos(3),
+    getFeaturedPlaylists(3),
   ]);
 
   return (
@@ -94,6 +98,8 @@ export default async function HomePage() {
           />
         )}
       </section>
+
+      <PlaylistsSection playlists={featuredPlaylists} />
 
       {categories.length > 0 && <CategoryGrid categories={categories} />}
 

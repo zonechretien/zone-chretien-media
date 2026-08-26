@@ -6,6 +6,7 @@ import { dateToUrlSlug } from "@/lib/utils";
 const STATIC_ROUTES = [
   { path: "/", changeFrequency: "daily" as const, priority: 1 },
   { path: "/chansons", changeFrequency: "daily" as const, priority: 0.9 },
+  { path: "/playlists", changeFrequency: "weekly" as const, priority: 0.7 },
   { path: "/artistes", changeFrequency: "weekly" as const, priority: 0.7 },
   { path: "/videos", changeFrequency: "daily" as const, priority: 0.8 },
   { path: "/inspirations", changeFrequency: "daily" as const, priority: 0.7 },
@@ -17,9 +18,10 @@ const STATIC_ROUTES = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [songs, artists, videos, inspirations, devotions, prayers, verses, testimonies, articles] =
+  const [songs, playlists, artists, videos, inspirations, devotions, prayers, verses, testimonies, articles] =
     await Promise.all([
       prisma.song.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
+      prisma.playlist.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
       prisma.artist.findMany({ select: { slug: true, updatedAt: true } }),
       prisma.video.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
       prisma.inspiration.findMany({
@@ -71,6 +73,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticEntries,
     ...toEntries(songs, "/chansons", 0.8),
+    ...toEntries(playlists, "/playlists", 0.6),
     ...toEntries(artists, "/artistes", 0.6),
     ...toEntries(videos, "/videos", 0.6),
     ...toEntries(inspirations, "/inspirations", 0.6),
