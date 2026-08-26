@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { PlayCircle } from "lucide-react";
 import type { Artist, Category, Video } from "@prisma/client";
 import { getYoutubeEmbedUrl, getYoutubeThumbnail } from "@/lib/utils";
@@ -17,33 +18,38 @@ export function VideoCard({
   const embedUrl = getYoutubeEmbedUrl(video.youtubeUrl);
   const { openVideo } = useVideoModal();
 
+  function handlePlay(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (embedUrl) openVideo(embedUrl, video.title);
+  }
+
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-elevated">
-      <div className="group relative aspect-video overflow-hidden bg-navy">
-        {embedUrl ? (
+    <Link
+      href={`/videos/${video.slug}`}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-elevated transition hover:border-gold hover:shadow-lg"
+    >
+      <div className="relative aspect-video overflow-hidden bg-navy">
+        {thumbnail && (
+          <Image
+            src={thumbnail}
+            alt={video.title}
+            fill
+            className="object-cover transition duration-300 group-hover:scale-105"
+            sizes="(min-width: 1024px) 33vw, 100vw"
+          />
+        )}
+        {embedUrl && (
           <button
             type="button"
-            onClick={() => openVideo(embedUrl, video.title)}
+            onClick={handlePlay}
             aria-label={`Lire la vidéo ${video.title}`}
             className="absolute inset-0 flex h-full w-full items-center justify-center"
           >
-            {thumbnail && (
-              <Image
-                src={thumbnail}
-                alt={video.title}
-                fill
-                className="object-cover transition duration-300 group-hover:scale-105"
-                sizes="(min-width: 1024px) 33vw, 100vw"
-              />
-            )}
-            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gold text-navy shadow-lg">
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gold text-navy shadow-lg transition group-hover:scale-105">
               <PlayCircle size={28} />
             </span>
           </button>
-        ) : (
-          thumbnail && (
-            <Image src={thumbnail} alt={video.title} fill className="object-cover" sizes="100vw" />
-          )
         )}
       </div>
       <div className="p-4">
@@ -58,8 +64,8 @@ export function VideoCard({
             {video.category?.name}
           </p>
         )}
-        <ShareButtons url={video.youtubeUrl} title={video.title} compact className="mt-3" />
+        <ShareButtons url={`/videos/${video.slug}`} title={video.title} compact className="mt-3" />
       </div>
-    </div>
+    </Link>
   );
 }

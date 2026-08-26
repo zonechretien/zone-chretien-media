@@ -34,3 +34,24 @@ export function getLatestVideos(limit = 6) {
     take: limit,
   });
 }
+
+export function getVideoBySlug(slug: string) {
+  return prisma.video.findFirst({
+    where: { slug, published: true },
+    include: { artist: true, category: true },
+  });
+}
+
+export function getSimilarVideos(id: string, categoryId: string | null, artistId: string | null, limit = 4) {
+  if (!categoryId && !artistId) return Promise.resolve([]);
+  return prisma.video.findMany({
+    where: {
+      published: true,
+      id: { not: id },
+      OR: [...(categoryId ? [{ categoryId }] : []), ...(artistId ? [{ artistId }] : [])],
+    },
+    orderBy: { createdAt: "desc" },
+    include: { artist: true, category: true },
+    take: limit,
+  });
+}
