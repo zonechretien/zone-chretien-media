@@ -15,6 +15,7 @@ import {
   Megaphone,
   Settings,
   LayoutDashboard,
+  ListMusic,
   Music4,
   Video,
   Wand2,
@@ -37,6 +38,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: "Contenus",
     items: [
       { href: "/admin/chansons", label: "Chansons", icon: Music4 },
+      { href: "/admin/playlists", label: "Playlists", icon: ListMusic },
       { href: "/admin/artistes", label: "Artistes", icon: Users },
       { href: "/admin/videos", label: "Vidéos", icon: Video },
       { href: "/admin/articles", label: "Articles", icon: Newspaper },

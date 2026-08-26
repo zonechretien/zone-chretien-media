@@ -17,6 +17,7 @@ export const FULL_ACCESS_ROLES: Role[] = ["SUPER_ADMIN", "ADMIN"];
  * lui est fermée par défaut, y compris en accès direct par URL. */
 export const EDITOR_ALLOWED_PATH_PREFIXES = [
   "/admin/chansons",
+  "/admin/playlists",
   "/admin/artistes",
   "/admin/videos",
   "/admin/articles",

@@ -197,6 +197,7 @@ model Song {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
   tags       Tag[]
+  playlists  PlaylistSong[]
 
   metaTitle       String?
   metaDescription String?
@@ -210,6 +211,48 @@ model Song {
 
   @@index([published, createdAt])
   @@map("songs")
+}
+
+// ============================================================================
+// PLAYLISTS ÉDITORIALES
+// ============================================================================
+
+model Playlist {
+  id          String  @id @default(cuid())
+  title       String
+  slug        String  @unique
+  description String?
+  imageUrl    String?
+
+  order     Int     @default(0)
+  published Boolean @default(false)
+
+  metaTitle       String?
+  metaDescription String?
+
+  songs PlaylistSong[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, order])
+  @@map("playlists")
+}
+
+// Table de liaison explicite (plutôt qu'un m2m implicite Prisma) pour porter
+// la position de chaque chanson au sein d'une playlist — nécessaire pour le
+// réordonnancement dans le CMS et la lecture en séquence côté public.
+model PlaylistSong {
+  id         String   @id @default(cuid())
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  songId     String
+  song       Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  position   Int      @default(0)
+
+  @@unique([playlistId, songId])
+  @@index([playlistId, position])
+  @@map("playlist_songs")
 }
 
 // ============================================================================
