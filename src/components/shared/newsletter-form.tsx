@@ -5,7 +5,15 @@ import { ArrowRight, Check } from "lucide-react";
 import { subscribeNewsletter } from "@/lib/actions/newsletter";
 import { cn } from "@/lib/utils";
 
-export function NewsletterForm({ compact = false, className }: { compact?: boolean; className?: string }) {
+export function NewsletterForm({
+  compact = false,
+  className,
+  onSuccess,
+}: {
+  compact?: boolean;
+  className?: string;
+  onSuccess?: () => void;
+}) {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +26,10 @@ export function NewsletterForm({ compact = false, className }: { compact?: boole
     startTransition(async () => {
       const result = await subscribeNewsletter({ firstName, email });
       if (result?.error) setError(result.error);
-      else setDone(true);
+      else {
+        setDone(true);
+        onSuccess?.();
+      }
     });
   }
 
