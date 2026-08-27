@@ -149,6 +149,7 @@ model Tag {
 
   songs    Song[]
   articles Article[]
+  artists  Artist[]
 
   createdAt DateTime @default(now())
 
@@ -175,6 +176,7 @@ model Artist {
 
   songs  Song[]
   videos Video[]
+  tags   Tag[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

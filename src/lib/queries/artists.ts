@@ -4,10 +4,15 @@ import { PAGE_SIZE, paginate, totalPages } from "./shared";
 export async function getArtists({
   page = 1,
   query,
-}: { page?: number; query?: string } = {}) {
-  const where = query
-    ? { name: { contains: query } }
-    : undefined;
+  tagSlug,
+}: { page?: number; query?: string; tagSlug?: string } = {}) {
+  const where =
+    query || tagSlug
+      ? {
+          ...(query ? { name: { contains: query } } : {}),
+          ...(tagSlug ? { tags: { some: { slug: tagSlug } } } : {}),
+        }
+      : undefined;
 
   const [artists, count] = await Promise.all([
     prisma.artist.findMany({

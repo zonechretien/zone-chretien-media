@@ -3,6 +3,7 @@ import { Music4 } from "lucide-react";
 import { getSongs } from "@/lib/queries/songs";
 import { getCategories } from "@/lib/queries/categories";
 import { getArtists } from "@/lib/queries/artists";
+import { getTags } from "@/lib/queries/tags";
 import { PageHeader } from "@/components/shared/page-header";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { SongCard } from "@/components/cards/song-card";
@@ -26,12 +27,14 @@ export default async function SongsPage({
   const page = Number(params.page ?? 1) || 1;
   const categorySlug = params.categorie;
   const artistSlug = params.artiste;
+  const tagSlug = params.tag;
   const query = params.q;
 
-  const [{ songs, pages }, categories, { artists }] = await Promise.all([
-    getSongs({ page, categorySlug, artistSlug, query }),
+  const [{ songs, pages }, categories, { artists }, tags] = await Promise.all([
+    getSongs({ page, categorySlug, artistSlug, tagSlug, query }),
     getCategories("SONG"),
     getArtists({ page: 1 }),
+    getTags(),
   ]);
 
   return (
@@ -53,6 +56,11 @@ export default async function SongsPage({
               label: "Tous les artistes",
               options: artists.map((a) => ({ value: a.slug, label: a.name })),
             },
+            {
+              key: "tag",
+              label: "Tous les tags",
+              options: tags.map((t) => ({ value: t.slug, label: t.name })),
+            },
           ]}
         />
       </PageHeader>
@@ -69,7 +77,7 @@ export default async function SongsPage({
               page={page}
               pages={pages}
               basePath="/chansons"
-              searchParams={{ categorie: categorySlug, artiste: artistSlug, q: query }}
+              searchParams={{ categorie: categorySlug, artiste: artistSlug, tag: tagSlug, q: query }}
             />
           </>
         ) : (

@@ -14,6 +14,7 @@ export const artistSchema = z.object({
   tiktokUrl: optionalUrl,
   twitterUrl: optionalUrl,
   isSponsored: z.boolean().optional(),
+  tagIds: z.array(z.string()).optional(),
 });
 
 export type ArtistInput = z.infer<typeof artistSchema>;

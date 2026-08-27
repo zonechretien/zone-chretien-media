@@ -30,7 +30,12 @@ export async function createArtist(input: ArtistInput): Promise<{ error?: string
   if (!parsed.success) return { error: "Formulaire invalide." };
 
   try {
-    await prisma.artist.create({ data: toData(parsed.data) });
+    await prisma.artist.create({
+      data: {
+        ...toData(parsed.data),
+        tags: { connect: (parsed.data.tagIds ?? []).map((id) => ({ id })) },
+      },
+    });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return { error: "Ce slug est déjà utilisé par un autre artiste." };
@@ -50,7 +55,13 @@ export async function updateArtist(id: string, input: ArtistInput): Promise<{ er
   if (!parsed.success) return { error: "Formulaire invalide." };
 
   try {
-    await prisma.artist.update({ where: { id }, data: toData(parsed.data) });
+    await prisma.artist.update({
+      where: { id },
+      data: {
+        ...toData(parsed.data),
+        tags: { set: (parsed.data.tagIds ?? []).map((id) => ({ id })) },
+      },
+    });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return { error: "Ce slug est déjà utilisé par un autre artiste." };

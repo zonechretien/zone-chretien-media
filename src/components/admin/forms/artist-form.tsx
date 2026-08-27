@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Artist } from "@prisma/client";
+import type { Artist, Tag } from "@prisma/client";
 import { artistSchema, type ArtistInput } from "@/lib/validations/artists";
 import { createArtist, updateArtist } from "@/lib/actions/artists";
 import { useSlugSync } from "@/lib/admin/use-slug-sync";
@@ -18,9 +18,12 @@ import {
   textareaClass,
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
+import { TagPicker } from "@/components/admin/tag-picker";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
 
-export function ArtistForm({ artist }: { artist?: Artist }) {
+type ArtistWithTags = Artist & { tags: Tag[] };
+
+export function ArtistForm({ artist, tags }: { artist?: ArtistWithTags; tags: Tag[] }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -45,11 +48,13 @@ export function ArtistForm({ artist }: { artist?: Artist }) {
           tiktokUrl: artist.tiktokUrl ?? "",
           twitterUrl: artist.twitterUrl ?? "",
           isSponsored: artist.isSponsored,
+          tagIds: artist.tags.map((t) => t.id),
         }
-      : {},
+      : { tagIds: [] },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("name"), setValue, !!artist);
+  const tagIdsValue = watch("tagIds") ?? [];
 
   function onSubmit(data: ArtistInput) {
     setServerError(null);
@@ -118,6 +123,15 @@ export function ArtistForm({ artist }: { artist?: Artist }) {
           <FieldError error={errors.twitterUrl} />
         </FormRow>
       </FormGrid>
+
+      <FormRow>
+        <FieldLabel htmlFor="tags">Tags</FieldLabel>
+        <TagPicker
+          tags={tags}
+          selected={tagIdsValue}
+          onChange={(ids) => setValue("tagIds", ids)}
+        />
+      </FormRow>
 
       <FormRow>
         <label className="flex items-center gap-2 text-sm text-foreground">

@@ -9,13 +9,16 @@ export const metadata: Metadata = { title: "Modifier l'artiste" };
 export default async function EditArtistPage({ params }: { params: Promise<{ id: string }> }) {
   await requireSession();
   const { id } = await params;
-  const artist = await prisma.artist.findUnique({ where: { id } });
+  const [artist, tags] = await Promise.all([
+    prisma.artist.findUnique({ where: { id }, include: { tags: true } }),
+    prisma.tag.findMany({ orderBy: { name: "asc" } }),
+  ]);
   if (!artist) notFound();
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-foreground">Modifier « {artist.name} »</h1>
-      <ArtistForm artist={artist} />
+      <ArtistForm artist={artist} tags={tags} />
     </div>
   );
 }

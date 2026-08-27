@@ -6,17 +6,20 @@ export async function getSongs({
   page = 1,
   categorySlug,
   artistSlug,
+  tagSlug,
   query,
 }: {
   page?: number;
   categorySlug?: string;
   artistSlug?: string;
+  tagSlug?: string;
   query?: string;
 } = {}) {
   const where: Prisma.SongWhereInput = {
     published: true,
     ...(categorySlug ? { category: { slug: categorySlug } } : {}),
     ...(artistSlug ? { artist: { slug: artistSlug } } : {}),
+    ...(tagSlug ? { tags: { some: { slug: tagSlug } } } : {}),
     ...(query
       ? {
           OR: [
