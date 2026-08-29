@@ -18,10 +18,13 @@ import {
   textareaClass,
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
+import { BibleVersePicker } from "@/components/admin/bible-verse-picker";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
 import { dateToUrlSlug } from "@/lib/utils";
 
-export function VerseForm({ verse }: { verse?: Verse }) {
+type PickableBook = { slug: string; name: string; chapterCount: number };
+
+export function VerseForm({ verse, books }: { verse?: Verse; books: PickableBook[] }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -29,6 +32,7 @@ export function VerseForm({ verse }: { verse?: Verse }) {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<VerseInput>({
     resolver: zodResolver(verseSchema),
@@ -71,6 +75,16 @@ export function VerseForm({ verse }: { verse?: Verse }) {
         <input id="date" type="date" className={inputClass} {...register("date")} />
         <FieldError error={errors.date} />
         <p className="mt-1 text-xs text-muted">Un seul verset par date.</p>
+      </FormRow>
+
+      <FormRow>
+        <BibleVersePicker
+          books={books}
+          onPick={({ reference, text }) => {
+            setValue("reference", reference, { shouldValidate: true });
+            setValue("text", text, { shouldValidate: true });
+          }}
+        />
       </FormRow>
 
       <FormRow>

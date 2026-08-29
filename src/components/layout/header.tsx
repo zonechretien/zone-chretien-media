@@ -12,7 +12,7 @@ const EDIFICATION_LINKS = [
   { href: "/inspirations", label: "Inspirations" },
   { href: "/devotions", label: "Dévotions" },
   { href: "/prieres", label: "Prières" },
-  { href: "/versets", label: "Versets" },
+  { href: "/bible", label: "Bible" },
   { href: "/temoignages", label: "Témoignages" },
 ];
 

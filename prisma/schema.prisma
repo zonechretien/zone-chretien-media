@@ -444,6 +444,79 @@ model Article {
 }
 
 // ============================================================================
+// BIBLE (texte intégral, importé depuis Lepolo_Bible — voir scripts/bible/)
+// ============================================================================
+// Préfixées "Bible" pour éviter toute collision avec le modèle `Verse`
+// existant plus haut (qui sert au "verset du jour", contenu éditorial saisi
+// à la main — sans rapport avec ces données bibliques complètes).
+// Identifiants entiers auto-incrémentés (plutôt que cuid, convention du
+// reste du schéma) : ça reproduit le rowid SQLite déjà utilisé par la table
+// FTS5 source (voir migration.sql pour bible_verses_fts), et facilite le
+// mapping direct lors de l'import.
+
+enum BibleTestament {
+  AT
+  NT
+}
+
+model BibleVersion {
+  id       Int     @id @default(autoincrement())
+  code     String  @unique // ex. "LSG1910"
+  name     String // ex. "Louis Segond 1910"
+  language String  @default("fr")
+  license  String? // ex. "domaine public"
+
+  books BibleBook[]
+
+  createdAt DateTime @default(now())
+
+  @@map("bible_versions")
+}
+
+model BibleBook {
+  id           Int            @id @default(autoincrement())
+  versionId    Int
+  version      BibleVersion   @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  testament    BibleTestament
+  order        Int // ordre canonique 1..66
+  name         String // ex. "Genèse"
+  slug         String // ex. "genese"
+  abbreviation String // ex. "Gen"
+  chapterCount Int
+
+  chapters BibleChapter[]
+
+  @@unique([versionId, order])
+  @@unique([versionId, slug])
+  @@index([versionId, testament])
+  @@map("bible_books")
+}
+
+model BibleChapter {
+  id         Int       @id @default(autoincrement())
+  bookId     Int
+  book       BibleBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  number     Int
+  verseCount Int
+
+  verses BibleVerse[]
+
+  @@unique([bookId, number])
+  @@map("bible_chapters")
+}
+
+model BibleVerse {
+  id        Int          @id @default(autoincrement())
+  chapterId Int
+  chapter   BibleChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  number    Int
+  text      String
+
+  @@unique([chapterId, number])
+  @@map("bible_verses")
+}
+
+// ============================================================================
 // STATISTIQUES DE VUES (tableau de bord, stats mensuelles)
 // ============================================================================
 

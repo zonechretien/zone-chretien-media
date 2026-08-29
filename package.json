@@ -16,6 +16,9 @@
     "admin:create": "tsx --env-file=.env scripts/create-admin.ts",
     "admin:super": "tsx --env-file=.env scripts/set-super-admin.ts",
     "content:fix-slugs": "tsx --env-file=.env scripts/fix-all-slugs.ts",
+    "bible:export": "tsx scripts/bible/export-from-lepolo.ts",
+    "bible:import": "tsx --env-file=.env scripts/bible/import-to-zonechretien.ts",
+    "bible:verify": "tsx --env-file=.env scripts/bible/verify-import.ts",
     "lance_app": "lance_app.bat"
   },
   "dependencies": {
