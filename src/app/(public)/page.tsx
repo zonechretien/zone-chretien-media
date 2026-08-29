@@ -8,7 +8,6 @@ import { getLatestTestimonies } from "@/lib/queries/testimonies";
 import { getPopularArtists } from "@/lib/queries/artists";
 import { getCategories } from "@/lib/queries/categories";
 import { getLatestArticles } from "@/lib/queries/articles";
-import { getLatestVideos } from "@/lib/queries/videos";
 import { getFeaturedPlaylists } from "@/lib/queries/playlists";
 
 import { Hero } from "@/components/home/hero";
@@ -17,7 +16,6 @@ import { FeaturedSong } from "@/components/home/featured-song";
 import { PopularArtists } from "@/components/home/popular-artists";
 import { CategoryGrid } from "@/components/home/category-grid";
 import { NewsSection } from "@/components/home/news-section";
-import { VideosSection } from "@/components/home/videos-section";
 import { PlaylistsSection } from "@/components/home/playlists-section";
 import { TestimonialsSection } from "@/components/home/testimonials-section";
 import { NewsletterSection } from "@/components/home/newsletter-section";
@@ -46,7 +44,6 @@ export default async function HomePage() {
     popularArtists,
     categories,
     latestArticles,
-    latestVideos,
     featuredPlaylists,
   ] = await Promise.all([
     prisma.settings.findUnique({ where: { id: "settings" } }),
@@ -59,7 +56,6 @@ export default async function HomePage() {
     getPopularArtists(8),
     getCategories(),
     getLatestArticles(4),
-    getLatestVideos(3),
     getFeaturedPlaylists(3),
   ]);
 
@@ -141,8 +137,6 @@ export default async function HomePage() {
       )}
 
       <NewsSection articles={latestArticles} />
-
-      <VideosSection videos={latestVideos} />
 
       <TestimonialsSection testimonies={latestTestimonies} />
 
