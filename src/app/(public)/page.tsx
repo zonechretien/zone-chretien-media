@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
-import { getVerseOfDay } from "@/lib/queries/verses";
 import { getFeaturedSong, getLatestSongs } from "@/lib/queries/songs";
 import { getLatestInspirations } from "@/lib/queries/inspirations";
 import { getLatestDevotions } from "@/lib/queries/devotions";
@@ -11,7 +10,6 @@ import { getLatestArticles } from "@/lib/queries/articles";
 import { getFeaturedPlaylists } from "@/lib/queries/playlists";
 
 import { Hero } from "@/components/home/hero";
-import { VerseOfDay } from "@/components/home/verse-of-day";
 import { FeaturedSong } from "@/components/home/featured-song";
 import { PopularArtists } from "@/components/home/popular-artists";
 import { CategoryGrid } from "@/components/home/category-grid";
@@ -35,7 +33,6 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const [
     settings,
-    verse,
     featuredSong,
     latestSongs,
     latestInspirations,
@@ -47,7 +44,6 @@ export default async function HomePage() {
     featuredPlaylists,
   ] = await Promise.all([
     prisma.settings.findUnique({ where: { id: "settings" } }),
-    getVerseOfDay(),
     getFeaturedSong(),
     getLatestSongs(8),
     getLatestInspirations(3),
@@ -68,8 +64,6 @@ export default async function HomePage() {
           "La musique, l'inspiration et la Parole pour édifier les nations."
         }
       />
-
-      {verse && <VerseOfDay verse={verse} />}
 
       {featuredSong && <FeaturedSong song={featuredSong} />}
 

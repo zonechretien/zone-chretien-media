@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { getBibleBooks } from "@/lib/queries/bible";
+import { getVerseOfDay } from "@/lib/queries/verses";
 import { PageHeader } from "@/components/shared/page-header";
 import { BibleSearchBar } from "@/components/bible/bible-search-bar";
+import { VerseOfDay } from "@/components/home/verse-of-day";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -13,7 +15,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function BiblePage() {
-  const books = await getBibleBooks();
+  const [books, verse] = await Promise.all([getBibleBooks(), getVerseOfDay()]);
   const oldTestament = books.filter((b) => b.testament === "AT");
   const newTestament = books.filter((b) => b.testament === "NT");
 
@@ -22,6 +24,12 @@ export default async function BiblePage() {
       <PageHeader title="La Bible" description="Louis Segond 1910 — texte intégral, domaine public.">
         <BibleSearchBar className="max-w-xl" />
       </PageHeader>
+
+      {verse && (
+        <div className="pt-10">
+          <VerseOfDay verse={verse} />
+        </div>
+      )}
 
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <BookList title="Ancien Testament" books={oldTestament} />
