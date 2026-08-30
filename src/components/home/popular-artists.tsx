@@ -1,6 +1,7 @@
 import type { Artist } from "@prisma/client";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { ArtistCard } from "@/components/cards/artist-card";
+import { Carousel, CarouselItem } from "@/components/shared/carousel";
 
 export function PopularArtists({
   artists,
@@ -15,11 +16,13 @@ export function PopularArtists({
         href="/artistes"
         className="mb-6"
       />
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+      <Carousel autoPlay>
         {artists.map((artist) => (
-          <ArtistCard key={artist.id} artist={artist} />
+          <CarouselItem key={artist.id} className="w-[140px] sm:w-[160px] md:w-[180px]">
+            <ArtistCard artist={artist} />
+          </CarouselItem>
         ))}
-      </div>
+      </Carousel>
     </section>
   );
 }
