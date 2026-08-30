@@ -6,6 +6,7 @@ import { getInspirationBySlug } from "@/lib/queries/inspirations";
 import { trackView } from "@/lib/queries/shared";
 import { formatDate } from "@/lib/utils";
 import { ShareButtons } from "@/components/shared/share-buttons";
+import { YoutubeEmbed } from "@/components/shared/youtube-embed";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
 import { renderMarkdown, markdownToText } from "@/lib/markdown";
@@ -85,6 +86,13 @@ export default async function InspirationPage({ params }: Props) {
             sizes="(min-width: 768px) 768px, 100vw"
             priority
           />
+        </div>
+      )}
+
+      {inspiration.videoUrl && (
+        <div className="mt-8">
+          <h2 className="mb-3 text-lg font-semibold text-foreground">Vidéo</h2>
+          <YoutubeEmbed url={inspiration.videoUrl} title={inspiration.title} />
         </div>
       )}
 

@@ -299,6 +299,7 @@ model Inspiration {
   slug     String  @unique
   content  String
   imageUrl String?
+  videoUrl String? // URL YouTube optionnelle — vidéo d'accompagnement (voir Song.youtubeUrl)
   author   String?
 
   categoryId String?

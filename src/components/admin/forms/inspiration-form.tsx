@@ -23,6 +23,7 @@ import {
 } from "@/components/admin/form-fields";
 import { ImageUrlField } from "@/components/admin/image-url-field";
 import { PublishedAtField } from "@/components/admin/published-at-field";
+import { YoutubeEmbedCheck } from "@/components/admin/youtube-embed-check";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
 
 export function InspirationForm({
@@ -50,6 +51,7 @@ export function InspirationForm({
           slug: inspiration.slug,
           content: inspiration.content,
           imageUrl: inspiration.imageUrl ?? "",
+          videoUrl: inspiration.videoUrl ?? "",
           author: inspiration.author ?? "",
           categoryId: inspiration.categoryId ?? "",
           publishedAt: dateToUrlSlug(inspiration.publishedAt ?? inspiration.createdAt),
@@ -59,6 +61,7 @@ export function InspirationForm({
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!inspiration);
+  const videoUrlValue = watch("videoUrl");
 
   useAIDraftPrefill<InspirationDraft>("ai-draft-inspiration", (draft) => {
     if (inspiration) return;
@@ -67,6 +70,7 @@ export function InspirationForm({
       slug: slugify(draft.title),
       content: draft.content,
       imageUrl: "",
+      videoUrl: "",
       author: "",
       categoryId: "",
       published: true,
@@ -108,6 +112,13 @@ export function InspirationForm({
       <FormRow>
         <FieldLabel htmlFor="imageUrl">Image (URL)</FieldLabel>
         <ImageUrlField register={register("imageUrl")} defaultValue={inspiration?.imageUrl ?? undefined} />
+      </FormRow>
+
+      <FormRow>
+        <FieldLabel htmlFor="videoUrl">URL YouTube (optionnel)</FieldLabel>
+        <input id="videoUrl" className={inputClass} placeholder="https://youtube.com/…" {...register("videoUrl")} />
+        <FieldError error={errors.videoUrl} />
+        <YoutubeEmbedCheck url={videoUrlValue ?? ""} />
       </FormRow>
 
       <FormGrid>

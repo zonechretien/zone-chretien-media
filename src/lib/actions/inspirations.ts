@@ -14,6 +14,7 @@ function toData(input: InspirationInput) {
     slug: slugify(input.slug),
     content: input.content,
     imageUrl: input.imageUrl || null,
+    videoUrl: input.videoUrl || null,
     author: input.author || null,
     categoryId: input.categoryId || null,
     publishedAt: input.publishedAt ? parseDateInput(input.publishedAt) : null,
