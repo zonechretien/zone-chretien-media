@@ -49,25 +49,102 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [volume, setVolume] = useState(0.8);
   const [previousVolume, setPreviousVolume] = useState(0.8);
 
+  // Miroirs "impératifs" de queue/queueIndex : l'écran verrouillé (Media Session
+  // nexttrack/previoustrack) et l'enchaînement automatique (événement "ended")
+  // doivent piloter directement l'élément <audio> sans attendre un re-render React,
+  // car le scheduler de React peut être fortement retardé pendant que la page/PWA
+  // est en arrière-plan (écran éteint) — ce qui, avant ce correctif, bloquait
+  // l'avance automatique à la piste suivante une fois l'écran verrouillé.
+  const queueRef = useRef<Track[]>([]);
+  const queueIndexRef = useRef(0);
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+  useEffect(() => {
+    queueIndexRef.current = queueIndex;
+  }, [queueIndex]);
+
   const currentTrack = queue[queueIndex] ?? null;
 
-  const playTrack = useCallback((track: Track, newQueue?: Track[]) => {
-    const list = newQueue && newQueue.length > 0 ? newQueue : [track];
-    const idx = list.findIndex((t) => t.id === track.id);
-    setQueue(list);
-    setQueueIndex(idx >= 0 ? idx : 0);
-    setIsPlaying(true);
+  const setMediaSessionState = useCallback((track: Track, playing: boolean) => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title,
+      artist: track.artistName,
+      album: "Zone-Chrétien Media",
+      artwork: [
+        { src: track.imageUrl, sizes: "96x96", type: "image/jpeg" },
+        { src: track.imageUrl, sizes: "256x256", type: "image/jpeg" },
+        { src: track.imageUrl, sizes: "512x512", type: "image/jpeg" },
+      ],
+    });
+    navigator.mediaSession.playbackState = playing ? "playing" : "paused";
   }, []);
 
+  /** Charge (si besoin) et lance la piste à `index`, directement sur l'élément
+   * <audio> — c'est le seul chemin par lequel une piste démarre, que ce soit un
+   * clic utilisateur, l'enchaînement automatique ou une action de l'écran
+   * verrouillé, pour garantir un comportement fiable en arrière-plan. */
+  const loadedTrackIdRef = useRef<string | null>(null);
+  const loadAndPlay = useCallback(
+    (index: number) => {
+      const list = queueRef.current;
+      const track = list[index];
+      const audio = audioRef.current;
+      if (!track || !audio) return;
+
+      queueIndexRef.current = index;
+      if (loadedTrackIdRef.current !== track.id) {
+        audio.src = track.audioUrl;
+        loadedTrackIdRef.current = track.id;
+      }
+      audio.play().catch(() => setIsPlaying(false));
+      setMediaSessionState(track, true);
+      setQueueIndex(index);
+      setIsPlaying(true);
+    },
+    [setMediaSessionState],
+  );
+
+  const playTrack = useCallback(
+    (track: Track, newQueue?: Track[]) => {
+      const list = newQueue && newQueue.length > 0 ? newQueue : [track];
+      const idx = list.findIndex((t) => t.id === track.id);
+      queueRef.current = list;
+      setQueue(list);
+      loadAndPlay(idx >= 0 ? idx : 0);
+    },
+    [loadAndPlay],
+  );
+
+  const play = useCallback(() => {
+    const audio = audioRef.current;
+    const track = queueRef.current[queueIndexRef.current];
+    if (!audio || !track) return;
+    audio.play().catch(() => setIsPlaying(false));
+    setMediaSessionState(track, true);
+    setIsPlaying(true);
+  }, [setMediaSessionState]);
+
+  const pause = useCallback(() => {
+    const audio = audioRef.current;
+    const track = queueRef.current[queueIndexRef.current];
+    audio?.pause();
+    if (track) setMediaSessionState(track, false);
+    setIsPlaying(false);
+  }, [setMediaSessionState]);
+
   const togglePlay = useCallback(() => {
-    if (!currentTrack) return;
-    setIsPlaying((p) => !p);
-  }, [currentTrack]);
+    const audio = audioRef.current;
+    if (!audio || !queueRef.current[queueIndexRef.current]) return;
+    if (audio.paused) play();
+    else pause();
+  }, [play, pause]);
 
   const next = useCallback(() => {
-    setQueueIndex((i) => (i + 1 < queue.length ? i + 1 : i));
-    setIsPlaying(true);
-  }, [queue.length]);
+    const nextIndex = queueIndexRef.current + 1;
+    if (nextIndex < queueRef.current.length) loadAndPlay(nextIndex);
+  }, [loadAndPlay]);
 
   const previous = useCallback(() => {
     const audio = audioRef.current;
@@ -75,9 +152,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       audio.currentTime = 0;
       return;
     }
-    setQueueIndex((i) => (i > 0 ? i - 1 : i));
-    setIsPlaying(true);
-  }, []);
+    const prevIndex = queueIndexRef.current - 1;
+    if (prevIndex >= 0) loadAndPlay(prevIndex);
+  }, [loadAndPlay]);
 
   const seek = useCallback((time: number) => {
     if (audioRef.current) audioRef.current.currentTime = time;
@@ -94,33 +171,25 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !currentTrack) return;
-    if (isPlaying) {
-      audio.play().catch(() => setIsPlaying(false));
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying, currentTrack]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
     if (audio) audio.volume = volume;
   }, [volume]);
 
+  // Écouteurs enregistrés une seule fois (jamais réattachés) : "onEnded" lit
+  // queueRef/queueIndexRef au moment où il se déclenche, jamais une closure figée,
+  // et enchaîne via loadAndPlay — donc même si l'écran est verrouillé et que React
+  // n'a pas encore eu l'occasion de re-render, la piste suivante démarre bien.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     const onTime = () => setCurrentTime(audio.currentTime);
     const onLoaded = () => setDuration(audio.duration || 0);
     const onEnded = () => {
-      setQueueIndex((i) => {
-        if (i + 1 < queue.length) {
-          setIsPlaying(true);
-          return i + 1;
-        }
+      const nextIndex = queueIndexRef.current + 1;
+      if (nextIndex < queueRef.current.length) {
+        loadAndPlay(nextIndex);
+      } else {
         setIsPlaying(false);
-        return i;
-      });
+      }
     };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onLoaded);
@@ -130,37 +199,17 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       audio.removeEventListener("loadedmetadata", onLoaded);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [queue.length]);
+  }, [loadAndPlay]);
 
-  // Media Session : métadonnées + contrôles sur l'écran verrouillé / notification
-  // système (Android, PWA installée, et centre de contrôle iOS). Permet aussi à la
-  // lecture de continuer en arrière-plan : tant qu'une session média active existe,
-  // l'OS garde l'onglet/la PWA vivante pour recevoir play/pause/next/previous.
-  useEffect(() => {
-    if (typeof window === "undefined" || !("mediaSession" in navigator) || !currentTrack) return;
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentTrack.title,
-      artist: currentTrack.artistName,
-      album: "Zone-Chrétien Media",
-      artwork: [
-        { src: currentTrack.imageUrl, sizes: "96x96", type: "image/jpeg" },
-        { src: currentTrack.imageUrl, sizes: "256x256", type: "image/jpeg" },
-        { src: currentTrack.imageUrl, sizes: "512x512", type: "image/jpeg" },
-      ],
-    });
-  }, [currentTrack]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
-    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-  }, [isPlaying]);
-
+  // Media Session : contrôles sur l'écran verrouillé / notification système
+  // (Android, PWA installée, et centre de contrôle iOS). Les métadonnées et le
+  // playbackState sont mis à jour de façon impérative dans play/pause/loadAndPlay
+  // ci-dessus (pas ici) pour ne jamais dépendre du cycle de rendu React.
   useEffect(() => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
 
-    navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
-    navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
+    navigator.mediaSession.setActionHandler("play", play);
+    navigator.mediaSession.setActionHandler("pause", pause);
     navigator.mediaSession.setActionHandler("previoustrack", previous);
     navigator.mediaSession.setActionHandler("nexttrack", next);
     try {
@@ -182,7 +231,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         navigator.mediaSession.setActionHandler("seekto", null);
       } catch {}
     };
-  }, [previous, next, seek]);
+  }, [play, pause, previous, next, seek]);
 
   useEffect(() => {
     if (
@@ -209,8 +258,11 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     <AudioPlayerContext.Provider value={{ playTrack, togglePlay, currentTrack, isPlaying }}>
       {children}
       {/* Toujours monté (même sans piste) pour ne jamais perdre l'état de lecture
-          entre deux navigations de page côté client. */}
-      <audio ref={audioRef} src={currentTrack?.audioUrl} />
+          entre deux navigations de page côté client. Pas de prop `src` ici : elle
+          est gérée entièrement de façon impérative par loadAndPlay (voir plus haut)
+          — sinon React réassignerait `.src` à chaque re-render (même à une valeur
+          identique), ce qui relance le chargement et coupe la lecture en cours. */}
+      <audio ref={audioRef} />
       {currentTrack && <div className="h-[72px]" aria-hidden />}
       {currentTrack && (
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t-2 border-brand-gold bg-brand-navy px-4 py-2.5 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] sm:gap-5 sm:px-6">
