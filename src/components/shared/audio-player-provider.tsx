@@ -40,7 +40,6 @@ function formatTime(seconds: number) {
 }
 
 export function AudioPlayerProvider({ children }: { children: React.ReactNode }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [queue, setQueue] = useState<Track[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -49,12 +48,32 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [volume, setVolume] = useState(0.8);
   const [previousVolume, setPreviousVolume] = useState(0.8);
 
+  // Deux éléments <audio> permanents (jamais démontés) au lieu d'un seul : pendant
+  // que l'un joue, l'autre précharge en silence la piste suivante. C'est ce qui
+  // rend l'enchaînement automatique fiable écran verrouillé — les navigateurs
+  // mobiles bloquent/retardent fortement toute NOUVELLE requête réseau lancée
+  // pendant que la page est en arrière-plan, mais laissent filer un chargement déjà
+  // amorcé pendant que l'app était encore au premier plan. Basculer vers la piste
+  // suivante devient alors un simple changement d'élément "actif", sans requête
+  // réseau lancée en arrière-plan. (Note : contrairement à un `fetch()`, charger
+  // une URL cross-origin via un élément <audio> ne nécessite pas d'en-têtes CORS
+  // — indispensable ici puisque les MP3 sont hébergés sur GitHub, qui n'envoie pas
+  // Access-Control-Allow-Origin.)
+  const audioElsRef = useRef<[HTMLAudioElement | null, HTMLAudioElement | null]>([null, null]);
+  const activeIdxRef = useRef<0 | 1>(0);
+  const loadedIdRef = useRef<[string | null, string | null]>([null, null]);
+  const setAudioEl0 = useCallback((el: HTMLAudioElement | null) => {
+    audioElsRef.current[0] = el;
+  }, []);
+  const setAudioEl1 = useCallback((el: HTMLAudioElement | null) => {
+    audioElsRef.current[1] = el;
+  }, []);
+
   // Miroirs "impératifs" de queue/queueIndex : l'écran verrouillé (Media Session
   // nexttrack/previoustrack) et l'enchaînement automatique (événement "ended")
-  // doivent piloter directement l'élément <audio> sans attendre un re-render React,
-  // car le scheduler de React peut être fortement retardé pendant que la page/PWA
-  // est en arrière-plan (écran éteint) — ce qui, avant ce correctif, bloquait
-  // l'avance automatique à la piste suivante une fois l'écran verrouillé.
+  // doivent piloter directement les éléments <audio> sans attendre un re-render
+  // React, car le scheduler de React peut être fortement retardé pendant que la
+  // page/PWA est en arrière-plan (écran éteint).
   const queueRef = useRef<Track[]>([]);
   const queueIndexRef = useRef(0);
   useEffect(() => {
@@ -81,29 +100,56 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     navigator.mediaSession.playbackState = playing ? "playing" : "paused";
   }, []);
 
-  /** Charge (si besoin) et lance la piste à `index`, directement sur l'élément
-   * <audio> — c'est le seul chemin par lequel une piste démarre, que ce soit un
-   * clic utilisateur, l'enchaînement automatique ou une action de l'écran
-   * verrouillé, pour garantir un comportement fiable en arrière-plan. */
-  const loadedTrackIdRef = useRef<string | null>(null);
+  /** Précharge silencieusement `track` sur l'élément <audio> actuellement inactif
+   * (sans jouer), pendant que l'autre élément joue la piste en cours. */
+  const preloadOnIdle = useCallback((track: Track) => {
+    if (!track.audioUrl) return;
+    const idleIdx = activeIdxRef.current === 0 ? 1 : 0;
+    const idle = audioElsRef.current[idleIdx];
+    if (!idle || loadedIdRef.current[idleIdx] === track.id) return;
+    idle.src = track.audioUrl;
+    idle.load();
+    loadedIdRef.current[idleIdx] = track.id;
+  }, []);
+
+  /** Lance la piste à `index` — c'est le seul chemin par lequel une piste démarre,
+   * que ce soit un clic utilisateur, l'enchaînement automatique ou une action de
+   * l'écran verrouillé. Si elle a déjà été préchargée sur l'élément inactif (cas
+   * normal de l'enchaînement automatique), on bascule simplement dessus au lieu
+   * de charger une nouvelle URL — donc sans requête réseau lancée en arrière-plan. */
   const loadAndPlay = useCallback(
     (index: number) => {
       const list = queueRef.current;
       const track = list[index];
-      const audio = audioRef.current;
-      if (!track || !audio) return;
+      if (!track) return;
 
       queueIndexRef.current = index;
-      if (loadedTrackIdRef.current !== track.id) {
-        audio.src = track.audioUrl;
-        loadedTrackIdRef.current = track.id;
+
+      const idleIdx = activeIdxRef.current === 0 ? 1 : 0;
+      let audio: HTMLAudioElement | null;
+
+      if (loadedIdRef.current[idleIdx] === track.id && audioElsRef.current[idleIdx]) {
+        audioElsRef.current[activeIdxRef.current]?.pause();
+        activeIdxRef.current = idleIdx;
+        audio = audioElsRef.current[idleIdx];
+      } else {
+        audio = audioElsRef.current[activeIdxRef.current];
+        if (audio && loadedIdRef.current[activeIdxRef.current] !== track.id) {
+          audio.src = track.audioUrl;
+          loadedIdRef.current[activeIdxRef.current] = track.id;
+        }
       }
+      if (!audio) return;
+
       audio.play().catch(() => setIsPlaying(false));
       setMediaSessionState(track, true);
       setQueueIndex(index);
       setIsPlaying(true);
+
+      const upcoming = list[index + 1];
+      if (upcoming) preloadOnIdle(upcoming);
     },
-    [setMediaSessionState],
+    [setMediaSessionState, preloadOnIdle],
   );
 
   const playTrack = useCallback(
@@ -118,7 +164,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   );
 
   const play = useCallback(() => {
-    const audio = audioRef.current;
+    const audio = audioElsRef.current[activeIdxRef.current];
     const track = queueRef.current[queueIndexRef.current];
     if (!audio || !track) return;
     audio.play().catch(() => setIsPlaying(false));
@@ -127,7 +173,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, [setMediaSessionState]);
 
   const pause = useCallback(() => {
-    const audio = audioRef.current;
+    const audio = audioElsRef.current[activeIdxRef.current];
     const track = queueRef.current[queueIndexRef.current];
     audio?.pause();
     if (track) setMediaSessionState(track, false);
@@ -135,7 +181,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, [setMediaSessionState]);
 
   const togglePlay = useCallback(() => {
-    const audio = audioRef.current;
+    const audio = audioElsRef.current[activeIdxRef.current];
     if (!audio || !queueRef.current[queueIndexRef.current]) return;
     if (audio.paused) play();
     else pause();
@@ -147,7 +193,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, [loadAndPlay]);
 
   const previous = useCallback(() => {
-    const audio = audioRef.current;
+    const audio = audioElsRef.current[activeIdxRef.current];
     if (audio && audio.currentTime > 3) {
       audio.currentTime = 0;
       return;
@@ -157,7 +203,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, [loadAndPlay]);
 
   const seek = useCallback((time: number) => {
-    if (audioRef.current) audioRef.current.currentTime = time;
+    const audio = audioElsRef.current[activeIdxRef.current];
+    if (audio) audio.currentTime = time;
   }, []);
 
   const changeVolume = useCallback((v: number) => {
@@ -170,35 +217,47 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, [previousVolume]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (audio) audio.volume = volume;
+    audioElsRef.current.forEach((audio) => {
+      if (audio) audio.volume = volume;
+    });
   }, [volume]);
 
-  // Écouteurs enregistrés une seule fois (jamais réattachés) : "onEnded" lit
-  // queueRef/queueIndexRef au moment où il se déclenche, jamais une closure figée,
-  // et enchaîne via loadAndPlay — donc même si l'écran est verrouillé et que React
-  // n'a pas encore eu l'occasion de re-render, la piste suivante démarre bien.
+  // Écouteurs attachés une seule fois aux DEUX éléments (jamais réattachés) :
+  // seul l'élément actif au moment de l'événement doit affecter l'état — celui en
+  // préchargement ne joue jamais (juste `.load()`), mais peut tout de même émettre
+  // "loadedmetadata". "onEnded" lit queueRef/queueIndexRef au moment où il se
+  // déclenche, jamais une closure figée, et enchaîne via loadAndPlay — donc même
+  // écran verrouillé, sans attendre de re-render React.
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onTime = () => setCurrentTime(audio.currentTime);
-    const onLoaded = () => setDuration(audio.duration || 0);
-    const onEnded = () => {
-      const nextIndex = queueIndexRef.current + 1;
-      if (nextIndex < queueRef.current.length) {
-        loadAndPlay(nextIndex);
-      } else {
-        setIsPlaying(false);
-      }
-    };
-    audio.addEventListener("timeupdate", onTime);
-    audio.addEventListener("loadedmetadata", onLoaded);
-    audio.addEventListener("ended", onEnded);
-    return () => {
-      audio.removeEventListener("timeupdate", onTime);
-      audio.removeEventListener("loadedmetadata", onLoaded);
-      audio.removeEventListener("ended", onEnded);
-    };
+    const cleanups: (() => void)[] = [];
+    audioElsRef.current.forEach((audio) => {
+      if (!audio) return;
+      const isActive = () => audio === audioElsRef.current[activeIdxRef.current];
+      const onTime = () => {
+        if (isActive()) setCurrentTime(audio.currentTime);
+      };
+      const onLoaded = () => {
+        if (isActive()) setDuration(audio.duration || 0);
+      };
+      const onEnded = () => {
+        if (!isActive()) return;
+        const nextIndex = queueIndexRef.current + 1;
+        if (nextIndex < queueRef.current.length) {
+          loadAndPlay(nextIndex);
+        } else {
+          setIsPlaying(false);
+        }
+      };
+      audio.addEventListener("timeupdate", onTime);
+      audio.addEventListener("loadedmetadata", onLoaded);
+      audio.addEventListener("ended", onEnded);
+      cleanups.push(() => {
+        audio.removeEventListener("timeupdate", onTime);
+        audio.removeEventListener("loadedmetadata", onLoaded);
+        audio.removeEventListener("ended", onEnded);
+      });
+    });
+    return () => cleanups.forEach((fn) => fn());
   }, [loadAndPlay]);
 
   // Media Session : contrôles sur l'écran verrouillé / notification système
@@ -257,12 +316,13 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   return (
     <AudioPlayerContext.Provider value={{ playTrack, togglePlay, currentTrack, isPlaying }}>
       {children}
-      {/* Toujours monté (même sans piste) pour ne jamais perdre l'état de lecture
-          entre deux navigations de page côté client. Pas de prop `src` ici : elle
-          est gérée entièrement de façon impérative par loadAndPlay (voir plus haut)
-          — sinon React réassignerait `.src` à chaque re-render (même à une valeur
-          identique), ce qui relance le chargement et coupe la lecture en cours. */}
-      <audio ref={audioRef} />
+      {/* Toujours montés (même sans piste) pour ne jamais perdre l'état de lecture
+          entre deux navigations de page côté client. Pas de prop `src` déclarative :
+          elle est gérée entièrement de façon impérative par loadAndPlay/preloadOnIdle
+          ci-dessus — sinon React la réassignerait à chaque re-render (même à une
+          valeur identique), ce qui relance le chargement et coupe la lecture en cours. */}
+      <audio ref={setAudioEl0} />
+      <audio ref={setAudioEl1} />
       {currentTrack && <div className="h-[72px]" aria-hidden />}
       {currentTrack && (
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t-2 border-brand-gold bg-brand-navy px-4 py-2.5 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] sm:gap-5 sm:px-6">
