@@ -181,7 +181,7 @@ export default async function SongPage({ params }: Props) {
             <SectionLabel icon={LayoutGrid}>Chansons similaires</SectionLabel>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {similarSongs.map((s) => (
-                <SongCard key={s.id} song={s} />
+                <SongCard key={s.id} song={s} queue={similarSongs} />
               ))}
             </div>
           </section>

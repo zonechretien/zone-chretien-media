@@ -167,7 +167,7 @@ export default async function ArtistPage({ params }: Props) {
         {artist.songs.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {artist.songs.map((song) => (
-              <SongCard key={song.id} song={{ ...song, artist }} />
+              <SongCard key={song.id} song={{ ...song, artist }} queue={artist.songs.map((s) => ({ ...s, artist }))} />
             ))}
           </div>
         ) : (

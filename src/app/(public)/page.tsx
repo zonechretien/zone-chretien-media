@@ -77,7 +77,7 @@ export default async function HomePage() {
         {latestSongs.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {latestSongs.map((song) => (
-              <SongCard key={song.id} song={song} />
+              <SongCard key={song.id} song={song} queue={latestSongs} />
             ))}
           </div>
         ) : (

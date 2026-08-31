@@ -52,7 +52,7 @@ export default async function SearchPage({
                 <SectionHeading title="Chansons" className="mb-6" />
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                   {results.songs.map((song) => (
-                    <SongCard key={song.id} song={song} />
+                    <SongCard key={song.id} song={song} queue={results.songs} />
                   ))}
                 </div>
               </section>

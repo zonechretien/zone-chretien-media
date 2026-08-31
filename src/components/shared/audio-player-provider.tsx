@@ -132,6 +132,79 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     };
   }, [queue.length]);
 
+  // Media Session : métadonnées + contrôles sur l'écran verrouillé / notification
+  // système (Android, PWA installée, et centre de contrôle iOS). Permet aussi à la
+  // lecture de continuer en arrière-plan : tant qu'une session média active existe,
+  // l'OS garde l'onglet/la PWA vivante pour recevoir play/pause/next/previous.
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator) || !currentTrack) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.title,
+      artist: currentTrack.artistName,
+      album: "Zone-Chrétien Media",
+      artwork: [
+        { src: currentTrack.imageUrl, sizes: "96x96", type: "image/jpeg" },
+        { src: currentTrack.imageUrl, sizes: "256x256", type: "image/jpeg" },
+        { src: currentTrack.imageUrl, sizes: "512x512", type: "image/jpeg" },
+      ],
+    });
+  }, [currentTrack]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+
+    navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
+    navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
+    navigator.mediaSession.setActionHandler("previoustrack", previous);
+    navigator.mediaSession.setActionHandler("nexttrack", next);
+    try {
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        if (details.seekTime == null) return;
+        seek(details.seekTime);
+      });
+    } catch {
+      // "seekto" n'est pas supporté par tous les navigateurs (ex. anciennes
+      // versions de Safari iOS) — on ignore silencieusement dans ce cas.
+    }
+
+    return () => {
+      navigator.mediaSession.setActionHandler("play", null);
+      navigator.mediaSession.setActionHandler("pause", null);
+      navigator.mediaSession.setActionHandler("previoustrack", null);
+      navigator.mediaSession.setActionHandler("nexttrack", null);
+      try {
+        navigator.mediaSession.setActionHandler("seekto", null);
+      } catch {}
+    };
+  }, [previous, next, seek]);
+
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      !("mediaSession" in navigator) ||
+      !("setPositionState" in navigator.mediaSession) ||
+      !duration
+    ) {
+      return;
+    }
+    try {
+      navigator.mediaSession.setPositionState({
+        duration,
+        playbackRate: 1,
+        position: Math.min(currentTime, duration),
+      });
+    } catch {
+      // Peut lever si les valeurs sont temporairement incohérentes pendant un
+      // changement de piste (duration pas encore chargée) — sans conséquence.
+    }
+  }, [currentTime, duration]);
+
   return (
     <AudioPlayerContext.Provider value={{ playTrack, togglePlay, currentTrack, isPlaying }}>
       {children}
