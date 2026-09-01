@@ -10,9 +10,11 @@ import { ShareButtons } from "@/components/shared/share-buttons";
 import { YoutubeEmbed } from "@/components/shared/youtube-embed";
 import { JsonLd } from "@/components/shared/json-ld";
 import { ResourceAudioButton } from "@/components/resources/resource-audio-button";
+import { ResourcePdfButton } from "@/components/resources/resource-pdf-button";
 import { ResourceDownloadLink } from "@/components/resources/resource-download-link";
 import { absoluteUrl } from "@/lib/seo";
 import { renderMarkdown, markdownToText } from "@/lib/markdown";
+import { isPdfEmbeddable } from "@/lib/pdf-embed-check";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -48,6 +50,10 @@ export default async function ResourcePage({ params }: Props) {
   const youtubeId = getYoutubeId(resource.fileUrl);
   const isVideo = resource.type === "VIDEO_SERMON" || (["CONFERENCE", "COURSE"].includes(resource.type) && !!youtubeId);
   const isAudio = resource.type === "AUDIO_SERMON";
+  // Uniquement Livre/Étude biblique : aperçu en modale plutôt qu'un lien externe direct
+  // (Conférence/Cours en PDF gardent le comportement existant, volontairement inchangé).
+  const isPreviewablePdf = resource.type === "BOOK" || resource.type === "BIBLE_STUDY";
+  const pdfPreviewable = isPreviewablePdf ? await isPdfEmbeddable(resource.fileUrl) : false;
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
@@ -111,12 +117,15 @@ export default async function ResourcePage({ params }: Props) {
               href: `/bibliotheque/${resource.slug}`,
             }}
           />
-        ) : (
-          <ResourceDownloadLink
+        ) : isPreviewablePdf ? (
+          <ResourcePdfButton
             id={resource.id}
             url={resource.fileUrl}
-            label={resource.type === "BOOK" || resource.type === "BIBLE_STUDY" ? "Télécharger" : "Consulter"}
+            title={resource.title}
+            previewable={pdfPreviewable}
           />
+        ) : (
+          <ResourceDownloadLink id={resource.id} url={resource.fileUrl} label="Consulter" />
         )}
       </div>
 
