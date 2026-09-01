@@ -49,6 +49,20 @@ enum ContentType {
   PRAYER
   VERSE
   TESTIMONY
+  RESOURCE
+}
+
+// Détermine quel champ de saisie afficher dans le CMS pour `Resource.fileUrl`
+// (PDF, audio ou YouTube) et comment la page publique doit traiter le lien —
+// sauf CONFERENCE/COURSE, dont le média n'est pas fixe : la page publique
+// détecte alors dynamiquement s'il s'agit d'un lien YouTube ou d'un document.
+enum ResourceType {
+  BOOK // Livre — PDF
+  BIBLE_STUDY // Étude biblique — PDF
+  AUDIO_SERMON // Prédication audio — URL audio
+  VIDEO_SERMON // Prédication vidéo — URL YouTube
+  CONFERENCE // Conférence — PDF ou YouTube selon l'URL fournie
+  COURSE // Cours — PDF ou YouTube selon l'URL fournie
 }
 
 enum AIProvider {
@@ -135,6 +149,7 @@ model Category {
   articles     Article[]
   videos       Video[]
   inspirations Inspiration[]
+  resources    Resource[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -147,9 +162,10 @@ model Tag {
   name String
   slug String @unique
 
-  songs    Song[]
-  articles Article[]
-  artists  Artist[]
+  songs     Song[]
+  articles  Article[]
+  artists   Artist[]
+  resources Resource[]
 
   createdAt DateTime @default(now())
 
@@ -442,6 +458,39 @@ model Article {
 
   @@index([published, createdAt])
   @@map("articles")
+}
+
+// ============================================================================
+// BIBLIOTHÈQUE NUMÉRIQUE (livres, études, prédications, conférences, cours)
+// ============================================================================
+// `fileUrl` pointe toujours vers une source externe gratuite (GitHub Releases,
+// Google Drive en partage public, etc.) — comme Song.audioUrl, le site
+// n'héberge aucun fichier lourd (contrainte "0 coût" du projet).
+
+model Resource {
+  id            String       @id @default(cuid())
+  title         String
+  slug          String       @unique
+  description   String? // markdown, comme Inspiration.content / Devotion.content
+  author        String?
+  type          ResourceType
+  fileUrl       String
+  coverImageUrl String?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  tags       Tag[]
+
+  views       Int       @default(0)
+  downloads   Int       @default(0)
+  published   Boolean   @default(true)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+  @@map("resources")
 }
 
 // ============================================================================

@@ -3,6 +3,7 @@ import {
   BookMarked,
   Eye,
   HandHeart,
+  Library,
   Music4,
   Newspaper,
   Quote,
@@ -53,6 +54,7 @@ export default async function AdminDashboardPage({
         <StatTile label="Prières" value={counts.prayers} icon={HandHeart} href="/admin/prieres" />
         <StatTile label="Versets" value={counts.verses} icon={Quote} href="/admin/versets" />
         <StatTile label="Témoignages" value={counts.testimonies} icon={UserRound} href="/admin/temoignages" />
+        <StatTile label="Bibliothèque" value={counts.resources} icon={Library} href="/admin/bibliotheque" />
         <StatTile label="Vues totales" value={counts.totalViews} icon={Eye} />
       </div>
 

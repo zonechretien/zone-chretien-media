@@ -14,6 +14,7 @@ const EDIFICATION_LINKS = [
   { href: "/prieres", label: "Prières" },
   { href: "/bible", label: "Bible" },
   { href: "/temoignages", label: "Témoignages" },
+  { href: "/bibliotheque", label: "Bibliothèque" },
 ];
 
 const NAV_LINKS = [

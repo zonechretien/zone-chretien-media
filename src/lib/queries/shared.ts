@@ -49,6 +49,9 @@ export function trackView(contentType: ContentType, contentId: string) {
         case "ARTICLE":
           await prisma.article.update({ where, data: { views } });
           break;
+        case "RESOURCE":
+          await prisma.resource.update({ where, data: { views } });
+          break;
         case "ARTIST":
           break;
       }

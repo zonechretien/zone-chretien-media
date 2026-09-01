@@ -29,6 +29,7 @@ const FOOTER_COLUMNS = [
       { href: "/versets", label: "Verset du jour" },
       { href: "/temoignages", label: "Témoignages" },
       { href: "/inspirations", label: "Inspirations" },
+      { href: "/bibliotheque", label: "Bibliothèque" },
     ],
   },
 ];

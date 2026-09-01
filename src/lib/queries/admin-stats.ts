@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 
 export async function getDashboardCounts() {
-  const [songs, articles, devotions, testimonies, artists, videos, inspirations, prayers, verses] =
+  const [songs, articles, devotions, testimonies, artists, videos, inspirations, prayers, verses, resources] =
     await Promise.all([
       prisma.song.count(),
       prisma.article.count(),
@@ -12,6 +12,7 @@ export async function getDashboardCounts() {
       prisma.inspiration.count(),
       prisma.prayer.count(),
       prisma.verse.count(),
+      prisma.resource.count(),
     ]);
 
   const viewsAgg = await prisma.$transaction([
@@ -23,10 +24,23 @@ export async function getDashboardCounts() {
     prisma.prayer.aggregate({ _sum: { views: true } }),
     prisma.verse.aggregate({ _sum: { views: true } }),
     prisma.testimony.aggregate({ _sum: { views: true } }),
+    prisma.resource.aggregate({ _sum: { views: true } }),
   ]);
   const totalViews = viewsAgg.reduce((sum, agg) => sum + (agg._sum.views ?? 0), 0);
 
-  return { songs, articles, devotions, testimonies, artists, videos, inspirations, prayers, verses, totalViews };
+  return {
+    songs,
+    articles,
+    devotions,
+    testimonies,
+    artists,
+    videos,
+    inspirations,
+    prayers,
+    verses,
+    resources,
+    totalViews,
+  };
 }
 
 /** Vues des 6 derniers mois (à partir du journal ViewLog), pour le graphique du tableau de bord. */

@@ -13,6 +13,10 @@ export type Track = {
   artistSlug: string;
   imageUrl: string;
   audioUrl: string;
+  /** Lien de la pochette dans le lecteur flottant. Par défaut `/chansons/{slug}` —
+   * à fournir explicitement pour toute piste qui n'est pas une Song (ex. une
+   * prédication audio de la Bibliothèque, dont la page est `/bibliotheque/{slug}`). */
+  href?: string;
 };
 
 type AudioPlayerContextValue = {
@@ -327,7 +331,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       {currentTrack && (
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t-2 border-brand-gold bg-brand-navy px-4 py-2.5 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] sm:gap-5 sm:px-6">
           <Link
-            href={`/chansons/${currentTrack.slug}`}
+            href={currentTrack.href ?? `/chansons/${currentTrack.slug}`}
             className="relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-brand-blue to-brand-gold"
           >
             <Image src={currentTrack.imageUrl} alt={currentTrack.title} fill className="object-cover" sizes="46px" />
@@ -335,12 +339,16 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
           <div className="min-w-0 flex-1 sm:w-40 sm:flex-none">
             <p className="truncate font-body text-[13px] font-semibold text-white">{currentTrack.title}</p>
-            <Link
-              href={`/artistes/${currentTrack.artistSlug}`}
-              className="block truncate text-[11px] text-brand-gray hover:text-brand-gold"
-            >
-              {currentTrack.artistName}
-            </Link>
+            {currentTrack.artistSlug ? (
+              <Link
+                href={`/artistes/${currentTrack.artistSlug}`}
+                className="block truncate text-[11px] text-brand-gray hover:text-brand-gold"
+              >
+                {currentTrack.artistName}
+              </Link>
+            ) : (
+              <span className="block truncate text-[11px] text-brand-gray">{currentTrack.artistName}</span>
+            )}
           </div>
 
           <div className="hidden items-center gap-3.5 sm:flex">

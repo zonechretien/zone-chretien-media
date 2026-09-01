@@ -1,15 +1,16 @@
 import { z } from "zod";
 import type { ContentType } from "@prisma/client";
 
-export const CATEGORY_TYPES = ["SONG", "ARTICLE", "VIDEO", "INSPIRATION"] as const;
+export const CATEGORY_TYPES = ["SONG", "ARTICLE", "VIDEO", "INSPIRATION", "RESOURCE"] as const;
 
-// Category.type est typé ContentType côté Prisma (9 valeurs, réutilisé aussi par
-// ViewLog), mais seuls ces 4 types sont proposés à la création d'une catégorie.
+// Category.type est typé ContentType côté Prisma (10 valeurs, réutilisé aussi par
+// ViewLog), mais seuls ces types sont proposés à la création d'une catégorie.
 export const CATEGORY_TYPE_LABELS: Partial<Record<ContentType, string>> = {
   SONG: "Chansons",
   ARTICLE: "Articles",
   VIDEO: "Vidéos",
   INSPIRATION: "Inspirations",
+  RESOURCE: "Bibliothèque",
 };
 
 export const categorySchema = z.object({

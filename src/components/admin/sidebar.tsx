@@ -15,6 +15,7 @@ import {
   Megaphone,
   Settings,
   LayoutDashboard,
+  Library,
   ListMusic,
   Music4,
   Video,
@@ -47,6 +48,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/admin/prieres", label: "Prières", icon: HandHeart },
       { href: "/admin/versets", label: "Versets", icon: Quote },
       { href: "/admin/temoignages", label: "Témoignages", icon: UserRound },
+      { href: "/admin/bibliotheque", label: "Bibliothèque", icon: Library },
     ],
   },
   {
