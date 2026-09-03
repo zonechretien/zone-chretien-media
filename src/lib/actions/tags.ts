@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/db";
 import { requireAdminRole } from "@/lib/admin/session";
 import { slugify } from "@/lib/utils";
@@ -16,7 +16,7 @@ export async function createTag(input: TagInput): Promise<{ error?: string }> {
   try {
     await prisma.tag.create({ data: { ...parsed.data, slug: slugify(parsed.data.slug) } });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé." };
     }
     throw err;
@@ -34,7 +34,7 @@ export async function updateTag(id: string, input: TagInput): Promise<{ error?: 
   try {
     await prisma.tag.update({ where: { id }, data: { ...parsed.data, slug: slugify(parsed.data.slug) } });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé." };
     }
     throw err;

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { slugify, parseDateInput } from "@/lib/utils";
@@ -40,7 +40,7 @@ export async function createSong(input: SongInput): Promise<{ error?: string }> 
       },
     });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé par une autre chanson." };
     }
     throw err;
@@ -66,7 +66,7 @@ export async function updateSong(id: string, input: SongInput): Promise<{ error?
       },
     });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé par une autre chanson." };
     }
     throw err;

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { slugify, parseDateInput } from "@/lib/utils";
@@ -28,7 +28,7 @@ export async function createTestimony(input: TestimonyInput): Promise<{ error?: 
   try {
     await prisma.testimony.create({ data: toData(parsed.data) });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé." };
     }
     throw err;
@@ -48,7 +48,7 @@ export async function updateTestimony(id: string, input: TestimonyInput): Promis
   try {
     await prisma.testimony.update({ where: { id }, data: toData(parsed.data) });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé." };
     }
     throw err;

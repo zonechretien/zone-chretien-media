@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -39,7 +39,7 @@ export async function createArticle(input: ArticleInput): Promise<{ error?: stri
       },
     });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé par un autre article." };
     }
     throw err;
@@ -67,7 +67,7 @@ export async function updateArticle(id: string, input: ArticleInput): Promise<{ 
       },
     });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé par un autre article." };
     }
     throw err;

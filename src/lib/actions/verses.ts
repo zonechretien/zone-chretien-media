@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { verseSchema, type VerseInput } from "@/lib/validations/verses";
@@ -26,7 +26,7 @@ export async function createVerse(input: VerseInput): Promise<{ error?: string }
   try {
     await prisma.verse.create({ data: toData(parsed.data) });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Un verset existe déjà pour cette date." };
     }
     throw err;
@@ -46,7 +46,7 @@ export async function updateVerse(id: string, input: VerseInput): Promise<{ erro
   try {
     await prisma.verse.update({ where: { id }, data: toData(parsed.data) });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Un verset existe déjà pour cette date." };
     }
     throw err;

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { slugify, parseDateInput } from "@/lib/utils";
@@ -31,7 +31,7 @@ export async function createVideo(input: VideoInput): Promise<{ error?: string }
   try {
     await prisma.video.create({ data: toData(parsed.data) });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé par une autre vidéo." };
     }
     throw err;
@@ -50,7 +50,7 @@ export async function updateVideo(id: string, input: VideoInput): Promise<{ erro
   try {
     await prisma.video.update({ where: { id }, data: toData(parsed.data) });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé par une autre vidéo." };
     }
     throw err;

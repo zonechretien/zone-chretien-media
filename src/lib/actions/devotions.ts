@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { slugify, parseDateInput } from "@/lib/utils";
@@ -31,7 +31,7 @@ export async function createDevotion(input: DevotionInput): Promise<{ error?: st
   try {
     await prisma.devotion.create({ data: toData(parsed.data) });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé." };
     }
     throw err;
@@ -51,7 +51,7 @@ export async function updateDevotion(id: string, input: DevotionInput): Promise<
   try {
     await prisma.devotion.update({ where: { id }, data: toData(parsed.data) });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       return { error: "Ce slug est déjà utilisé." };
     }
     throw err;
