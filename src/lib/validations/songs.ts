@@ -23,14 +23,14 @@ export const SONG_SOURCE_FIELD_CONFIG: Record<
     help: null,
   },
   SOUNDCLOUD: {
-    label: "URL d'intégration SoundCloud",
-    placeholder: "https://w.soundcloud.com/player/?url=…",
-    help: "Sur SoundCloud : Partager → Intégrer, puis copiez l'URL après src=\"…\" dans le code fourni.",
+    label: "URL SoundCloud",
+    placeholder: "https://soundcloud.com/artiste/titre",
+    help: "Collez l'URL normale de la page SoundCloud de la chanson — elle sera automatiquement convertie au format d'intégration.",
   },
   AUDIOMACK: {
-    label: "URL d'intégration Audiomack",
-    placeholder: "https://www.audiomack.com/embed/…",
-    help: "Sur Audiomack : Partager → Intégrer, puis copiez l'URL après src=\"…\" dans le code fourni.",
+    label: "URL Audiomack",
+    placeholder: "https://audiomack.com/song/artiste/titre",
+    help: "Collez l'URL normale de la page Audiomack de la chanson (ex : https://audiomack.com/song/artiste/titre) — elle sera automatiquement convertie au format d'intégration.",
   },
   YOUTUBE_MUSIC: {
     label: "URL YouTube (Music)",

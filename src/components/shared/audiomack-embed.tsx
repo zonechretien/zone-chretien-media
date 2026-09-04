@@ -1,5 +1,8 @@
+import { getAudiomackEmbedUrl } from "@/lib/utils";
+
 export function AudiomackEmbed({ url, title }: { url: string; title: string }) {
-  if (!url) return null;
+  const embedUrl = getAudiomackEmbedUrl(url);
+  if (!embedUrl) return null;
 
   return (
     <iframe
@@ -7,7 +10,7 @@ export function AudiomackEmbed({ url, title }: { url: string; title: string }) {
       width="100%"
       height="252"
       allow="autoplay"
-      src={url}
+      src={embedUrl}
       className="w-full rounded-2xl border border-border"
     />
   );

@@ -1,5 +1,8 @@
+import { getSoundcloudEmbedUrl } from "@/lib/utils";
+
 export function SoundCloudEmbed({ url, title }: { url: string; title: string }) {
-  if (!url) return null;
+  const embedUrl = getSoundcloudEmbedUrl(url);
+  if (!embedUrl) return null;
 
   return (
     <iframe
@@ -7,7 +10,7 @@ export function SoundCloudEmbed({ url, title }: { url: string; title: string }) 
       width="100%"
       height="166"
       allow="autoplay"
-      src={url}
+      src={embedUrl}
       className="w-full rounded-2xl border border-border"
     />
   );

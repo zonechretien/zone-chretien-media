@@ -77,3 +77,36 @@ export function getYoutubeEmbedUrl(url: string): string | null {
   const id = getYoutubeId(url);
   return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
 }
+
+/** Accepte l'URL normale d'une page Audiomack (https://audiomack.com/song/…) ou
+ * déjà une URL d'intégration (https://audiomack.com/embed/song/…, laissée
+ * inchangée) et retourne toujours l'URL d'intégration — Audiomack refuse de
+ * s'afficher en iframe sur l'URL de page normale (X-Frame-Options). */
+export function getAudiomackEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (!u.hostname.endsWith("audiomack.com")) return null;
+    if (!u.pathname.startsWith("/embed/")) {
+      u.pathname = `/embed${u.pathname}`;
+    }
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+/** Accepte l'URL normale d'une page SoundCloud (https://soundcloud.com/…) ou
+ * déjà une URL du lecteur (https://w.soundcloud.com/player/?url=…, laissée
+ * inchangée) et retourne toujours l'URL du lecteur intégrable. */
+export function getSoundcloudEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname === "w.soundcloud.com" && u.pathname === "/player/") return u.toString();
+    if (!u.hostname.endsWith("soundcloud.com")) return null;
+    return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}`;
+  } catch {
+    return null;
+  }
+}
