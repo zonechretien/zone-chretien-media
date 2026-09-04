@@ -1,8 +1,23 @@
 import { SearchBar } from "@/components/shared/search-bar";
+import { HeroBackgroundSlideshow, type HeroPhoto } from "@/components/home/hero-background-slideshow";
 
-export function Hero({ siteName, tagline }: { siteName: string; tagline: string }) {
+export function Hero({
+  siteName,
+  tagline,
+  artistPhotos = [],
+}: {
+  siteName: string;
+  tagline: string;
+  artistPhotos?: HeroPhoto[];
+}) {
   return (
     <section className="relative overflow-hidden bg-navy text-white">
+      <HeroBackgroundSlideshow photos={artistPhotos} />
+
+      {/* Voile sombre par-dessus les photos — garantit la lisibilité du texte,
+          quel que soit le contraste de la photo affichée derrière. */}
+      <div className="absolute inset-0 bg-navy/80" aria-hidden="true" />
+
       <div
         className="pointer-events-none absolute inset-0 opacity-20"
         style={{

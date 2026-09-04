@@ -27,6 +27,17 @@ export async function getArtists({
   return { artists, pages: totalPages(count) };
 }
 
+/** Photos d'artistes pour le slideshow d'arrière-plan du hero de la page d'accueil —
+ * seulement ceux avec une photo, sponsorisés en priorité puis les plus récents. */
+export function getHeroArtistPhotos(limit = 10) {
+  return prisma.artist.findMany({
+    where: { photoUrl: { not: null } },
+    orderBy: [{ isSponsored: "desc" }, { createdAt: "desc" }],
+    select: { id: true, name: true, photoUrl: true },
+    take: limit,
+  });
+}
+
 export function getPopularArtists(limit = 8) {
   return prisma.artist.findMany({
     orderBy: { songs: { _count: "desc" } },

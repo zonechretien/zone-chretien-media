@@ -4,7 +4,7 @@ import { getFeaturedSong, getLatestSongs } from "@/lib/queries/songs";
 import { getLatestInspirations } from "@/lib/queries/inspirations";
 import { getLatestDevotions } from "@/lib/queries/devotions";
 import { getLatestTestimonies } from "@/lib/queries/testimonies";
-import { getPopularArtists } from "@/lib/queries/artists";
+import { getHeroArtistPhotos, getPopularArtists } from "@/lib/queries/artists";
 import { getCategories } from "@/lib/queries/categories";
 import { getLatestArticles } from "@/lib/queries/articles";
 import { getFeaturedPlaylists } from "@/lib/queries/playlists";
@@ -42,6 +42,7 @@ export default async function HomePage() {
     categories,
     latestArticles,
     featuredPlaylists,
+    heroArtistPhotos,
   ] = await Promise.all([
     prisma.settings.findUnique({ where: { id: "settings" } }),
     getFeaturedSong(),
@@ -53,6 +54,7 @@ export default async function HomePage() {
     getCategories(),
     getLatestArticles(4),
     getFeaturedPlaylists(3),
+    getHeroArtistPhotos(10),
   ]);
 
   return (
@@ -63,6 +65,9 @@ export default async function HomePage() {
           settings?.siteDescription ??
           "La musique, l'inspiration et la Parole pour édifier les nations."
         }
+        artistPhotos={heroArtistPhotos
+          .filter((a) => !!a.photoUrl)
+          .map((a) => ({ id: a.id, name: a.name, imageUrl: a.photoUrl! }))}
       />
 
       {featuredSong && <FeaturedSong song={featuredSong} />}
