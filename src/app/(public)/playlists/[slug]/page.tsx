@@ -53,6 +53,7 @@ export default async function PlaylistPage({ params }: Props) {
     artistSlug: song.artist.slug,
     imageUrl: song.imageUrl,
     audioUrl: song.audioUrl ?? "",
+    playable: song.sourceType === "FICHIER_DIRECT",
   }));
 
   return (

@@ -17,6 +17,11 @@ export type Track = {
    * à fournir explicitement pour toute piste qui n'est pas une Song (ex. une
    * prédication audio de la Bibliothèque, dont la page est `/bibliotheque/{slug}`). */
   href?: string;
+  /** `false` pour une chanson dont le sourceType n'est pas FICHIER_DIRECT (ex.
+   * SoundCloud/Audiomack) : elle utilise un lecteur embed dédié sur sa page plutôt
+   * que le lecteur flottant, qui ne sait piloter que des URLs de fichier direct.
+   * Absent ou `true` = lisible normalement dans le lecteur flottant. */
+  playable?: boolean;
 };
 
 type AudioPlayerContextValue = {

@@ -7,6 +7,7 @@ const SONG_ROW_SELECT = {
   title: true,
   imageUrl: true,
   audioUrl: true,
+  sourceType: true,
   published: true,
   artist: { select: { name: true, slug: true } },
 } as const;

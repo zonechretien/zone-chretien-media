@@ -88,6 +88,7 @@ export function SongSidebar({
                   artistSlug: song.artist.slug,
                   imageUrl: song.imageUrl,
                   audioUrl: song.audioUrl ?? "",
+                  playable: song.sourceType === "FICHIER_DIRECT",
                 }}
               />
             ))}

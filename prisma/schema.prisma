@@ -52,6 +52,17 @@ enum ContentType {
   RESOURCE
 }
 
+// Détermine comment interpréter Song.audioUrl et quel lecteur afficher côté public.
+// FICHIER_DIRECT nécessite l'autorisation explicite de l'artiste (le fichier est
+// hébergé pour être diffusé) — les trois autres intègrent le lecteur officiel de la
+// plateforme où l'artiste a lui-même publié le morceau (aucun fichier hébergé ici).
+enum SourceType {
+  FICHIER_DIRECT
+  SOUNDCLOUD
+  AUDIOMACK
+  YOUTUBE_MUSIC
+}
+
 // Détermine quel champ de saisie afficher dans le CMS pour `Resource.fileUrl`
 // (PDF, audio ou YouTube) et comment la page publique doit traiter le lien —
 // sauf CONFERENCE/COURSE, dont le média n'est pas fixe : la page publique
@@ -201,14 +212,15 @@ model Artist {
 }
 
 model Song {
-  id          String  @id @default(cuid())
+  id          String     @id @default(cuid())
   title       String
-  slug        String  @unique
+  slug        String     @unique
   description String?
   lyrics      String?
   imageUrl    String
-  audioUrl    String? // URL externe uniquement — aucun fichier hébergé sur le site
-  youtubeUrl  String?
+  audioUrl    String? // sens dépend de sourceType : fichier direct, ou URL d'intégration SoundCloud/Audiomack/YouTube Music
+  sourceType  SourceType @default(FICHIER_DIRECT)
+  youtubeUrl  String? // clip vidéo officiel — indépendant de sourceType/audioUrl
 
   artistId   String
   artist     Artist         @relation(fields: [artistId], references: [id], onDelete: Cascade)
@@ -601,6 +613,42 @@ model Banner {
   updatedAt DateTime @updatedAt
 
   @@map("banners")
+}
+
+// ============================================================================
+// MODÉRATION — SIGNALEMENTS DE RETRAIT
+// ============================================================================
+
+enum TakedownStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+}
+
+// Formulaire public "signaler un problème" (droits d'auteur, retrait…). contentType/
+// contentId/contentTitle/contentUrl sont dénormalisés au moment de l'envoi (pas de
+// relation Prisma) : le contenu visé peut appartenir à plusieurs modèles différents
+// (Song, Video, Inspiration…), et on veut garder trace du titre/lien même si le
+// contenu est ensuite supprimé. Champs nullable : un signalement peut aussi arriver
+// sans contexte précis (accès direct à /signaler).
+model TakedownReport {
+  id             String @id @default(cuid())
+  requesterName  String
+  requesterEmail String
+  message        String
+
+  contentType  ContentType?
+  contentId    String?
+  contentTitle String?
+  contentUrl   String?
+
+  status TakedownStatus @default(NEW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("takedown_reports")
 }
 
 // ============================================================================

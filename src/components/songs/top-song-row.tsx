@@ -34,7 +34,7 @@ export function TopSongRow({ rank, track }: { rank: number; track: Track }) {
         <p className="truncate font-body text-[13px] font-semibold text-brand-text">{track.title}</p>
         <p className="truncate font-body text-[11px] text-brand-gray-dark">{track.artistName}</p>
       </Link>
-      {track.audioUrl && (
+      {track.audioUrl && track.playable !== false && (
         <button
           type="button"
           onClick={() => (isCurrent ? togglePlay() : playTrack(track))}

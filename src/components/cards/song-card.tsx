@@ -18,6 +18,7 @@ function toTrack(song: SongWithRelations): Track {
     artistSlug: song.artist.slug,
     imageUrl: song.imageUrl,
     audioUrl: song.audioUrl ?? "",
+    playable: song.sourceType === "FICHIER_DIRECT",
   };
 }
 
@@ -36,7 +37,7 @@ export function SongCard({
     e.stopPropagation();
     playTrack(
       toTrack(song),
-      queue?.filter((s) => s.audioUrl).map(toTrack),
+      queue?.filter((s) => s.audioUrl && s.sourceType === "FICHIER_DIRECT").map(toTrack),
     );
   }
 
@@ -53,7 +54,7 @@ export function SongCard({
           className="object-cover transition duration-300 group-hover:scale-105"
           sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
         />
-        {song.audioUrl && (
+        {song.audioUrl && song.sourceType === "FICHIER_DIRECT" && (
           <div className="absolute inset-0 flex items-center justify-center bg-navy/0 opacity-0 transition group-hover:bg-navy/40 group-hover:opacity-100">
             <button
               type="button"

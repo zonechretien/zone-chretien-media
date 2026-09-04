@@ -15,7 +15,7 @@ export function PlaylistHero({ data }: { data: PlaylistHeroData }) {
   const { title, description, imageUrl, tracks } = data;
   const { playTrack, togglePlay, currentTrack, isPlaying } = useAudioPlayer();
 
-  const playableTracks = tracks.filter((t) => t.audioUrl);
+  const playableTracks = tracks.filter((t) => t.audioUrl && t.playable !== false);
   const isCurrentInPlaylist = !!currentTrack && playableTracks.some((t) => t.id === currentTrack.id);
   const playing = isCurrentInPlaylist && isPlaying;
 

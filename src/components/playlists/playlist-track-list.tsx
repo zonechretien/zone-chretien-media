@@ -7,7 +7,7 @@ import { useAudioPlayer, type Track } from "@/components/shared/audio-player-pro
 
 export function PlaylistTrackList({ tracks }: { tracks: Track[] }) {
   const { playTrack, togglePlay, currentTrack, isPlaying } = useAudioPlayer();
-  const playableTracks = tracks.filter((t) => t.audioUrl);
+  const playableTracks = tracks.filter((t) => t.audioUrl && t.playable !== false);
 
   return (
     <ul className="flex flex-col gap-1">
@@ -18,7 +18,7 @@ export function PlaylistTrackList({ tracks }: { tracks: Track[] }) {
         function handlePlay(e: React.MouseEvent) {
           e.preventDefault();
           e.stopPropagation();
-          if (!track.audioUrl) return;
+          if (!track.audioUrl || track.playable === false) return;
           if (isCurrent) togglePlay();
           else playTrack(track, playableTracks);
         }
@@ -32,7 +32,7 @@ export function PlaylistTrackList({ tracks }: { tracks: Track[] }) {
               <span className="w-5 shrink-0 text-center text-sm text-muted">{index + 1}</span>
               <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-navy">
                 <Image src={track.imageUrl} alt="" fill className="object-cover" sizes="44px" />
-                {track.audioUrl && (
+                {track.audioUrl && track.playable !== false && (
                   <button
                     type="button"
                     onClick={handlePlay}

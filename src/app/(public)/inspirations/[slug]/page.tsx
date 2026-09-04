@@ -6,6 +6,7 @@ import { getInspirationBySlug } from "@/lib/queries/inspirations";
 import { trackView } from "@/lib/queries/shared";
 import { formatDate } from "@/lib/utils";
 import { ShareButtons } from "@/components/shared/share-buttons";
+import { ReportContentLink } from "@/components/shared/report-content-link";
 import { YoutubeEmbed } from "@/components/shared/youtube-embed";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
@@ -104,6 +105,15 @@ export default async function InspirationPage({ params }: Props) {
       <div className="mt-10 border-t border-border pt-6">
         <ShareButtons url={`/inspirations/${inspiration.slug}`} title={inspiration.title} />
       </div>
+
+      {inspiration.videoUrl && (
+        <ReportContentLink
+          contentType="INSPIRATION"
+          contentId={inspiration.id}
+          contentTitle={inspiration.title}
+          contentUrl={absoluteUrl(`/inspirations/${inspiration.slug}`)}
+        />
+      )}
     </article>
   );
 }

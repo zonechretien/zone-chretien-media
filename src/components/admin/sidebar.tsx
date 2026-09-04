@@ -22,6 +22,7 @@ import {
   Wand2,
   Mail,
   ShieldCheck,
+  Flag,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: "Site",
     items: [
       { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
+      { href: "/admin/signalements", label: "Signalements", icon: Flag },
       { href: "/admin/banners", label: "Monétisation", icon: Megaphone },
       { href: "/admin/parametres", label: "Paramètres", icon: Settings },
     ],

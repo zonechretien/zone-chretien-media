@@ -15,6 +15,7 @@ function toData(input: SongInput) {
     description: input.description || null,
     lyrics: input.lyrics || null,
     imageUrl: input.imageUrl,
+    sourceType: input.sourceType ?? "FICHIER_DIRECT",
     audioUrl: input.audioUrl || null,
     youtubeUrl: input.youtubeUrl || null,
     artistId: input.artistId,

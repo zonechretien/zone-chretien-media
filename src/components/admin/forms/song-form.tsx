@@ -3,9 +3,15 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Sparkles } from "lucide-react";
+import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import type { Artist, Category, Song, Tag } from "@prisma/client";
-import { songSchema, type SongInput } from "@/lib/validations/songs";
+import {
+  SONG_SOURCE_TYPES,
+  SONG_SOURCE_TYPE_LABELS,
+  SONG_SOURCE_FIELD_CONFIG,
+  songSchema,
+  type SongInput,
+} from "@/lib/validations/songs";
 import { createSong, updateSong } from "@/lib/actions/songs";
 import { useSlugSync } from "@/lib/admin/use-slug-sync";
 import { generateSongDescriptionAction } from "@/lib/actions/ai";
@@ -60,6 +66,7 @@ export function SongForm({
           description: song.description ?? "",
           lyrics: song.lyrics ?? "",
           imageUrl: song.imageUrl,
+          sourceType: song.sourceType,
           audioUrl: song.audioUrl ?? "",
           youtubeUrl: song.youtubeUrl ?? "",
           artistId: song.artistId,
@@ -71,7 +78,12 @@ export function SongForm({
           featured: song.featured,
           published: song.published,
         }
-      : { published: true, tagIds: [], publishedAt: dateToUrlSlug(new Date()) },
+      : {
+          sourceType: "FICHIER_DIRECT",
+          published: true,
+          tagIds: [],
+          publishedAt: dateToUrlSlug(new Date()),
+        },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!song);
@@ -79,6 +91,8 @@ export function SongForm({
   const titleValue = watch("title");
   const artistIdValue = watch("artistId");
   const youtubeUrlValue = watch("youtubeUrl");
+  const sourceTypeValue = watch("sourceType") ?? "FICHIER_DIRECT";
+  const audioFieldConfig = SONG_SOURCE_FIELD_CONFIG[sourceTypeValue] ?? SONG_SOURCE_FIELD_CONFIG.FICHIER_DIRECT;
 
   function handleGenerateDescription() {
     const artistName = artists.find((a) => a.id === artistIdValue)?.name;
@@ -173,11 +187,35 @@ export function SongForm({
         <FieldError error={errors.imageUrl} />
       </FormRow>
 
+      <FormRow>
+        <FieldLabel htmlFor="sourceType" required>Source audio</FieldLabel>
+        <select id="sourceType" className={selectClass} {...register("sourceType")}>
+          {SONG_SOURCE_TYPES.map((t) => (
+            <option key={t} value={t}>{SONG_SOURCE_TYPE_LABELS[t]}</option>
+          ))}
+        </select>
+        {sourceTypeValue === "FICHIER_DIRECT" && (
+          <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            <AlertCircle size={14} className="mt-0.5 shrink-0" />
+            ⚠️ Cette option nécessite d&apos;avoir obtenu l&apos;autorisation explicite de l&apos;artiste
+            pour héberger sa chanson directement. Privilégiez SoundCloud/Audiomack/YouTube Music
+            quand c&apos;est possible : l&apos;artiste y a déjà consenti à la diffusion en publiant
+            lui-même.
+          </p>
+        )}
+      </FormRow>
+
       <FormGrid>
         <FormRow>
-          <FieldLabel htmlFor="audioUrl">Audio (URL externe)</FieldLabel>
-          <input id="audioUrl" className={inputClass} placeholder="https://…" {...register("audioUrl")} />
+          <FieldLabel htmlFor="audioUrl">{audioFieldConfig.label}</FieldLabel>
+          <input
+            id="audioUrl"
+            className={inputClass}
+            placeholder={audioFieldConfig.placeholder}
+            {...register("audioUrl")}
+          />
           <FieldError error={errors.audioUrl} />
+          {audioFieldConfig.help && <p className="mt-1 text-xs text-muted">{audioFieldConfig.help}</p>}
         </FormRow>
         <FormRow>
           <FieldLabel htmlFor="youtubeUrl">Vidéo YouTube (URL)</FieldLabel>

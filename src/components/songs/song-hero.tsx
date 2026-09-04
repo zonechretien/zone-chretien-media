@@ -4,9 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Calendar, Clock, Eye, Music4, Pause, Play } from "lucide-react";
 import { useAudioPlayer, type Track } from "@/components/shared/audio-player-provider";
+import { useVideoModal } from "@/components/shared/video-modal-provider";
+import { getYoutubeEmbedUrl } from "@/lib/utils";
+import type { SONG_SOURCE_TYPES } from "@/lib/validations/songs";
 
 export type SongHeroData = {
   track: Track;
+  sourceType: (typeof SONG_SOURCE_TYPES)[number];
   categoryName: string | null;
   featured: boolean;
   dateLabel: string;
@@ -18,11 +22,14 @@ export type SongHeroData = {
 };
 
 export function SongHero({ data }: { data: SongHeroData }) {
-  const { track, categoryName, featured, dateLabel, views, readingMinutes, excerpt, hasLyrics, hasVideo } = data;
+  const { track, sourceType, categoryName, featured, dateLabel, views, readingMinutes, excerpt, hasLyrics, hasVideo } = data;
   const { playTrack, togglePlay, currentTrack, isPlaying } = useAudioPlayer();
+  const { openVideo } = useVideoModal();
 
   const isCurrent = currentTrack?.id === track.id;
   const playing = isCurrent && isPlaying;
+  const isFileSource = sourceType === "FICHIER_DIRECT";
+  const hasAudioEmbed = (sourceType === "SOUNDCLOUD" || sourceType === "AUDIOMACK") && !!track.audioUrl;
 
   function handlePlay() {
     if (isCurrent) togglePlay();
@@ -30,9 +37,31 @@ export function SongHero({ data }: { data: SongHeroData }) {
   }
 
   function handlePrimaryAction() {
-    if (track.audioUrl) handlePlay();
-    else if (hasVideo) document.getElementById("video")?.scrollIntoView({ behavior: "smooth" });
+    if (isFileSource && track.audioUrl) {
+      handlePlay();
+    } else if (sourceType === "YOUTUBE_MUSIC" && track.audioUrl) {
+      const embedUrl = getYoutubeEmbedUrl(track.audioUrl);
+      if (embedUrl) openVideo(embedUrl, track.title);
+    } else if (hasAudioEmbed) {
+      document.getElementById("ecouter")?.scrollIntoView({ behavior: "smooth" });
+    } else if (hasVideo) {
+      document.getElementById("video")?.scrollIntoView({ behavior: "smooth" });
+    }
   }
+
+  const showPrimaryButton =
+    (isFileSource && !!track.audioUrl) ||
+    (sourceType === "YOUTUBE_MUSIC" && !!track.audioUrl) ||
+    hasAudioEmbed ||
+    hasVideo;
+
+  const primaryButtonLabel = isFileSource
+    ? playing
+      ? "En lecture"
+      : "Écouter maintenant"
+    : sourceType === "YOUTUBE_MUSIC" || hasAudioEmbed
+      ? "Écouter"
+      : "Voir le clip";
 
   return (
     <section className="relative overflow-hidden bg-brand-navy">
@@ -84,7 +113,7 @@ export function SongHero({ data }: { data: SongHeroData }) {
             <p className="mb-8 max-w-xl font-body text-base leading-relaxed text-white/75">{excerpt}</p>
           )}
           <div className="flex flex-wrap items-center gap-3.5">
-            {(track.audioUrl || hasVideo) && (
+            {showPrimaryButton && (
               <button
                 type="button"
                 onClick={handlePrimaryAction}
@@ -93,7 +122,7 @@ export function SongHero({ data }: { data: SongHeroData }) {
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-navy text-brand-gold">
                   {playing ? <Pause size={11} fill="currentColor" /> : <Play size={11} fill="currentColor" className="ml-0.5" />}
                 </span>
-                {track.audioUrl ? (playing ? "En lecture" : "Écouter maintenant") : "Voir le clip"}
+                {primaryButtonLabel}
               </button>
             )}
             {hasLyrics && (
@@ -115,7 +144,7 @@ export function SongHero({ data }: { data: SongHeroData }) {
                 En vedette
               </span>
             )}
-            {track.audioUrl && (
+            {isFileSource && track.audioUrl && (
               <button
                 type="button"
                 onClick={handlePlay}

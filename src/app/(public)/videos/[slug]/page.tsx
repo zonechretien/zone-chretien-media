@@ -7,6 +7,7 @@ import { trackView } from "@/lib/queries/shared";
 import { formatDate } from "@/lib/utils";
 import { YoutubeEmbed } from "@/components/shared/youtube-embed";
 import { ShareButtons } from "@/components/shared/share-buttons";
+import { ReportContentLink } from "@/components/shared/report-content-link";
 import { VideoCard } from "@/components/cards/video-card";
 import { SongArtistCard } from "@/components/songs/song-artist-card";
 import { SectionLabel } from "@/components/songs/section-label";
@@ -115,6 +116,13 @@ export default async function VideoPage({ params }: Props) {
         <p className="mb-3 text-sm font-semibold text-muted">Partager cette vidéo</p>
         <ShareButtons url={`/videos/${video.slug}`} title={video.title} />
       </div>
+
+      <ReportContentLink
+        contentType="VIDEO"
+        contentId={video.id}
+        contentTitle={video.title}
+        contentUrl={absoluteUrl(`/videos/${video.slug}`)}
+      />
 
       {similarVideos.length > 0 && (
         <section className="mt-10">
