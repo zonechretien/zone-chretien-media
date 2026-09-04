@@ -61,6 +61,34 @@ export function getTopSongs(limit = 5) {
   });
 }
 
+/** Classement basé sur le journal ViewLog (une ligne par vue, datée) plutôt que sur
+ * le compteur cumulé Song.views — permet de restreindre aux 7 derniers jours. */
+export async function getTopSongsThisWeek(limit = 10) {
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const grouped = await prisma.viewLog.groupBy({
+    by: ["contentId"],
+    where: { contentType: "SONG", viewedAt: { gte: since } },
+    _count: { contentId: true },
+    orderBy: { _count: { contentId: "desc" } },
+    take: limit,
+  });
+  if (grouped.length === 0) return [];
+
+  const songs = await prisma.song.findMany({
+    where: { id: { in: grouped.map((g) => g.contentId) }, published: true },
+    include: { artist: true, category: true },
+  });
+  const songById = new Map(songs.map((s) => [s.id, s]));
+
+  return grouped
+    .map((g) => {
+      const song = songById.get(g.contentId);
+      return song ? { ...song, weeklyViews: g._count.contentId } : null;
+    })
+    .filter((s): s is NonNullable<typeof s> => s !== null);
+}
+
 export function getFeaturedSong() {
   return prisma.song.findFirst({
     where: { published: true, featured: true },

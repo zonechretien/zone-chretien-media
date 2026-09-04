@@ -20,6 +20,7 @@ const EDIFICATION_LINKS = [
 const NAV_LINKS = [
   { href: "/", label: "Accueil", exact: true },
   { href: "/chansons", label: "Chansons" },
+  { href: "/classement", label: "Classement" },
   { href: "/playlists", label: "Playlists" },
   { href: "/artistes", label: "Artistes" },
   { label: "Édification", children: EDIFICATION_LINKS },
