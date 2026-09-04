@@ -201,6 +201,10 @@ model Artist {
   twitterUrl   String?
   isSponsored  Boolean @default(false)
 
+  // Contact direct pour le CMS (droits/autorisations) — jamais affiché publiquement.
+  whatsappNumber String?
+  email          String?
+
   songs  Song[]
   videos Video[]
   tags   Tag[]

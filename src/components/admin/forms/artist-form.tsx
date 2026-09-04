@@ -47,6 +47,8 @@ export function ArtistForm({ artist, tags }: { artist?: ArtistWithTags; tags: Ta
           youtubeUrl: artist.youtubeUrl ?? "",
           tiktokUrl: artist.tiktokUrl ?? "",
           twitterUrl: artist.twitterUrl ?? "",
+          whatsappNumber: artist.whatsappNumber ?? "",
+          email: artist.email ?? "",
           isSponsored: artist.isSponsored,
           tagIds: artist.tags.map((t) => t.id),
         }
@@ -121,6 +123,30 @@ export function ArtistForm({ artist, tags }: { artist?: ArtistWithTags; tags: Ta
           <FieldLabel htmlFor="twitterUrl">X (Twitter)</FieldLabel>
           <input id="twitterUrl" className={inputClass} {...register("twitterUrl")} />
           <FieldError error={errors.twitterUrl} />
+        </FormRow>
+      </FormGrid>
+
+      <FormGrid>
+        <FormRow>
+          <FieldLabel htmlFor="whatsappNumber">Numéro WhatsApp</FieldLabel>
+          <input
+            id="whatsappNumber"
+            className={inputClass}
+            placeholder="+509XXXXXXXX"
+            {...register("whatsappNumber")}
+          />
+          <FieldError error={errors.whatsappNumber} />
+        </FormRow>
+        <FormRow>
+          <FieldLabel htmlFor="email">Email de contact</FieldLabel>
+          <input
+            id="email"
+            type="email"
+            className={inputClass}
+            placeholder="artiste@exemple.com"
+            {...register("email")}
+          />
+          <FieldError error={errors.email} />
         </FormRow>
       </FormGrid>
 

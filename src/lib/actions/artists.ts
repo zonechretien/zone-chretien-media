@@ -20,6 +20,8 @@ function toData(input: ArtistInput) {
     youtubeUrl: input.youtubeUrl || null,
     tiktokUrl: input.tiktokUrl || null,
     twitterUrl: input.twitterUrl || null,
+    whatsappNumber: input.whatsappNumber || null,
+    email: input.email || null,
     isSponsored: input.isSponsored ?? false,
   };
 }

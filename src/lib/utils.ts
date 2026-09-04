@@ -78,6 +78,13 @@ export function getYoutubeEmbedUrl(url: string): string | null {
   return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
 }
 
+/** Construit le lien wa.me à partir d'un numéro saisi dans n'importe quel format
+ * (espaces, tirets, +) — wa.me n'accepte que des chiffres, indicatif pays inclus. */
+export function getWhatsappUrl(whatsappNumber: string): string | null {
+  const digits = whatsappNumber.replace(/\D/g, "");
+  return digits ? `https://wa.me/${digits}` : null;
+}
+
 /** Accepte l'URL normale d'une page Audiomack (https://audiomack.com/song/…) ou
  * déjà une URL d'intégration (https://audiomack.com/embed/song/…, laissée
  * inchangée) et retourne toujours l'URL d'intégration — Audiomack refuse de
