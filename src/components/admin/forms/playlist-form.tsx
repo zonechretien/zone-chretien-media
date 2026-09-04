@@ -61,6 +61,7 @@ export function PlaylistForm({
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!playlist);
   const songIdsValue = watch("songIds") ?? [];
+  const isSpecial = !!playlist && playlist.type !== "EDITORIALE";
 
   function onSubmit(data: PlaylistInput) {
     setServerError(null);
@@ -72,6 +73,14 @@ export function PlaylistForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      {isSpecial && (
+        <p className="mb-5 rounded-lg bg-gold/10 px-3.5 py-2.5 text-sm text-foreground/80">
+          🔥 Playlist spéciale — son contenu (les 10 chansons) est calculé automatiquement à
+          partir des vues, jamais depuis une sélection manuelle. Seuls le titre, le slug, la
+          description et l&apos;image de couverture sont personnalisables.
+        </p>
+      )}
+
       <FormGrid>
         <FormRow>
           <FieldLabel htmlFor="title" required>Titre</FieldLabel>
@@ -101,46 +110,50 @@ export function PlaylistForm({
         <FieldError error={errors.imageUrl} />
       </FormRow>
 
-      <FormRow>
-        <FieldLabel htmlFor="order">Ordre d&apos;affichage</FieldLabel>
-        <input
-          id="order"
-          type="number"
-          className={`${inputClass} max-w-[160px]`}
-          {...register("order", { valueAsNumber: true })}
-        />
-        <p className="mt-1 text-xs text-muted">Les playlists sont listées par ordre croissant (0 en premier).</p>
-      </FormRow>
+      {!isSpecial && (
+        <>
+          <FormRow>
+            <FieldLabel htmlFor="order">Ordre d&apos;affichage</FieldLabel>
+            <input
+              id="order"
+              type="number"
+              className={`${inputClass} max-w-[160px]`}
+              {...register("order", { valueAsNumber: true })}
+            />
+            <p className="mt-1 text-xs text-muted">Les playlists sont listées par ordre croissant (0 en premier).</p>
+          </FormRow>
 
-      <FormRow>
-        <FieldLabel htmlFor="songs">Chansons</FieldLabel>
-        <SongPicker
-          songs={songs}
-          selected={songIdsValue}
-          onChange={(ids) => setValue("songIds", ids)}
-        />
-      </FormRow>
+          <FormRow>
+            <FieldLabel htmlFor="songs">Chansons</FieldLabel>
+            <SongPicker
+              songs={songs}
+              selected={songIdsValue}
+              onChange={(ids) => setValue("songIds", ids)}
+            />
+          </FormRow>
 
-      <FormGrid>
-        <FormRow>
-          <FieldLabel htmlFor="metaTitle">Meta title (SEO)</FieldLabel>
-          <input id="metaTitle" className={inputClass} {...register("metaTitle")} />
-        </FormRow>
-        <FormRow>
-          <FieldLabel htmlFor="metaDescription">Meta description (SEO)</FieldLabel>
-          <input id="metaDescription" className={inputClass} {...register("metaDescription")} />
-        </FormRow>
-      </FormGrid>
+          <FormGrid>
+            <FormRow>
+              <FieldLabel htmlFor="metaTitle">Meta title (SEO)</FieldLabel>
+              <input id="metaTitle" className={inputClass} {...register("metaTitle")} />
+            </FormRow>
+            <FormRow>
+              <FieldLabel htmlFor="metaDescription">Meta description (SEO)</FieldLabel>
+              <input id="metaDescription" className={inputClass} {...register("metaDescription")} />
+            </FormRow>
+          </FormGrid>
 
-      <FormRow>
-        <PublishedAtField register={register("publishedAt")} />
-      </FormRow>
+          <FormRow>
+            <PublishedAtField register={register("publishedAt")} />
+          </FormRow>
 
-      <FormRow>
-        <label className="flex items-center gap-2 text-sm text-foreground">
-          <input type="checkbox" className={checkboxClass} {...register("published")} /> Publiée
-        </label>
-      </FormRow>
+          <FormRow>
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input type="checkbox" className={checkboxClass} {...register("published")} /> Publiée
+            </label>
+          </FormRow>
+        </>
+      )}
 
       {serverError && (
         <p className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500">{serverError}</p>

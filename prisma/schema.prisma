@@ -252,12 +252,22 @@ model Song {
 // PLAYLISTS ÉDITORIALES
 // ============================================================================
 
+// EDITORIALE : liste figée gérée à la main (table PlaylistSong). TOP_SEMAINE /
+// TOP_TOUJOURS : playlists spéciales générées automatiquement à partir des vues
+// (jamais d'entrées PlaylistSong) — voir getPlaylistBySlug / getFeaturedPlaylists.
+enum PlaylistType {
+  EDITORIALE
+  TOP_SEMAINE
+  TOP_TOUJOURS
+}
+
 model Playlist {
-  id          String  @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
-  slug        String  @unique
+  slug        String       @unique
   description String?
   imageUrl    String?
+  type        PlaylistType @default(EDITORIALE)
 
   order     Int     @default(0)
   published Boolean @default(false)

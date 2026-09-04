@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ListMusic, Pause, Play } from "lucide-react";
+import type { PlaylistType } from "@prisma/client";
 import { useAudioPlayer, type Track } from "@/components/shared/audio-player-provider";
 
 export type PlaylistHeroData = {
@@ -9,11 +10,18 @@ export type PlaylistHeroData = {
   description: string | null;
   imageUrl: string | null;
   tracks: Track[];
+  type: PlaylistType;
+};
+
+const SPECIAL_BADGE_LABEL: Record<string, string> = {
+  TOP_SEMAINE: "🔥 Classement automatique — mis à jour chaque semaine",
+  TOP_TOUJOURS: "🔥 Classement automatique — mis à jour à chaque vue",
 };
 
 export function PlaylistHero({ data }: { data: PlaylistHeroData }) {
-  const { title, description, imageUrl, tracks } = data;
+  const { title, description, imageUrl, tracks, type } = data;
   const { playTrack, togglePlay, currentTrack, isPlaying } = useAudioPlayer();
+  const specialBadge = SPECIAL_BADGE_LABEL[type];
 
   const playableTracks = tracks.filter((t) => t.audioUrl && t.playable !== false);
   const isCurrentInPlaylist = !!currentTrack && playableTracks.some((t) => t.id === currentTrack.id);
@@ -38,7 +46,7 @@ export function PlaylistHero({ data }: { data: PlaylistHeroData }) {
         <div>
           <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-gold/30 bg-brand-gold/15 px-3.5 py-1.5 font-body text-[11px] font-semibold uppercase tracking-widest text-brand-gold-light">
             <ListMusic size={11} />
-            Playlist
+            {specialBadge ?? "Playlist"}
           </span>
           <h1 className="mb-4 font-display text-[28px] font-black leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-[44px]">
             {title}

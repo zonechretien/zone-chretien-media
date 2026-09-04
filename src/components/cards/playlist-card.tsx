@@ -1,16 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ListMusic, Play } from "lucide-react";
+import type { PlaylistType } from "@prisma/client";
 
 export type PlaylistCardData = {
   slug: string;
   title: string;
   description: string | null;
   imageUrl: string | null;
+  type: PlaylistType;
   _count: { songs: number };
 };
 
 export function PlaylistCard({ playlist }: { playlist: PlaylistCardData }) {
+  const isSpecial = playlist.type !== "EDITORIALE";
+
   return (
     <Link
       href={`/playlists/${playlist.slug}`}
@@ -29,6 +33,11 @@ export function PlaylistCard({ playlist }: { playlist: PlaylistCardData }) {
           <div className="flex h-full w-full items-center justify-center text-white/20">
             <ListMusic size={40} />
           </div>
+        )}
+        {isSpecial && (
+          <span className="absolute left-2 top-2 rounded-full bg-navy/85 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+            🔥 Classement automatique
+          </span>
         )}
         <div className="absolute inset-0 flex items-center justify-center bg-navy/0 opacity-0 transition group-hover:bg-navy/40 group-hover:opacity-100">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gold text-navy">

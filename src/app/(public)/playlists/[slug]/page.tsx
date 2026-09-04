@@ -93,6 +93,7 @@ export default async function PlaylistPage({ params }: Props) {
           description: playlist.description,
           imageUrl: playlist.imageUrl,
           tracks,
+          type: playlist.type,
         }}
       />
 

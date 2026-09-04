@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
-import { getFeaturedSong, getLatestSongs, getTopSongsThisWeek } from "@/lib/queries/songs";
+import { getFeaturedSong, getLatestSongs } from "@/lib/queries/songs";
 import { getLatestInspirations } from "@/lib/queries/inspirations";
 import { getLatestDevotions } from "@/lib/queries/devotions";
 import { getLatestTestimonies } from "@/lib/queries/testimonies";
@@ -15,7 +15,6 @@ import { PopularArtists } from "@/components/home/popular-artists";
 import { CategoryGrid } from "@/components/home/category-grid";
 import { NewsSection } from "@/components/home/news-section";
 import { PlaylistsSection } from "@/components/home/playlists-section";
-import { TopSongsWeek } from "@/components/home/top-songs-week";
 import { TestimonialsSection } from "@/components/home/testimonials-section";
 import { NewsletterSection } from "@/components/home/newsletter-section";
 import { SectionHeading } from "@/components/shared/section-heading";
@@ -43,7 +42,6 @@ export default async function HomePage() {
     categories,
     latestArticles,
     featuredPlaylists,
-    topSongsWeek,
   ] = await Promise.all([
     prisma.settings.findUnique({ where: { id: "settings" } }),
     getFeaturedSong(),
@@ -55,19 +53,7 @@ export default async function HomePage() {
     getCategories(),
     getLatestArticles(4),
     getFeaturedPlaylists(3),
-    getTopSongsThisWeek(5),
   ]);
-
-  const topSongsWeekTracks = topSongsWeek.map((song) => ({
-    id: song.id,
-    slug: song.slug,
-    title: song.title,
-    artistName: song.artist.name,
-    artistSlug: song.artist.slug,
-    imageUrl: song.imageUrl,
-    audioUrl: song.audioUrl ?? "",
-    playable: song.sourceType === "FICHIER_DIRECT",
-  }));
 
   return (
     <div className="flex flex-col gap-16 pb-20 sm:gap-20">
@@ -102,8 +88,6 @@ export default async function HomePage() {
           />
         )}
       </section>
-
-      <TopSongsWeek tracks={topSongsWeekTracks} />
 
       <PlaylistsSection playlists={featuredPlaylists} />
 
