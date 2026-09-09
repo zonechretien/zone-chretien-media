@@ -36,6 +36,12 @@ export function HeroBackgroundSlideshow({ photos }: { photos: HeroPhoto[] }) {
           fill
           priority={i === 0}
           sizes="100vw"
+          // object-position en style inline plutôt qu'en classe Tailwind : next/image
+          // applique déjà ses propres styles inline sur l'élément <img>, et une classe
+          // "object-top" perd parfois la bataille de spécificité contre eux — le style
+          // inline gagne toujours. Privilégie le haut de l'image (visage) plutôt qu'un
+          // centrage strict qui coupe la tête sur les portraits très verticaux.
+          style={{ objectPosition: "center 20%" }}
           className={cn(
             "object-cover transition-opacity duration-[1800ms] ease-in-out",
             i === index ? "opacity-100" : "opacity-0",
