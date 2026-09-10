@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import type { Playlist, PlaylistType } from "@prisma/client";
+import type { Playlist, PlaylistType, SourceType } from "@prisma/client";
 import { paginate, totalPages } from "./shared";
 import { getTopSongs, getTopSongsThisWeek } from "./songs";
 
@@ -20,7 +20,7 @@ type PlaylistSongRow = {
   title: string;
   imageUrl: string;
   audioUrl: string | null;
-  sourceType: string;
+  sourceType: SourceType;
   published: boolean;
   artist: { name: string; slug: string };
 };

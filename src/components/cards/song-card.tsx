@@ -6,6 +6,7 @@ import { Play, Eye } from "lucide-react";
 import type { Artist, Category, Song } from "@prisma/client";
 import { formatDateShort, formatViews } from "@/lib/utils";
 import { useAudioPlayer, type Track } from "@/components/shared/audio-player-provider";
+import { songTrackAudioFields } from "@/lib/validations/songs";
 
 type SongWithRelations = Song & { artist: Artist; category: Category | null };
 
@@ -17,8 +18,7 @@ function toTrack(song: SongWithRelations): Track {
     artistName: song.artist.name,
     artistSlug: song.artist.slug,
     imageUrl: song.imageUrl,
-    audioUrl: song.audioUrl ?? "",
-    playable: song.sourceType === "FICHIER_DIRECT",
+    ...songTrackAudioFields(song.sourceType, song.audioUrl),
   };
 }
 
@@ -32,12 +32,14 @@ export function SongCard({
 }) {
   const { playTrack } = useAudioPlayer();
 
+  const isPlayableSource = song.sourceType === "FICHIER_DIRECT" || song.sourceType === "SOUNDCLOUD";
+
   function handlePlay(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     playTrack(
       toTrack(song),
-      queue?.filter((s) => s.audioUrl && s.sourceType === "FICHIER_DIRECT").map(toTrack),
+      queue?.filter((s) => s.audioUrl && (s.sourceType === "FICHIER_DIRECT" || s.sourceType === "SOUNDCLOUD")).map(toTrack),
     );
   }
 
@@ -54,7 +56,7 @@ export function SongCard({
           className="object-cover transition duration-300 group-hover:scale-105"
           sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
         />
-        {song.audioUrl && song.sourceType === "FICHIER_DIRECT" && (
+        {song.audioUrl && isPlayableSource && (
           <div className="absolute inset-0 flex items-center justify-center bg-navy/0 opacity-0 transition group-hover:bg-navy/40 group-hover:opacity-100">
             <button
               type="button"

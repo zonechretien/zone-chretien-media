@@ -5,6 +5,7 @@ import type { Article, Artist, Category, Song } from "@prisma/client";
 import { formatDateShort } from "@/lib/utils";
 import { NewsletterForm } from "@/components/shared/newsletter-form";
 import { TopSongRow } from "@/components/songs/top-song-row";
+import { songTrackAudioFields } from "@/lib/validations/songs";
 
 function WidgetCard({
   title,
@@ -87,8 +88,7 @@ export function SongSidebar({
                   artistName: song.artist.name,
                   artistSlug: song.artist.slug,
                   imageUrl: song.imageUrl,
-                  audioUrl: song.audioUrl ?? "",
-                  playable: song.sourceType === "FICHIER_DIRECT",
+                  ...songTrackAudioFields(song.sourceType, song.audioUrl),
                 }}
               />
             ))}

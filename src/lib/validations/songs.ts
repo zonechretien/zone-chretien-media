@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getSoundcloudEmbedUrl } from "@/lib/utils";
 
 const optionalUrl = z.string().url("URL invalide").optional().or(z.literal(""));
 
@@ -59,3 +60,23 @@ export const songSchema = z.object({
 });
 
 export type SongInput = z.infer<typeof songSchema>;
+
+/** Détermine, à partir du sourceType d'une chanson, comment construire son
+ * `Track` pour le lecteur flottant : FICHIER_DIRECT et SOUNDCLOUD sont lisibles
+ * directement (SoundCloud via le widget JS caché, voir audio-player-provider) ;
+ * AUDIOMACK (pas d'API de contrôle externe fiable) et YOUTUBE_MUSIC (ouvre la
+ * modale vidéo) restent exclus du lecteur flottant. Normalise aussi l'URL
+ * SoundCloud au format d'intégration si une chanson plus ancienne a encore
+ * l'URL de page normale en base. */
+export function songTrackAudioFields(
+  sourceType: (typeof SONG_SOURCE_TYPES)[number],
+  audioUrl: string | null,
+): { audioUrl: string; playable: boolean; source?: "soundcloud" } {
+  if (sourceType === "SOUNDCLOUD") {
+    return { audioUrl: (audioUrl && (getSoundcloudEmbedUrl(audioUrl) ?? audioUrl)) || "", playable: true, source: "soundcloud" };
+  }
+  if (sourceType === "FICHIER_DIRECT") {
+    return { audioUrl: audioUrl ?? "", playable: true };
+  }
+  return { audioUrl: audioUrl ?? "", playable: false };
+}

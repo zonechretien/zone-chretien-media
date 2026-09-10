@@ -28,8 +28,12 @@ export function SongHero({ data }: { data: SongHeroData }) {
 
   const isCurrent = currentTrack?.id === track.id;
   const playing = isCurrent && isPlaying;
-  const isFileSource = sourceType === "FICHIER_DIRECT";
-  const hasAudioEmbed = (sourceType === "SOUNDCLOUD" || sourceType === "AUDIOMACK") && !!track.audioUrl;
+  // SoundCloud est désormais lu dans le lecteur flottant, exactement comme un
+  // fichier direct (widget JS caché — voir audio-player-provider). Seul
+  // Audiomack (pas d'API de contrôle externe fiable) garde son lecteur intégré
+  // visible sur la page, et YouTube Music ouvre la modale vidéo.
+  const isFloatingPlayerSource = sourceType === "FICHIER_DIRECT" || sourceType === "SOUNDCLOUD";
+  const hasAudiomackEmbed = sourceType === "AUDIOMACK" && !!track.audioUrl;
 
   function handlePlay() {
     if (isCurrent) togglePlay();
@@ -37,12 +41,12 @@ export function SongHero({ data }: { data: SongHeroData }) {
   }
 
   function handlePrimaryAction() {
-    if (isFileSource && track.audioUrl) {
+    if (isFloatingPlayerSource && track.audioUrl) {
       handlePlay();
     } else if (sourceType === "YOUTUBE_MUSIC" && track.audioUrl) {
       const embedUrl = getYoutubeEmbedUrl(track.audioUrl);
       if (embedUrl) openVideo(embedUrl, track.title);
-    } else if (hasAudioEmbed) {
+    } else if (hasAudiomackEmbed) {
       document.getElementById("ecouter")?.scrollIntoView({ behavior: "smooth" });
     } else if (hasVideo) {
       document.getElementById("video")?.scrollIntoView({ behavior: "smooth" });
@@ -50,16 +54,16 @@ export function SongHero({ data }: { data: SongHeroData }) {
   }
 
   const showPrimaryButton =
-    (isFileSource && !!track.audioUrl) ||
+    (isFloatingPlayerSource && !!track.audioUrl) ||
     (sourceType === "YOUTUBE_MUSIC" && !!track.audioUrl) ||
-    hasAudioEmbed ||
+    hasAudiomackEmbed ||
     hasVideo;
 
-  const primaryButtonLabel = isFileSource
+  const primaryButtonLabel = isFloatingPlayerSource
     ? playing
       ? "En lecture"
       : "Écouter maintenant"
-    : sourceType === "YOUTUBE_MUSIC" || hasAudioEmbed
+    : sourceType === "YOUTUBE_MUSIC" || hasAudiomackEmbed
       ? "Écouter"
       : "Voir le clip";
 
@@ -144,7 +148,7 @@ export function SongHero({ data }: { data: SongHeroData }) {
                 En vedette
               </span>
             )}
-            {isFileSource && track.audioUrl && (
+            {isFloatingPlayerSource && track.audioUrl && (
               <button
                 type="button"
                 onClick={handlePlay}

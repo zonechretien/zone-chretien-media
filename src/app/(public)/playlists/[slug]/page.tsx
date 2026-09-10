@@ -9,6 +9,7 @@ import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
 import type { Track } from "@/components/shared/audio-player-provider";
+import { songTrackAudioFields } from "@/lib/validations/songs";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -52,8 +53,7 @@ export default async function PlaylistPage({ params }: Props) {
     artistName: song.artist.name,
     artistSlug: song.artist.slug,
     imageUrl: song.imageUrl,
-    audioUrl: song.audioUrl ?? "",
-    playable: song.sourceType === "FICHIER_DIRECT",
+    ...songTrackAudioFields(song.sourceType, song.audioUrl),
   }));
 
   return (

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { AlertTriangle, Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 
 export type Track = {
   id: string;
@@ -17,12 +17,60 @@ export type Track = {
    * à fournir explicitement pour toute piste qui n'est pas une Song (ex. une
    * prédication audio de la Bibliothèque, dont la page est `/bibliotheque/{slug}`). */
   href?: string;
-  /** `false` pour une chanson dont le sourceType n'est pas FICHIER_DIRECT (ex.
-   * SoundCloud/Audiomack) : elle utilise un lecteur embed dédié sur sa page plutôt
-   * que le lecteur flottant, qui ne sait piloter que des URLs de fichier direct.
-   * Absent ou `true` = lisible normalement dans le lecteur flottant. */
+  /** `false` pour une chanson dont le sourceType n'est ni FICHIER_DIRECT ni
+   * SOUNDCLOUD (ex. Audiomack, YouTube Music) : elle utilise un lecteur dédié sur
+   * sa page plutôt que le lecteur flottant. Absent ou `true` = lisible normalement
+   * dans le lecteur flottant. */
   playable?: boolean;
+  /** "soundcloud" : `audioUrl` est une URL d'intégration SoundCloud (format
+   * w.soundcloud.com/player/?url=…), pilotée via le widget JS caché plutôt que
+   * l'élément <audio>. Absent = fichier audio direct. */
+  source?: "soundcloud";
 };
+
+// --- SoundCloud Widget API (https://w.soundcloud.com/player/api.js) ----------
+// Typage minimal, volontairement limité à ce que ce fichier utilise réellement.
+type SCWidgetEvents = {
+  PLAY: string;
+  PAUSE: string;
+  FINISH: string;
+  PLAY_PROGRESS: string;
+  READY: string;
+  ERROR: string;
+};
+type SCWidgetInstance = {
+  play: () => void;
+  pause: () => void;
+  seekTo: (ms: number) => void;
+  setVolume: (v: number) => void;
+  getDuration: (cb: (ms: number) => void) => void;
+  bind: (event: string, listener: (e?: { currentPosition: number }) => void) => void;
+};
+type SCWidgetCtor = (iframe: HTMLIFrameElement) => SCWidgetInstance;
+
+declare global {
+  interface Window {
+    SC?: { Widget: SCWidgetCtor & { Events: SCWidgetEvents } };
+  }
+}
+
+let soundcloudApiPromise: Promise<void> | null = null;
+
+/** Charge une seule fois le script global du widget SoundCloud (idempotent —
+ * plusieurs appels concurrents partagent la même promesse). */
+function loadSoundcloudApi(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.SC?.Widget) return Promise.resolve();
+  if (soundcloudApiPromise) return soundcloudApiPromise;
+  soundcloudApiPromise = new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://w.soundcloud.com/player/api.js";
+    script.async = true;
+    script.onload = () => resolve();
+    document.head.appendChild(script);
+  });
+  return soundcloudApiPromise;
+}
 
 type AudioPlayerContextValue = {
   /** Joue `track`. Si `queue` est fourni (ex. la liste affichée sur la page), les
@@ -56,6 +104,12 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [previousVolume, setPreviousVolume] = useState(0.8);
+  const [playerError, setPlayerError] = useState<string | null>(null);
+
+  // Miroir synchrone de `isPlaying` : togglePlay() doit savoir immédiatement si la
+  // piste SoundCloud active joue ou non pour décider play()/pause(), sans pouvoir
+  // interroger le widget de façon synchrone (ses getters sont tous à callback).
+  const isPlayingRef = useRef(false);
 
   // Deux éléments <audio> permanents (jamais démontés) au lieu d'un seul : pendant
   // que l'un joue, l'autre précharge en silence la piste suivante. C'est ce qui
@@ -77,6 +131,19 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const setAudioEl1 = useCallback((el: HTMLAudioElement | null) => {
     audioElsRef.current[1] = el;
   }, []);
+
+  // Widget SoundCloud : un nouvel iframe + une nouvelle instance SC.Widget à
+  // chaque piste, plutôt que `widget.load()` réutilisant le même widget — ce
+  // dernier est pourtant la méthode documentée par SoundCloud, mais s'est
+  // montré peu fiable pour relancer l'autoplay (l'événement ERROR se déclenche
+  // et la lecture ne démarre jamais). Recréer l'iframe reproduit à l'identique
+  // le chemin de la toute première lecture, qui lui est toujours fiable — même
+  // principe que le "mountPoint" hors JSX utilisé pour l'iframe YouTube dans
+  // video-modal-provider.tsx. `scContainerRef` est un simple conteneur que React
+  // ne gère jamais lui-même : on y insère/retire les iframes à la main.
+  const scContainerRef = useRef<HTMLDivElement | null>(null);
+  const scIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const scWidgetRef = useRef<SCWidgetInstance | null>(null);
 
   // Miroirs "impératifs" de queue/queueIndex : l'écran verrouillé (Media Session
   // nexttrack/previoustrack) et l'enchaînement automatique (événement "ended")
@@ -110,9 +177,12 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, []);
 
   /** Précharge silencieusement `track` sur l'élément <audio> actuellement inactif
-   * (sans jouer), pendant que l'autre élément joue la piste en cours. */
+   * (sans jouer), pendant que l'autre élément joue la piste en cours. Ne concerne
+   * que les pistes en fichier direct — SoundCloud n'a pas d'équivalent (le widget
+   * ne gère qu'une piste à la fois) et n'en a pas besoin, `widget.load()` étant
+   * justement conçu pour changer de piste au sein d'un même widget déjà initialisé. */
   const preloadOnIdle = useCallback((track: Track) => {
-    if (!track.audioUrl) return;
+    if (!track.audioUrl || track.source === "soundcloud") return;
     const idleIdx = activeIdxRef.current === 0 ? 1 : 0;
     const idle = audioElsRef.current[idleIdx];
     if (!idle || loadedIdRef.current[idleIdx] === track.id) return;
@@ -121,11 +191,71 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     loadedIdRef.current[idleIdx] = track.id;
   }, []);
 
+  /** Joue `track` (SoundCloud) : crée un nouvel iframe + une nouvelle instance
+   * SC.Widget à chaque appel (voir le commentaire sur scContainerRef plus haut).
+   * Les écouteurs d'événements sont liés une seule fois par piste, à la
+   * création de son widget : ils lisent queueRef/queueIndexRef au moment où ils
+   * se déclenchent (jamais une closure figée), exactement comme "ended" sur
+   * <audio> ci-dessous. */
+  const loadSoundCloudTrack = useCallback((track: Track) => {
+    setPlayerError(null);
+    const container = scContainerRef.current;
+    if (!container || !track.audioUrl) return;
+
+    scIframeRef.current?.remove();
+    const iframe = document.createElement("iframe");
+    iframe.title = "Lecteur SoundCloud (masqué)";
+    iframe.setAttribute("allow", "autoplay");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.tabIndex = -1;
+    iframe.style.cssText = "width:1px;height:1px;border:0;";
+    iframe.src = track.audioUrl;
+    container.appendChild(iframe);
+    scIframeRef.current = iframe;
+
+    loadSoundcloudApi().then(() => {
+      // Une piste plus récente a déjà remplacé cet iframe pendant le chargement
+      // du script — ignore ce widget devenu obsolète plutôt que de le lier.
+      if (!window.SC || scIframeRef.current !== iframe) return;
+
+      const widget = window.SC.Widget(iframe);
+      scWidgetRef.current = widget;
+
+      widget.bind(window.SC.Widget.Events.READY, () => {
+        widget.play();
+        widget.getDuration((ms) => setDuration(ms / 1000));
+      });
+      widget.bind(window.SC.Widget.Events.PLAY_PROGRESS, (e) => {
+        if (e) setCurrentTime(e.currentPosition / 1000);
+      });
+      widget.bind(window.SC.Widget.Events.FINISH, () => {
+        if (queueRef.current[queueIndexRef.current]?.source !== "soundcloud") return;
+        const nextIndex = queueIndexRef.current + 1;
+        if (nextIndex < queueRef.current.length) loadAndPlayRef.current(nextIndex);
+        else {
+          setIsPlaying(false);
+          isPlayingRef.current = false;
+        }
+      });
+      widget.bind(window.SC.Widget.Events.ERROR, () => {
+        setPlayerError("Ce morceau SoundCloud est indisponible (privé, supprimé ou restreint dans votre région).");
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+      });
+    });
+  }, []);
+
+  /** Toujours à jour vers la dernière version de `loadAndPlay` — nécessaire car les
+   * écouteurs du widget SoundCloud ne sont liés qu'une fois (voir plus haut) et ne
+   * doivent jamais appeler une closure figée d'une version antérieure. */
+  const loadAndPlayRef = useRef<(index: number) => void>(() => {});
+
   /** Lance la piste à `index` — c'est le seul chemin par lequel une piste démarre,
    * que ce soit un clic utilisateur, l'enchaînement automatique ou une action de
-   * l'écran verrouillé. Si elle a déjà été préchargée sur l'élément inactif (cas
-   * normal de l'enchaînement automatique), on bascule simplement dessus au lieu
-   * de charger une nouvelle URL — donc sans requête réseau lancée en arrière-plan. */
+   * l'écran verrouillé. Pour un fichier direct déjà préchargé sur l'élément inactif
+   * (cas normal de l'enchaînement automatique), on bascule simplement dessus au lieu
+   * de charger une nouvelle URL — donc sans requête réseau lancée en arrière-plan.
+   * Pour SoundCloud, délègue à loadSoundCloudTrack (widget partagé, voir ci-dessus). */
   const loadAndPlay = useCallback(
     (index: number) => {
       const list = queueRef.current;
@@ -133,33 +263,49 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       if (!track) return;
 
       queueIndexRef.current = index;
+      setPlayerError(null);
+      setCurrentTime(0);
 
-      const idleIdx = activeIdxRef.current === 0 ? 1 : 0;
-      let audio: HTMLAudioElement | null;
-
-      if (loadedIdRef.current[idleIdx] === track.id && audioElsRef.current[idleIdx]) {
+      if (track.source === "soundcloud") {
         audioElsRef.current[activeIdxRef.current]?.pause();
-        activeIdxRef.current = idleIdx;
-        audio = audioElsRef.current[idleIdx];
+        loadSoundCloudTrack(track);
       } else {
-        audio = audioElsRef.current[activeIdxRef.current];
-        if (audio && loadedIdRef.current[activeIdxRef.current] !== track.id) {
-          audio.src = track.audioUrl;
-          loadedIdRef.current[activeIdxRef.current] = track.id;
-        }
-      }
-      if (!audio) return;
+        scWidgetRef.current?.pause();
 
-      audio.play().catch(() => setIsPlaying(false));
+        const idleIdx = activeIdxRef.current === 0 ? 1 : 0;
+        let audio: HTMLAudioElement | null;
+
+        if (loadedIdRef.current[idleIdx] === track.id && audioElsRef.current[idleIdx]) {
+          audioElsRef.current[activeIdxRef.current]?.pause();
+          activeIdxRef.current = idleIdx;
+          audio = audioElsRef.current[idleIdx];
+        } else {
+          audio = audioElsRef.current[activeIdxRef.current];
+          if (audio && loadedIdRef.current[activeIdxRef.current] !== track.id) {
+            audio.src = track.audioUrl;
+            loadedIdRef.current[activeIdxRef.current] = track.id;
+          }
+        }
+        if (audio) audio.play().catch(() => { setIsPlaying(false); isPlayingRef.current = false; });
+      }
+
       setMediaSessionState(track, true);
       setQueueIndex(index);
       setIsPlaying(true);
+      isPlayingRef.current = true;
 
+      // Précharge la prochaine piste fichier même si celle en cours est du
+      // SoundCloud (les deux éléments <audio> sont silencieux tant qu'on ne les
+      // active pas) — seule une piste SoundCloud à venir n'a rien à précharger.
       const upcoming = list[index + 1];
-      if (upcoming) preloadOnIdle(upcoming);
+      if (upcoming && upcoming.source !== "soundcloud") preloadOnIdle(upcoming);
     },
-    [setMediaSessionState, preloadOnIdle],
+    [setMediaSessionState, preloadOnIdle, loadSoundCloudTrack],
   );
+
+  useEffect(() => {
+    loadAndPlayRef.current = loadAndPlay;
+  }, [loadAndPlay]);
 
   const playTrack = useCallback(
     (track: Track, newQueue?: Track[]) => {
@@ -173,27 +319,36 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   );
 
   const play = useCallback(() => {
-    const audio = audioElsRef.current[activeIdxRef.current];
     const track = queueRef.current[queueIndexRef.current];
-    if (!audio || !track) return;
-    audio.play().catch(() => setIsPlaying(false));
+    if (!track) return;
+    if (track.source === "soundcloud") {
+      scWidgetRef.current?.play();
+    } else {
+      const audio = audioElsRef.current[activeIdxRef.current];
+      if (!audio) return;
+      audio.play().catch(() => { setIsPlaying(false); isPlayingRef.current = false; });
+    }
     setMediaSessionState(track, true);
     setIsPlaying(true);
+    isPlayingRef.current = true;
   }, [setMediaSessionState]);
 
   const pause = useCallback(() => {
-    const audio = audioElsRef.current[activeIdxRef.current];
     const track = queueRef.current[queueIndexRef.current];
-    audio?.pause();
+    if (track?.source === "soundcloud") {
+      scWidgetRef.current?.pause();
+    } else {
+      audioElsRef.current[activeIdxRef.current]?.pause();
+    }
     if (track) setMediaSessionState(track, false);
     setIsPlaying(false);
+    isPlayingRef.current = false;
   }, [setMediaSessionState]);
 
   const togglePlay = useCallback(() => {
-    const audio = audioElsRef.current[activeIdxRef.current];
-    if (!audio || !queueRef.current[queueIndexRef.current]) return;
-    if (audio.paused) play();
-    else pause();
+    if (!queueRef.current[queueIndexRef.current]) return;
+    if (isPlayingRef.current) pause();
+    else play();
   }, [play, pause]);
 
   const next = useCallback(() => {
@@ -202,18 +357,27 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, [loadAndPlay]);
 
   const previous = useCallback(() => {
-    const audio = audioElsRef.current[activeIdxRef.current];
-    if (audio && audio.currentTime > 3) {
-      audio.currentTime = 0;
-      return;
+    const track = queueRef.current[queueIndexRef.current];
+    if (track?.source !== "soundcloud") {
+      const audio = audioElsRef.current[activeIdxRef.current];
+      if (audio && audio.currentTime > 3) {
+        audio.currentTime = 0;
+        return;
+      }
     }
     const prevIndex = queueIndexRef.current - 1;
     if (prevIndex >= 0) loadAndPlay(prevIndex);
   }, [loadAndPlay]);
 
   const seek = useCallback((time: number) => {
-    const audio = audioElsRef.current[activeIdxRef.current];
-    if (audio) audio.currentTime = time;
+    const track = queueRef.current[queueIndexRef.current];
+    if (track?.source === "soundcloud") {
+      scWidgetRef.current?.seekTo(Math.max(0, time) * 1000);
+      setCurrentTime(time);
+    } else {
+      const audio = audioElsRef.current[activeIdxRef.current];
+      if (audio) audio.currentTime = time;
+    }
   }, []);
 
   const changeVolume = useCallback((v: number) => {
@@ -229,6 +393,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     audioElsRef.current.forEach((audio) => {
       if (audio) audio.volume = volume;
     });
+    scWidgetRef.current?.setVolume(volume * 100);
   }, [volume]);
 
   // Écouteurs attachés une seule fois aux DEUX éléments (jamais réattachés) :
@@ -332,9 +497,22 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
           valeur identique), ce qui relance le chargement et coupe la lecture en cours. */}
       <audio ref={setAudioEl0} />
       <audio ref={setAudioEl1} />
+      {/* Conteneur pour l'iframe SoundCloud, recréé à chaque piste — jamais géré
+          par React lui-même (voir loadSoundCloudTrack) : l'audio doit continuer
+          à streamer depuis SoundCloud, seule l'apparence de leur lecteur est
+          masquée au profit du lecteur flottant ci-dessous, piloté via le
+          widget JS. */}
+      <div ref={scContainerRef} aria-hidden="true" className="fixed left-[-9999px] top-[-9999px]" />
       {currentTrack && <div className="h-[72px]" aria-hidden />}
       {currentTrack && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t-2 border-brand-gold bg-brand-navy px-4 py-2.5 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] sm:gap-5 sm:px-6">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-brand-gold bg-brand-navy shadow-[0_-4px_30px_rgba(0,0,0,0.3)]">
+          {playerError && (
+            <div className="flex items-center gap-2 border-b border-white/10 bg-red-500/10 px-4 py-1.5 font-body text-[12px] text-red-200 sm:px-6">
+              <AlertTriangle size={13} className="shrink-0" />
+              <span className="truncate">{playerError}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-3 px-4 py-2.5 sm:gap-5 sm:px-6">
           <Link
             href={currentTrack.href ?? `/chansons/${currentTrack.slug}`}
             className="relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-brand-blue to-brand-gold"
@@ -429,6 +607,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
               aria-label="Volume"
               className="h-1 w-[70px] cursor-pointer accent-brand-blue-bright"
             />
+          </div>
           </div>
         </div>
       )}
