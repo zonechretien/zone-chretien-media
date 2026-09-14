@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { getFeaturedSong, getLatestSongs } from "@/lib/queries/songs";
+import { getVerseOfDay } from "@/lib/queries/verses";
 import { getLatestInspirations } from "@/lib/queries/inspirations";
 import { getLatestDevotions } from "@/lib/queries/devotions";
 import { getLatestTestimonies } from "@/lib/queries/testimonies";
@@ -34,6 +35,7 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const [
     settings,
+    verseOfDay,
     featuredSong,
     latestSongs,
     latestInspirations,
@@ -46,6 +48,7 @@ export default async function HomePage() {
     heroArtistPhotos,
   ] = await Promise.all([
     prisma.settings.findUnique({ where: { id: "settings" } }),
+    getVerseOfDay(),
     getFeaturedSong(),
     getLatestSongs(8),
     getLatestInspirations(3),
@@ -62,10 +65,7 @@ export default async function HomePage() {
     <div className="flex flex-col gap-16 pb-20 sm:gap-20">
       <Hero
         siteName={settings?.siteName ?? "Zone-Chrétien Media"}
-        tagline={
-          settings?.siteDescription ??
-          "La musique, l'inspiration et la Parole pour édifier les nations."
-        }
+        verse={verseOfDay ? { reference: verseOfDay.reference, text: verseOfDay.text } : null}
         artistPhotos={heroArtistPhotos
           .filter((a) => !!a.photoUrl)
           .map((a) => ({ id: a.id, name: a.name, imageUrl: a.photoUrl! }))}
