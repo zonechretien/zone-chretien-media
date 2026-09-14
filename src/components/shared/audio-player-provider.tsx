@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import Image from "next/image";
 import Link from "next/link";
 import { AlertTriangle, Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { recordHistory } from "@/lib/personalization";
 
 export type Track = {
   id: string;
@@ -314,6 +315,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       queueRef.current = list;
       setQueue(list);
       loadAndPlay(idx >= 0 ? idx : 0);
+      recordHistory({ type: "song", id: track.slug });
     },
     [loadAndPlay],
   );

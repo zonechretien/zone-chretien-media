@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Menu, Music4, X } from "lucide-react";
+import { ChevronDown, Heart, Menu, Music4, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
@@ -131,10 +131,31 @@ export function Header() {
 
         <div className="ml-auto hidden items-center gap-2.5 md:flex">
           <SearchBar className="w-48 lg:w-64" />
+          <Link
+            href="/mes-favoris"
+            aria-label="Mes favoris"
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-brand-gray-light text-brand-gray-dark transition hover:bg-brand-off-white hover:text-brand-text",
+              pathname === "/mes-favoris" && "border-brand-gold text-brand-text",
+            )}
+          >
+            <Heart size={16} />
+          </Link>
           <ThemeToggle />
         </div>
 
         <div className="ml-auto flex items-center gap-2 md:hidden">
+          <Link
+            href="/mes-favoris"
+            aria-label="Mes favoris"
+            onClick={() => setOpen(false)}
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-brand-gray-light text-brand-gray-dark transition hover:bg-brand-off-white hover:text-brand-text",
+              pathname === "/mes-favoris" && "border-brand-gold text-brand-text",
+            )}
+          >
+            <Heart size={16} />
+          </Link>
           <ThemeToggle />
           <button
             type="button"

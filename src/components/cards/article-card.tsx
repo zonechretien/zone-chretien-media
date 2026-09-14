@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import type { Article, Category, User } from "@prisma/client";
 import { formatDateShort, truncate } from "@/lib/utils";
+import { FavoriteButton } from "@/components/shared/favorite-button";
 
 export function ArticleCard({
   article,
@@ -33,6 +34,7 @@ export function ArticleCard({
             {article.category.name}
           </span>
         )}
+        <FavoriteButton type="article" id={article.slug} label={article.title} className="absolute right-2 top-2" />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-5">
         <h3 className="line-clamp-2 font-semibold text-foreground">{article.title}</h3>

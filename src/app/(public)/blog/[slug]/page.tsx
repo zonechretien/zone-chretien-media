@@ -11,6 +11,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { ArticleCard } from "@/components/cards/article-card";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
+import { HistoryRecorder } from "@/components/shared/history-recorder";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -49,6 +50,7 @@ export default async function ArticlePage({ params }: Props) {
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+      <HistoryRecorder type="article" id={article.slug} />
       <JsonLd
         data={{
           "@context": "https://schema.org",

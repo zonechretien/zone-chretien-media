@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ListMusic, Play } from "lucide-react";
 import type { PlaylistType } from "@prisma/client";
+import { FavoriteButton } from "@/components/shared/favorite-button";
 
 export type PlaylistCardData = {
   slug: string;
@@ -44,6 +45,7 @@ export function PlaylistCard({ playlist }: { playlist: PlaylistCardData }) {
             <Play size={20} fill="currentColor" className="ml-0.5" />
           </span>
         </div>
+        <FavoriteButton type="playlist" id={playlist.slug} label={playlist.title} className="absolute right-2 top-2" />
       </div>
       <div className="flex flex-1 flex-col gap-1 p-4">
         <h3 className="line-clamp-1 font-semibold text-foreground">{playlist.title}</h3>

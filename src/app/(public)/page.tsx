@@ -10,6 +10,7 @@ import { getLatestArticles } from "@/lib/queries/articles";
 import { getFeaturedPlaylists } from "@/lib/queries/playlists";
 
 import { Hero } from "@/components/home/hero";
+import { ContinueSection } from "@/components/home/continue-section";
 import { FeaturedSong } from "@/components/home/featured-song";
 import { PopularArtists } from "@/components/home/popular-artists";
 import { CategoryGrid } from "@/components/home/category-grid";
@@ -69,6 +70,8 @@ export default async function HomePage() {
           .filter((a) => !!a.photoUrl)
           .map((a) => ({ id: a.id, name: a.name, imageUrl: a.photoUrl! }))}
       />
+
+      <ContinueSection />
 
       {featuredSong && <FeaturedSong song={featuredSong} />}
 

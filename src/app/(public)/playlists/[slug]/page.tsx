@@ -10,6 +10,7 @@ import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
 import type { Track } from "@/components/shared/audio-player-provider";
 import { songTrackAudioFields } from "@/lib/validations/songs";
+import { HistoryRecorder } from "@/components/shared/history-recorder";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -58,6 +59,7 @@ export default async function PlaylistPage({ params }: Props) {
 
   return (
     <article>
+      <HistoryRecorder type="playlist" id={playlist.slug} />
       <JsonLd
         data={{
           "@context": "https://schema.org",

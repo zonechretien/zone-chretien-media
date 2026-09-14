@@ -680,6 +680,20 @@ model NewsletterSubscriber {
 }
 
 // ============================================================================
+// NOTIFICATIONS PUSH (verset du jour) — sans compte, liées à l'appareil
+// ============================================================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@map("push_subscriptions")
+}
+
+// ============================================================================
 // PARAMÈTRES DU SITE (singleton)
 // ============================================================================
 

@@ -9,6 +9,7 @@ import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
 import { renderMarkdown, markdownToText } from "@/lib/markdown";
+import { HistoryRecorder } from "@/components/shared/history-recorder";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -43,6 +44,7 @@ export default async function TestimonyPage({ params }: Props) {
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+      <HistoryRecorder type="testimony" id={testimony.slug} />
       <JsonLd
         data={{
           "@context": "https://schema.org",

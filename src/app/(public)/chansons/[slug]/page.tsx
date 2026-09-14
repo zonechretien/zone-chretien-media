@@ -22,6 +22,7 @@ import { SongArtistCard } from "@/components/songs/song-artist-card";
 import { SectionLabel } from "@/components/songs/section-label";
 import { SongSidebar } from "@/components/songs/song-sidebar";
 import { songTrackAudioFields } from "@/lib/validations/songs";
+import { HistoryRecorder } from "@/components/shared/history-recorder";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -71,6 +72,7 @@ export default async function SongPage({ params }: Props) {
 
   return (
     <article>
+      <HistoryRecorder type="song" id={song.slug} />
       <JsonLd
         data={{
           "@context": "https://schema.org",

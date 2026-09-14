@@ -4,14 +4,16 @@ import { UserRound } from "lucide-react";
 import type { Testimony } from "@prisma/client";
 import { formatDateShort, truncate } from "@/lib/utils";
 import { markdownToText } from "@/lib/markdown";
+import { FavoriteButton } from "@/components/shared/favorite-button";
 
 export function TestimonyCard({ testimony }: { testimony: Testimony }) {
   return (
     <Link
       href={`/temoignages/${testimony.slug}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-elevated p-5 transition hover:border-gold hover:shadow-lg"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-elevated p-5 transition hover:border-gold hover:shadow-lg"
     >
-      <div className="flex items-center gap-3">
+      <FavoriteButton type="testimony" id={testimony.slug} label={testimony.title} className="absolute right-3 top-3" />
+      <div className="flex items-center gap-3 pr-8">
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-navy">
           {testimony.imageUrl ? (
             <Image src={testimony.imageUrl} alt={testimony.authorName} fill className="object-cover" sizes="40px" />

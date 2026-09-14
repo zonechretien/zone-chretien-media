@@ -7,6 +7,7 @@ import type { Artist, Category, Song } from "@prisma/client";
 import { formatDateShort, formatViews } from "@/lib/utils";
 import { useAudioPlayer, type Track } from "@/components/shared/audio-player-provider";
 import { songTrackAudioFields } from "@/lib/validations/songs";
+import { FavoriteButton } from "@/components/shared/favorite-button";
 
 type SongWithRelations = Song & { artist: Artist; category: Category | null };
 
@@ -73,6 +74,7 @@ export function SongCard({
             {song.category.name}
           </span>
         )}
+        <FavoriteButton type="song" id={song.slug} label={song.title} className="absolute right-2 top-2" />
       </div>
       <div className="flex flex-1 flex-col gap-1 p-4">
         <h3 className="line-clamp-1 font-semibold text-foreground">{song.title}</h3>
