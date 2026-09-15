@@ -49,8 +49,11 @@ export class GeminiProvider implements AIProvider {
     try {
       return JSON.parse(text);
     } catch (err) {
+      const truncated = data.candidates?.[0]?.finishReason === "MAX_TOKENS";
       throw new AIProviderError(
-        `[DEBUG TEMP] finishReason=${data.candidates?.[0]?.finishReason} len=${text.length} Reçu : ${text.slice(-300)}`,
+        truncated
+          ? "Réponse Gemini coupée avant la fin (limite de tokens atteinte). Réessayez."
+          : "Gemini n'a pas renvoyé un JSON valide.",
         "gemini",
         err,
       );
@@ -66,7 +69,10 @@ export class GeminiProvider implements AIProvider {
 
     const generationConfig: Record<string, unknown> = {
       temperature: options?.temperature ?? 0.8,
-      maxOutputTokens: options?.maxOutputTokens ?? 1024,
+      // Les modèles Gemini récents consomment une partie du budget de sortie
+      // pour leur raisonnement interne avant de produire la réponse finale —
+      // une limite basse tronque le JSON avant même le premier champ utile.
+      maxOutputTokens: options?.maxOutputTokens ?? 4096,
     };
     if (jsonSchema) {
       generationConfig.responseMimeType = "application/json";
