@@ -34,7 +34,7 @@ export async function getResources({
   const [resources, count] = await Promise.all([
     prisma.resource.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       include: { category: true, tags: true },
       ...paginate(page),
     }),

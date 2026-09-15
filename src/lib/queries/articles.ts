@@ -23,7 +23,7 @@ export async function getArticles({
   const [articles, count] = await Promise.all([
     prisma.article.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       include: { category: true, author: true, tags: true },
       ...paginate(page),
     }),
@@ -36,7 +36,7 @@ export async function getArticles({
 export function getLatestArticles(limit = 6) {
   return prisma.article.findMany({
     where: { published: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     include: { category: true, author: true },
     take: limit,
   });

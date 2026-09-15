@@ -16,7 +16,7 @@ export async function getPrayers({
   const [prayers, count] = await Promise.all([
     prisma.prayer.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       ...paginate(page),
     }),
     prisma.prayer.count({ where }),

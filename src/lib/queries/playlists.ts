@@ -61,7 +61,7 @@ export async function getPlaylists({ page = 1 }: { page?: number } = {}) {
   const [playlists, count] = await Promise.all([
     prisma.playlist.findMany({
       where,
-      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      orderBy: [{ order: "asc" }, { publishedAt: "desc" }, { createdAt: "desc" }],
       include: { _count: { select: { songs: true } } },
       ...paginate(page),
     }),
@@ -81,7 +81,7 @@ export async function getFeaturedPlaylists(limit = 3) {
 
   const rest = await prisma.playlist.findMany({
     where: { published: true, ...(topWeek ? { id: { not: topWeek.id } } : {}) },
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ order: "asc" }, { publishedAt: "desc" }, { createdAt: "desc" }],
     include: { _count: { select: { songs: true } } },
     take: topWeek ? Math.max(0, limit - 1) : limit,
   });

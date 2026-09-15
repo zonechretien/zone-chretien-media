@@ -16,7 +16,7 @@ export async function getVideos({
   const [videos, count] = await Promise.all([
     prisma.video.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       include: { artist: true, category: true },
       ...paginate(page),
     }),
@@ -29,7 +29,7 @@ export async function getVideos({
 export function getLatestVideos(limit = 6) {
   return prisma.video.findMany({
     where: { published: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     include: { artist: true, category: true },
     take: limit,
   });

@@ -17,7 +17,7 @@ export async function getArtists({
   const [artists, count] = await Promise.all([
     prisma.artist.findMany({
       where,
-      orderBy: { name: "asc" },
+      orderBy: { createdAt: "desc" },
       include: { _count: { select: { songs: true } } },
       ...paginate(page),
     }),

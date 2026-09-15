@@ -13,7 +13,7 @@ export async function getTestimonies({
   const [testimonies, count] = await Promise.all([
     prisma.testimony.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       ...paginate(page),
     }),
     prisma.testimony.count({ where }),
@@ -25,7 +25,7 @@ export async function getTestimonies({
 export function getLatestTestimonies(limit = 4) {
   return prisma.testimony.findMany({
     where: { published: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     take: limit,
   });
 }

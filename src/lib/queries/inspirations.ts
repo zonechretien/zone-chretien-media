@@ -16,7 +16,7 @@ export async function getInspirations({
   const [inspirations, count] = await Promise.all([
     prisma.inspiration.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       include: { category: true },
       ...paginate(page),
     }),
@@ -29,7 +29,7 @@ export async function getInspirations({
 export function getLatestInspirations(limit = 6) {
   return prisma.inspiration.findMany({
     where: { published: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     include: { category: true },
     take: limit,
   });

@@ -33,7 +33,7 @@ export async function getSongs({
   const [songs, count] = await Promise.all([
     prisma.song.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       include: { artist: true, category: true },
       ...paginate(page),
     }),
@@ -46,7 +46,7 @@ export async function getSongs({
 export function getLatestSongs(limit = 8) {
   return prisma.song.findMany({
     where: { published: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     include: { artist: true, category: true },
     take: limit,
   });
