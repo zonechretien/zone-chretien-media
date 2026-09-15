@@ -125,7 +125,7 @@ ajoutez chaque variable ci-dessous. Ce sont exactement les mêmes clés que dans
 | `AUTH_SECRET` | **Une nouvelle valeur**, différente de celle du `.env` local (voir ci-dessous) |
 | `AI_PROVIDER` | `gemini` |
 | `GEMINI_API_KEY` | Votre clé API Gemini (voir README) |
-| `GEMINI_MODEL` | `gemini-2.5-flash` (ou laisser vide pour la valeur par défaut) |
+| `GEMINI_MODEL` | `gemini-3.6-flash` (ou laisser vide pour la valeur par défaut) |
 | `NEXT_PUBLIC_SITE_URL` | L'URL finale du site, ex. `https://zone-chretien-media.vercel.app` ou votre domaine personnalisé |
 | `NEXT_PUBLIC_ADSENSE_CLIENT_ID` | Optionnel, si vous utilisez Google AdSense |
 
@@ -248,6 +248,11 @@ base locale par erreur (vérifiez `TURSO_DATABASE_URL` au moment de lancer `admi
 **Le module IA renvoie une erreur "GEMINI_API_KEY est manquante"**
 → La variable n'a pas été ajoutée (ou pas encore redéployée) sur Vercel. Ajoutez-la dans
 Environment Variables puis redéployez.
+
+**Le module IA renvoie une erreur Gemini HTTP 404 ("model ... is no longer available")**
+→ Google a retiré le modèle configuré. Mettez à jour la variable `GEMINI_MODEL` sur Vercel
+avec le nom du modèle actuel (voir [ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models))
+puis redéployez — pas besoin de toucher au code, le nom du modèle n'est jamais codé en dur.
 
 **J'ai dépassé le quota gratuit Vercel ou Turso**
 → Peu probable pour un site de cette taille, mais si cela arrive : Vercel Hobby suspend le

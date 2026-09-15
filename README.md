@@ -96,7 +96,7 @@ même variable se règle dans *Project Settings → Environment Variables*, jama
 
 Aucune carte bancaire n'est demandée pour le tier gratuit (sauf comptes situés dans l'UE/UK/Suisse,
 où Google impose d'activer la facturation même pour rester sur le palier gratuit — vérifiez sur la
-page ci-dessus si c'est votre cas). Le modèle utilisé par défaut est `gemini-2.5-flash`
+page ci-dessus si c'est votre cas). Le modèle utilisé par défaut est `gemini-3.6-flash`
 (configurable via `GEMINI_MODEL` dans `.env` si Google fait évoluer sa gamme de modèles).
 
 ## SEO & PWA
