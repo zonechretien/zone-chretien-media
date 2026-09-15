@@ -50,7 +50,7 @@ export class GeminiProvider implements AIProvider {
       return JSON.parse(text);
     } catch (err) {
       throw new AIProviderError(
-        "Gemini n'a pas renvoyé un JSON valide.",
+        `[DEBUG TEMP] Gemini n'a pas renvoyé un JSON valide. Reçu : ${text.slice(0, 500)}`,
         "gemini",
         err,
       );
