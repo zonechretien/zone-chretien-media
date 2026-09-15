@@ -8,6 +8,12 @@ import { requireSession } from "@/lib/admin/session";
 import { verseSchema, type VerseInput } from "@/lib/validations/verses";
 
 function toData(input: VerseInput) {
+  const hasMeditation = !!(
+    input.meditationReflection ||
+    input.meditationApplication ||
+    input.meditationPrayer
+  );
+
   return {
     reference: input.reference,
     text: input.text,
@@ -15,6 +21,13 @@ function toData(input: VerseInput) {
     imageUrl: input.imageUrl || null,
     date: new Date(`${input.date}T00:00:00.000Z`),
     published: input.published ?? true,
+    meditationReflection: input.meditationReflection || null,
+    meditationApplication: input.meditationApplication || null,
+    meditationPrayer: input.meditationPrayer || null,
+    // Le client suit IA_GENERE/IA_MODIFIE ; si du texte est saisi sans passer
+    // par la génération IA (source absente), on retombe sur MANUEL. Si tous
+    // les champs sont vides, aucune source n'est enregistrée.
+    meditationSource: !hasMeditation ? null : (input.meditationSource ?? "MANUEL"),
   };
 }
 

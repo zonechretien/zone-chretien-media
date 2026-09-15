@@ -9,8 +9,15 @@ import {
   generateSocialPost,
   generateSongDescription,
   generateVerse,
+  generateVerseMeditation,
 } from "@/lib/ai/generate";
-import type { DevotionDraft, InspirationDraft, PrayerDraft, VerseDraft } from "@/lib/ai/schemas";
+import type {
+  DevotionDraft,
+  InspirationDraft,
+  PrayerDraft,
+  VerseDraft,
+  VerseMeditationDraft,
+} from "@/lib/ai/schemas";
 
 type Result<T> = { data: T } | { error: string };
 
@@ -40,6 +47,14 @@ export async function generatePrayerAction(
 export async function generateVerseAction(theme?: string): Promise<Result<VerseDraft>> {
   await requireAdminRole();
   return toResult(generateVerse(theme));
+}
+
+export async function generateVerseMeditationAction(
+  reference: string,
+  text: string,
+): Promise<Result<VerseMeditationDraft>> {
+  await requireAdminRole();
+  return toResult(generateVerseMeditation(reference, text));
 }
 
 export async function generateInspirationAction(topic?: string): Promise<Result<InspirationDraft>> {

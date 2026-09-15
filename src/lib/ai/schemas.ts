@@ -59,6 +59,23 @@ export const verseDraftSchema = z.object({
 });
 export type VerseDraft = z.infer<typeof verseDraftSchema>;
 
+export const verseMeditationDraftJsonSchema = {
+  type: "object",
+  properties: {
+    reflection: { type: "string" },
+    application: { type: "string" },
+    prayer: { type: "string" },
+  },
+  required: ["reflection", "application", "prayer"],
+};
+
+export const verseMeditationDraftSchema = z.object({
+  reflection: z.string(),
+  application: z.string(),
+  prayer: z.string(),
+});
+export type VerseMeditationDraft = z.infer<typeof verseMeditationDraftSchema>;
+
 export const inspirationDraftJsonSchema = {
   type: "object",
   properties: {

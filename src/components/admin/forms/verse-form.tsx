@@ -3,9 +3,11 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, Sparkles } from "lucide-react";
 import type { Verse } from "@prisma/client";
 import { verseSchema, type VerseInput } from "@/lib/validations/verses";
 import { createVerse, updateVerse } from "@/lib/actions/verses";
+import { generateVerseMeditationAction } from "@/lib/actions/ai";
 import { useAIDraftPrefill } from "@/lib/admin/use-ai-draft";
 import type { VerseDraft } from "@/lib/ai/schemas";
 import {
@@ -24,13 +26,25 @@ import { dateToUrlSlug } from "@/lib/utils";
 
 type PickableBook = { slug: string; name: string; chapterCount: number };
 
+const MEDITATION_SOURCE_LABELS: Record<string, string> = {
+  MANUEL: "Rédigée manuellement",
+  IA_GENERE: "Générée par l'IA — non modifiée",
+  IA_MODIFIE: "Générée par l'IA, puis modifiée",
+};
+
 export function VerseForm({ verse, books }: { verse?: Verse; books: PickableBook[] }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiPending, startAiTransition] = useTransition();
+  const [meditationSource, setMeditationSource] = useState<VerseInput["meditationSource"]>(
+    verse?.meditationSource ?? null,
+  );
 
   const {
     register,
     handleSubmit,
+    watch,
     reset,
     setValue,
     formState: { errors },
@@ -44,6 +58,10 @@ export function VerseForm({ verse, books }: { verse?: Verse; books: PickableBook
           imageUrl: verse.imageUrl ?? "",
           date: dateToUrlSlug(verse.date),
           published: verse.published,
+          meditationReflection: verse.meditationReflection ?? "",
+          meditationApplication: verse.meditationApplication ?? "",
+          meditationPrayer: verse.meditationPrayer ?? "",
+          meditationSource: verse.meditationSource ?? null,
         }
       : { published: true, date: dateToUrlSlug(new Date()) },
   });
@@ -59,6 +77,38 @@ export function VerseForm({ verse, books }: { verse?: Verse; books: PickableBook
       published: true,
     });
   });
+
+  const referenceValue = watch("reference");
+  const textValue = watch("text");
+
+  /** Une fois une méditation générée, tout changement manuel la fait passer de "générée" à "modifiée". */
+  function handleMeditationEdited() {
+    setMeditationSource((current) => {
+      const next = current === "IA_GENERE" ? "IA_MODIFIE" : current;
+      setValue("meditationSource", next);
+      return next;
+    });
+  }
+
+  function handleGenerateMeditation() {
+    if (!referenceValue || !textValue) {
+      setAiError("Renseignez d'abord la référence et le texte du verset.");
+      return;
+    }
+    setAiError(null);
+    startAiTransition(async () => {
+      const result = await generateVerseMeditationAction(referenceValue, textValue);
+      if ("error" in result) {
+        setAiError(result.error);
+        return;
+      }
+      setValue("meditationReflection", result.data.reflection);
+      setValue("meditationApplication", result.data.application);
+      setValue("meditationPrayer", result.data.prayer);
+      setValue("meditationSource", "IA_GENERE");
+      setMeditationSource("IA_GENERE");
+    });
+  }
 
   function onSubmit(data: VerseInput) {
     setServerError(null);
@@ -111,6 +161,56 @@ export function VerseForm({ verse, books }: { verse?: Verse; books: PickableBook
           Une image partageable est aussi générée automatiquement pour chaque verset.
         </p>
       </FormRow>
+
+      <div className="mt-8 border-t border-border pt-6">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-foreground">Méditation du jour</h3>
+          <button
+            type="button"
+            onClick={handleGenerateMeditation}
+            disabled={aiPending}
+            className="flex items-center gap-1 text-xs font-medium text-gold transition hover:text-gold-soft disabled:opacity-60"
+          >
+            {aiPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            Générer une méditation avec l&apos;IA
+          </button>
+        </div>
+        <p className="mb-3 text-xs text-muted">
+          Optionnel — laissez les champs vides pour ne rien afficher côté public.
+          {meditationSource && ` · ${MEDITATION_SOURCE_LABELS[meditationSource]}`}
+        </p>
+        {aiError && <p className="mb-3 text-xs text-red-500">{aiError}</p>}
+
+        <FormRow>
+          <FieldLabel htmlFor="meditationReflection">Réflexion</FieldLabel>
+          <textarea
+            id="meditationReflection"
+            className={textareaClass}
+            rows={4}
+            {...register("meditationReflection", { onChange: handleMeditationEdited })}
+          />
+        </FormRow>
+
+        <FormRow>
+          <FieldLabel htmlFor="meditationApplication">Application pratique</FieldLabel>
+          <textarea
+            id="meditationApplication"
+            className={textareaClass}
+            rows={3}
+            {...register("meditationApplication", { onChange: handleMeditationEdited })}
+          />
+        </FormRow>
+
+        <FormRow>
+          <FieldLabel htmlFor="meditationPrayer">Prière</FieldLabel>
+          <textarea
+            id="meditationPrayer"
+            className={textareaClass}
+            rows={3}
+            {...register("meditationPrayer", { onChange: handleMeditationEdited })}
+          />
+        </FormRow>
+      </div>
 
       <FormRow>
         <label className="flex items-center gap-2 text-sm text-foreground">

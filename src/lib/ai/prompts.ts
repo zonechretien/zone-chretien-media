@@ -35,6 +35,19 @@ Réponds uniquement avec un objet JSON contenant :
 - explanation : une explication courte (3 à 4 phrases) qui aide le lecteur à comprendre et appliquer ce verset aujourd'hui`;
 }
 
+export function verseMeditationPrompt(reference: string, text: string): string {
+  return `${BRAND_VOICE}
+
+Rédige une méditation structurée courte pour le verset du jour suivant :
+Référence : ${reference}
+Texte : "${text}"
+
+Réponds uniquement avec un objet JSON contenant :
+- reflection : une réflexion de 2 à 4 phrases sur ce verset
+- application : une application pratique concrète pour la journée (2 à 3 phrases)
+- prayer : une courte prière en lien avec ce verset (2 à 4 phrases)`;
+}
+
 export function inspirationPrompt(topic?: string): string {
   return `${BRAND_VOICE}
 

@@ -11,6 +11,9 @@ import {
   verseDraftJsonSchema,
   verseDraftSchema,
   type VerseDraft,
+  verseMeditationDraftJsonSchema,
+  verseMeditationDraftSchema,
+  type VerseMeditationDraft,
   inspirationDraftJsonSchema,
   inspirationDraftSchema,
   type InspirationDraft,
@@ -57,6 +60,14 @@ export function generatePrayer(categoryLabel: string, topic?: string): Promise<P
 
 export function generateVerse(theme?: string): Promise<VerseDraft> {
   return generateStructured(prompts.versePrompt(theme), verseDraftJsonSchema, verseDraftSchema);
+}
+
+export function generateVerseMeditation(reference: string, text: string): Promise<VerseMeditationDraft> {
+  return generateStructured(
+    prompts.verseMeditationPrompt(reference, text),
+    verseMeditationDraftJsonSchema,
+    verseMeditationDraftSchema,
+  );
 }
 
 export function generateInspiration(topic?: string): Promise<InspirationDraft> {

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Quote } from "lucide-react";
 import { getVerseByDateSlug } from "@/lib/queries/verses";
 import { trackView } from "@/lib/queries/shared";
 import { formatDate } from "@/lib/utils";
 import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
-import { renderMarkdown } from "@/lib/markdown";
+import { VerseMeditationToggle } from "@/components/shared/verse-meditation-toggle";
 
 type Props = { params: Promise<{ date: string }> };
 
@@ -34,6 +33,15 @@ export default async function VersePage({ params }: Props) {
 
   trackView("VERSE", verse.id);
 
+  const meditation =
+    verse.meditationReflection && verse.meditationApplication && verse.meditationPrayer
+      ? {
+          reflection: verse.meditationReflection,
+          application: verse.meditationApplication,
+          prayer: verse.meditationPrayer,
+        }
+      : null;
+
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
       <JsonLd
@@ -47,33 +55,40 @@ export default async function VersePage({ params }: Props) {
           url: absoluteUrl(`/versets/${date}`),
         }}
       />
-      <div className="relative overflow-hidden rounded-3xl border border-gold/30 bg-gradient-to-br from-navy to-navy-light px-6 py-12 text-center text-white shadow-xl sm:px-12">
-        <Quote size={40} className="mx-auto text-gold/60" />
-        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-gold">
-          Verset du {formatDate(verse.date)}
-        </p>
-        <p className="mx-auto mt-6 max-w-xl text-2xl font-medium leading-snug sm:text-3xl">
-          « {verse.text} »
-        </p>
-        <p className="mt-6 text-xl font-semibold text-gold">{verse.reference}</p>
-      </div>
 
-      {verse.explanation && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold text-foreground">Explication</h2>
-          <div
-            className="prose prose-neutral mt-2 max-w-none leading-relaxed text-foreground/90 dark:prose-invert"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(verse.explanation) }}
+      <div className="relative overflow-hidden rounded-2xl border border-gold/20 bg-navy px-6 py-14 text-center text-white shadow-2xl shadow-black/30 sm:px-14 sm:py-16">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 select-none font-display text-[150px] leading-none text-gold/10 sm:text-[200px]"
+        >
+          “
+        </span>
+
+        <p className="relative text-[11px] font-medium uppercase tracking-[0.25em] text-gold/70">
+          Verset du jour <span className="mx-1.5 text-gold/40">·</span> {formatDate(verse.date)}
+        </p>
+
+        <p className="relative mx-auto mt-8 max-w-2xl font-display text-2xl italic leading-snug text-white sm:text-3xl">
+          {verse.text}
+        </p>
+
+        <div className="relative mx-auto mt-7 flex items-center justify-center gap-3">
+          <span className="h-px w-8 bg-gold/40" aria-hidden />
+          <p className="text-base font-semibold tracking-wide text-gold sm:text-lg">{verse.reference}</p>
+          <span className="h-px w-8 bg-gold/40" aria-hidden />
+        </div>
+
+        <div className="relative mt-8 flex justify-center">
+          <ShareButtons
+            url={`/versets/${date}`}
+            title={`${verse.reference} — ${verse.text}`}
+            dark
+            compact
           />
-        </section>
-      )}
-
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
-        <ShareButtons
-          url={`/versets/${date}`}
-          title={`${verse.reference} — ${verse.text}`}
-        />
+        </div>
       </div>
+
+      {meditation && <VerseMeditationToggle meditation={meditation} />}
     </article>
   );
 }

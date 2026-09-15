@@ -419,6 +419,14 @@ model Verse {
   imageUrl    String?
   date        DateTime @unique
 
+  // Méditation structurée (réflexion / application / prière), en écho au
+  // même schéma que Devotion — vide par défaut, donc rétrocompatible avec
+  // les versets existants (la section publique ne s'affiche que si remplie).
+  meditationReflection  String?
+  meditationApplication String?
+  meditationPrayer      String?
+  meditationSource      MeditationSource?
+
   views     Int     @default(0)
   published Boolean @default(true)
 
@@ -427,6 +435,14 @@ model Verse {
 
   @@index([published, date])
   @@map("verses")
+}
+
+// Indique si la méditation d'un verset a été écrite à la main, générée par
+// l'IA telle quelle, ou générée puis modifiée manuellement par l'admin.
+enum MeditationSource {
+  MANUEL
+  IA_GENERE
+  IA_MODIFIE
 }
 
 // ============================================================================
