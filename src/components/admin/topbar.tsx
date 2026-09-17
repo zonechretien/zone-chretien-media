@@ -25,12 +25,12 @@ export function AdminTopbar({
         >
           <Menu size={18} />
         </button>
-        <div>
+        <Link href="/admin/profil" className="rounded-lg transition hover:opacity-70">
           <p className="text-sm font-semibold text-foreground">{name}</p>
           <p className="text-xs text-muted">
             {role === "SUPER_ADMIN" ? "Super Admin" : role === "ADMIN" ? "Administrateur" : "Éditeur"}
           </p>
-        </div>
+        </Link>
       </div>
       <div className="flex items-center gap-2">
         <Link

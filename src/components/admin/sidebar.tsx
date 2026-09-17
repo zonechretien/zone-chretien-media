@@ -23,12 +23,20 @@ import {
   Mail,
   ShieldCheck,
   Flag,
+  UserCircle,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { canAccessAdminPath } from "@/lib/admin/permissions";
 
-type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; superAdminOnly?: boolean };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+  superAdminOnly?: boolean;
+  alwaysVisible?: boolean;
+};
 type NavSection = { title: string; items: NavItem[] };
 
 const NAV_SECTIONS: NavSection[] = [
@@ -76,6 +84,10 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/admin/parametres", label: "Paramètres", icon: Settings },
     ],
   },
+  {
+    title: "Compte",
+    items: [{ href: "/admin/profil", label: "Mon profil", icon: UserCircle, alwaysVisible: true }],
+  },
 ];
 
 export function AdminSidebar({ role }: { role: Role }) {
@@ -84,6 +96,7 @@ export function AdminSidebar({ role }: { role: Role }) {
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter((item) => {
+      if (item.alwaysVisible) return true;
       if (item.superAdminOnly) return role === "SUPER_ADMIN";
       return canAccessAdminPath(role, item.href);
     }),
