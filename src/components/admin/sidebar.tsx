@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Flag,
   UserCircle,
+  CalendarRange,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/admin/versets", label: "Versets", icon: Quote },
       { href: "/admin/temoignages", label: "Témoignages", icon: UserRound },
       { href: "/admin/bibliotheque", label: "Bibliothèque", icon: Library },
+      { href: "/admin/plans-lecture", label: "Plans de lecture", icon: CalendarRange },
     ],
   },
   {

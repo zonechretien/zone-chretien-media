@@ -3,9 +3,11 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { getBibleBooks } from "@/lib/queries/bible";
 import { getVerseOfDay } from "@/lib/queries/verses";
+import { getReadingPlans } from "@/lib/queries/reading-plans";
 import { PageHeader } from "@/components/shared/page-header";
 import { BibleSearchBar } from "@/components/bible/bible-search-bar";
 import { VerseOfDay } from "@/components/home/verse-of-day";
+import { ContinueReadingPlanBlock } from "@/components/bible/continue-reading-plan-block";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -15,7 +17,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function BiblePage() {
-  const [books, verse] = await Promise.all([getBibleBooks(), getVerseOfDay()]);
+  const [books, verse, plans] = await Promise.all([getBibleBooks(), getVerseOfDay(), getReadingPlans()]);
   const oldTestament = books.filter((b) => b.testament === "AT");
   const newTestament = books.filter((b) => b.testament === "NT");
 
@@ -30,6 +32,8 @@ export default async function BiblePage() {
           <VerseOfDay verse={verse} />
         </div>
       )}
+
+      <ContinueReadingPlanBlock plans={plans} />
 
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <BookList title="Ancien Testament" books={oldTestament} />

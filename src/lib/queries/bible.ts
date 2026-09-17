@@ -62,6 +62,31 @@ export async function getBibleChapter(bookSlug: string, chapterNumber: number) {
   return { book, chapter, prev, next };
 }
 
+export type BibleChapterVerses = { number: number; verses: { number: number; text: string }[] };
+
+/** Texte complet de chaque chapitre d'une plage (bornes incluses) d'un même livre. */
+export async function getBibleChaptersRange(
+  bookSlug: string,
+  chapterStart: number,
+  chapterEnd: number,
+): Promise<BibleChapterVerses[]> {
+  const book = await prisma.bibleBook.findFirst({
+    where: { slug: bookSlug, version: { code: DEFAULT_BIBLE_VERSION } },
+  });
+  if (!book) return [];
+
+  const chapters = await prisma.bibleChapter.findMany({
+    where: { bookId: book.id, number: { gte: chapterStart, lte: chapterEnd } },
+    orderBy: { number: "asc" },
+    select: {
+      number: true,
+      verses: { orderBy: { number: "asc" }, select: { number: true, text: true } },
+    },
+  });
+
+  return chapters;
+}
+
 /**
  * Neutralise la syntaxe de requête FTS5 (guillemets, opérateurs booléens,
  * parenthèses...) en encadrant chaque terme de guillemets doubles avec un

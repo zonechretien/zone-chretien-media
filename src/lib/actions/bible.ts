@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
-import { DEFAULT_BIBLE_VERSION } from "@/lib/queries/bible";
+import { DEFAULT_BIBLE_VERSION, getBibleChaptersRange, type BibleChapterVerses } from "@/lib/queries/bible";
 
 export async function getBibleChapterVersesAction(
   bookSlug: string,
@@ -21,4 +21,36 @@ export async function getBibleChapterVersesAction(
   });
 
   return chapter?.verses ?? [];
+}
+
+export type ReadingPlanDayText = {
+  bookSlug: string;
+  bookName: string;
+  chapterStart: number;
+  chapterEnd: number;
+  chapters: BibleChapterVerses[];
+}[];
+
+/**
+ * Texte complet des passages d'un jour de plan de lecture — chargé à la
+ * demande quand le visiteur déplie ce jour (pas tous les jours d'un plan
+ * chargés d'un coup). Action publique (pas de session requise, contrairement
+ * à getBibleChapterVersesAction ci-dessus qui alimente le picker admin).
+ */
+export async function getReadingPlanDayTextAction(dayId: string): Promise<ReadingPlanDayText> {
+  const day = await prisma.readingPlanDay.findUnique({
+    where: { id: dayId },
+    include: { passages: { orderBy: { position: "asc" } } },
+  });
+  if (!day) return [];
+
+  return Promise.all(
+    day.passages.map(async (passage) => ({
+      bookSlug: passage.bookSlug,
+      bookName: passage.bookName,
+      chapterStart: passage.chapterStart,
+      chapterEnd: passage.chapterEnd,
+      chapters: await getBibleChaptersRange(passage.bookSlug, passage.chapterStart, passage.chapterEnd),
+    })),
+  );
 }

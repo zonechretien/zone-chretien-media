@@ -11,7 +11,11 @@ export function ContinueSection() {
   const history = useHistory();
   const [items, setItems] = useState<ResolvedContentItem[]>([]);
 
-  const recent = history.slice(0, DISPLAY_COUNT);
+  // L'historique biblique (type "bible") partage cette même liste (voir
+  // src/lib/personalization.ts) mais n'a pas de carte de rendu ici — cette
+  // section reste dédiée aux 5 types de contenu classiques, la lecture
+  // biblique a son propre historique dédié sur /bible/mon-historique.
+  const recent = history.filter((h) => h.type !== "bible").slice(0, DISPLAY_COUNT);
   const key = recent.map((h) => `${h.type}-${h.id}`).join(",");
 
   useEffect(() => {

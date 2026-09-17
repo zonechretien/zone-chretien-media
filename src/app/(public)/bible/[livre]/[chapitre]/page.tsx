@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, ChevronRight, ListOrdered } from "lucide-react";
 import { getBibleChapter } from "@/lib/queries/bible";
 import { pageMetadata } from "@/lib/seo";
+import { HistoryRecorder } from "@/components/shared/history-recorder";
+import { BibleVerseRow } from "@/components/shared/bible-verse-row";
 
 type Props = { params: Promise<{ livre: string; chapitre: string }> };
 
@@ -44,6 +46,7 @@ export default async function BibleChapterPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+      <HistoryRecorder type="bible" id={`${book.slug}:${chapterNumber}`} />
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
         <Link href="/" className="hover:text-foreground">Accueil</Link>
         <ChevronRight size={12} />
@@ -71,10 +74,13 @@ export default async function BibleChapterPage({ params }: Props) {
 
       <div className="mt-6 space-y-1 rounded-2xl border border-border bg-surface-elevated p-6 sm:p-8">
         {chapter.verses.map((verse) => (
-          <p key={verse.number} id={`v${verse.number}`} className="leading-relaxed text-foreground/90 scroll-mt-24">
-            <sup className="mr-1.5 font-semibold text-gold">{verse.number}</sup>
-            {verse.text}
-          </p>
+          <BibleVerseRow
+            key={verse.number}
+            bookSlug={book.slug}
+            bookName={book.name}
+            chapter={chapterNumber}
+            verse={verse}
+          />
         ))}
       </div>
 

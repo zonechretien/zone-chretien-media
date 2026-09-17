@@ -16,6 +16,7 @@ const STATIC_ROUTES = [
   { path: "/temoignages", changeFrequency: "weekly" as const, priority: 0.6 },
   { path: "/blog", changeFrequency: "daily" as const, priority: 0.8 },
   { path: "/bibliotheque", changeFrequency: "daily" as const, priority: 0.7 },
+  { path: "/bible/plans", changeFrequency: "weekly" as const, priority: 0.6 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -31,6 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     testimonies,
     articles,
     resources,
+    readingPlans,
   ] = await Promise.all([
     prisma.song.findMany({
       where: { published: true },
@@ -70,6 +72,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       select: { slug: true, updatedAt: true },
     }),
     prisma.resource.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.readingPlan.findMany({
       where: { published: true },
       select: { slug: true, updatedAt: true },
     }),
@@ -114,5 +120,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...toEntries(testimonies, "/temoignages", 0.5),
     ...toEntries(articles, "/blog", 0.8),
     ...toEntries(resources, "/bibliotheque", 0.6),
+    ...toEntries(readingPlans, "/bible/plans", 0.6),
   ];
 }

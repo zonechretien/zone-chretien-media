@@ -5,12 +5,13 @@ import { getPlaylistBySlug } from "@/lib/queries/playlists";
 import { getArticleBySlug } from "@/lib/queries/articles";
 import { getDevotionBySlug } from "@/lib/queries/devotions";
 import { getTestimonyBySlug } from "@/lib/queries/testimonies";
+import { getBibleBookBySlug } from "@/lib/queries/bible";
 
 const resolveSchema = z.object({
   refs: z
     .array(
       z.object({
-        type: z.enum(["song", "playlist", "article", "devotion", "testimony"]),
+        type: z.enum(["song", "playlist", "article", "devotion", "testimony", "bible"]),
         id: z.string().min(1),
       }),
     )
@@ -56,6 +57,14 @@ export async function POST(request: Request) {
         case "testimony": {
           const testimony = await getTestimonyBySlug(id);
           return testimony && testimony.published ? { type, id, data: testimony } : null;
+        }
+        case "bible": {
+          const [bookSlug, chapterRaw] = id.split(":");
+          const chapterNumber = Number(chapterRaw);
+          if (!bookSlug || !Number.isInteger(chapterNumber)) return null;
+          const book = await getBibleBookBySlug(bookSlug);
+          if (!book) return null;
+          return { type, id, data: { bookSlug: book.slug, bookName: book.name, chapterNumber } };
         }
         default:
           return null;

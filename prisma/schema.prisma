@@ -609,6 +609,64 @@ model BibleVerse {
 }
 
 // ============================================================================
+// PLANS DE LECTURE BIBLIQUE
+// ============================================================================
+// Progression/favoris/historique de lecture restent côté client (localStorage,
+// voir src/lib/personalization.ts) — pas de compte utilisateur sur ce site.
+
+model ReadingPlan {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  description     String?
+  durationDays    Int
+  coverImageUrl   String?
+  published       Boolean   @default(false)
+  metaTitle       String?
+  metaDescription String?
+  publishedAt     DateTime?
+
+  days ReadingPlanDay[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+  @@map("reading_plans")
+}
+
+model ReadingPlanDay {
+  id        String      @id @default(cuid())
+  planId    String
+  plan      ReadingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayNumber Int
+
+  passages ReadingPlanPassage[]
+
+  @@unique([planId, dayNumber])
+  @@map("reading_plan_days")
+}
+
+// bookSlug/bookName dénormalisés (pas de FK vers BibleBook) : le reste de
+// l'app adresse toujours un livre par son slug (jamais par BibleBook.id), et
+// il n'existe qu'une seule BibleVersion active (LSG1910) en pratique — voir
+// DEFAULT_BIBLE_VERSION dans src/lib/queries/bible.ts. Si une 2e version est
+// ajoutée un jour, ces plans resteront épinglés à la version par défaut.
+model ReadingPlanPassage {
+  id           String         @id @default(cuid())
+  dayId        String
+  day          ReadingPlanDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  bookSlug     String
+  bookName     String
+  chapterStart Int
+  chapterEnd   Int
+  position     Int            @default(0)
+
+  @@index([dayId, position])
+  @@map("reading_plan_passages")
+}
+
+// ============================================================================
 // STATISTIQUES DE VUES (tableau de bord, stats mensuelles)
 // ============================================================================
 

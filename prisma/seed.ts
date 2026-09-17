@@ -8,10 +8,58 @@
  */
 import { prisma } from "../src/lib/db";
 import { slugify } from "../src/lib/utils";
+import { DEFAULT_BIBLE_VERSION } from "../src/lib/queries/bible";
 import type { PrayerCategory } from "@prisma/client";
 
 function img(seed: string, w = 800, h = 600) {
   return `https://picsum.photos/seed/${seed}/${w}/${h}`;
+}
+
+type ScheduleBook = { slug: string; name: string; chapterCount: number };
+type SchedulePassage = { bookSlug: string; bookName: string; chapterStart: number; chapterEnd: number };
+type ScheduleDay = { dayNumber: number; passages: SchedulePassage[] };
+
+/**
+ * Répartit les chapitres des livres donnés (dans l'ordre) sur `totalDays`
+ * jours aussi uniformément que possible (le reste va aux premiers jours), en
+ * regroupant les chapitres consécutifs d'un même livre en un seul passage —
+ * un nouveau passage démarre dès que le livre change dans la séquence.
+ */
+function buildReadingSchedule(books: ScheduleBook[], totalDays: number): ScheduleDay[] {
+  const chapters = books.flatMap((book) =>
+    Array.from({ length: book.chapterCount }, (_, i) => ({
+      bookSlug: book.slug,
+      bookName: book.name,
+      chapterNumber: i + 1,
+    })),
+  );
+  const base = Math.floor(chapters.length / totalDays);
+  const remainder = chapters.length % totalDays;
+
+  const days: ScheduleDay[] = [];
+  let cursor = 0;
+  for (let day = 1; day <= totalDays; day++) {
+    const count = base + (day <= remainder ? 1 : 0);
+    const dayChapters = chapters.slice(cursor, cursor + count);
+    cursor += count;
+
+    const passages: SchedulePassage[] = [];
+    for (const ch of dayChapters) {
+      const last = passages[passages.length - 1];
+      if (last && last.bookSlug === ch.bookSlug && last.chapterEnd === ch.chapterNumber - 1) {
+        last.chapterEnd = ch.chapterNumber;
+      } else {
+        passages.push({
+          bookSlug: ch.bookSlug,
+          bookName: ch.bookName,
+          chapterStart: ch.chapterNumber,
+          chapterEnd: ch.chapterNumber,
+        });
+      }
+    }
+    days.push({ dayNumber: day, passages });
+  }
+  return days;
 }
 
 const AUDIO_TRACKS = Array.from(
@@ -452,6 +500,77 @@ async function main() {
     });
   }
   console.log(`Articles : ${ARTICLES.length}`);
+
+  // --- Plans de lecture (3 plans de démo) -----------------------------------
+  const planBookSlugs = ["matthieu", "marc", "luc", "jean", "psaumes", "proverbes"];
+  const planBooksRaw = await prisma.bibleBook.findMany({
+    where: { slug: { in: planBookSlugs }, version: { code: DEFAULT_BIBLE_VERSION } },
+    select: { slug: true, name: true, chapterCount: true },
+  });
+  const bookBySlug = new Map(planBooksRaw.map((b) => [b.slug, b]));
+
+  const READING_PLANS: { title: string; description: string; durationDays: number; bookSlugs: string[] }[] = [
+    {
+      title: "Les Évangiles en 30 jours",
+      description: "Parcourez la vie, l'enseignement et la résurrection de Jésus-Christ à travers Matthieu, Marc, Luc et Jean.",
+      durationDays: 30,
+      bookSlugs: ["matthieu", "marc", "luc", "jean"],
+    },
+    {
+      title: "Les Psaumes en 31 jours",
+      description: "Un mois de prière et de louange au fil des 150 Psaumes, pour nourrir votre vie de dévotion quotidienne.",
+      durationDays: 31,
+      bookSlugs: ["psaumes"],
+    },
+    {
+      title: "Les Proverbes en 31 jours",
+      description: "Un chapitre de sagesse par jour — un classique pour méditer les Proverbes tout au long d'un mois.",
+      durationDays: 31,
+      bookSlugs: ["proverbes"],
+    },
+  ];
+
+  if (planBooksRaw.length < planBookSlugs.length) {
+    console.warn(
+      "Plans de lecture ignorés : livres bibliques manquants en base (import Bible non exécuté ?).",
+    );
+  } else {
+    for (let i = 0; i < READING_PLANS.length; i++) {
+      const plan = READING_PLANS[i];
+      const slug = slugify(plan.title);
+      const books = plan.bookSlugs.map((s) => bookBySlug.get(s)!);
+      const schedule = buildReadingSchedule(books, plan.durationDays);
+
+      await prisma.readingPlan.upsert({
+        where: { slug },
+        update: {},
+        create: {
+          title: plan.title,
+          slug,
+          description: plan.description,
+          durationDays: plan.durationDays,
+          coverImageUrl: img(`reading-plan-${i}`, 800, 600),
+          published: true,
+          publishedAt: daysAgo(READING_PLANS.length - 1 - i),
+          days: {
+            create: schedule.map((day) => ({
+              dayNumber: day.dayNumber,
+              passages: {
+                create: day.passages.map((p, position) => ({
+                  bookSlug: p.bookSlug,
+                  bookName: p.bookName,
+                  chapterStart: p.chapterStart,
+                  chapterEnd: p.chapterEnd,
+                  position,
+                })),
+              },
+            })),
+          },
+        },
+      });
+    }
+    console.log(`Plans de lecture : ${READING_PLANS.length}`);
+  }
 
   console.log("Seed terminé avec succès.");
 }
