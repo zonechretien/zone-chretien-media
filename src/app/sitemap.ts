@@ -15,34 +15,65 @@ const STATIC_ROUTES = [
   { path: "/versets", changeFrequency: "daily" as const, priority: 0.8 },
   { path: "/temoignages", changeFrequency: "weekly" as const, priority: 0.6 },
   { path: "/blog", changeFrequency: "daily" as const, priority: 0.8 },
+  { path: "/bibliotheque", changeFrequency: "daily" as const, priority: 0.7 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [songs, playlists, artists, videos, inspirations, devotions, prayers, verses, testimonies, articles] =
-    await Promise.all([
-      prisma.song.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
-      prisma.playlist.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
-      prisma.artist.findMany({ select: { slug: true, updatedAt: true } }),
-      prisma.video.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
-      prisma.inspiration.findMany({
-        where: { published: true },
-        select: { slug: true, updatedAt: true },
-      }),
-      prisma.devotion.findMany({
-        where: { published: true },
-        select: { slug: true, updatedAt: true },
-      }),
-      prisma.prayer.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
-      prisma.verse.findMany({ where: { published: true }, select: { date: true, updatedAt: true } }),
-      prisma.testimony.findMany({
-        where: { published: true },
-        select: { slug: true, updatedAt: true },
-      }),
-      prisma.article.findMany({
-        where: { published: true },
-        select: { slug: true, updatedAt: true },
-      }),
-    ]);
+  const [
+    songs,
+    playlists,
+    artists,
+    videos,
+    inspirations,
+    devotions,
+    prayers,
+    verses,
+    testimonies,
+    articles,
+    resources,
+  ] = await Promise.all([
+    prisma.song.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.playlist.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.artist.findMany({ select: { slug: true, updatedAt: true } }),
+    prisma.video.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.inspiration.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.devotion.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.prayer.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.verse.findMany({
+      where: { published: true },
+      select: { date: true, updatedAt: true },
+    }),
+    prisma.testimony.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.article.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.resource.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+  ]);
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((route) => ({
     url: `${SITE_URL}${route.path}`,
@@ -82,5 +113,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...verseEntries,
     ...toEntries(testimonies, "/temoignages", 0.5),
     ...toEntries(articles, "/blog", 0.8),
+    ...toEntries(resources, "/bibliotheque", 0.6),
   ];
 }
