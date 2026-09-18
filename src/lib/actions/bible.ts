@@ -7,11 +7,12 @@ import { DEFAULT_BIBLE_VERSION, getBibleChaptersRange, type BibleChapterVerses }
 export async function getBibleChapterVersesAction(
   bookSlug: string,
   chapterNumber: number,
+  versionCode: string = DEFAULT_BIBLE_VERSION,
 ): Promise<{ number: number; text: string }[]> {
   await requireSession();
 
   const book = await prisma.bibleBook.findFirst({
-    where: { slug: bookSlug, version: { code: DEFAULT_BIBLE_VERSION } },
+    where: { slug: bookSlug, version: { code: versionCode } },
   });
   if (!book) return [];
 
@@ -37,7 +38,10 @@ export type ReadingPlanDayText = {
  * chargés d'un coup). Action publique (pas de session requise, contrairement
  * à getBibleChapterVersesAction ci-dessus qui alimente le picker admin).
  */
-export async function getReadingPlanDayTextAction(dayId: string): Promise<ReadingPlanDayText> {
+export async function getReadingPlanDayTextAction(
+  dayId: string,
+  versionCode: string = DEFAULT_BIBLE_VERSION,
+): Promise<ReadingPlanDayText> {
   const day = await prisma.readingPlanDay.findUnique({
     where: { id: dayId },
     include: { passages: { orderBy: { position: "asc" } } },
@@ -50,7 +54,7 @@ export async function getReadingPlanDayTextAction(dayId: string): Promise<Readin
       bookName: passage.bookName,
       chapterStart: passage.chapterStart,
       chapterEnd: passage.chapterEnd,
-      chapters: await getBibleChaptersRange(passage.bookSlug, passage.chapterStart, passage.chapterEnd),
+      chapters: await getBibleChaptersRange(passage.bookSlug, passage.chapterStart, passage.chapterEnd, versionCode),
     })),
   );
 }

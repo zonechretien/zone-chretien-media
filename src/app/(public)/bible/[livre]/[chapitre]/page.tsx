@@ -6,6 +6,7 @@ import { getBibleChapter } from "@/lib/queries/bible";
 import { pageMetadata } from "@/lib/seo";
 import { HistoryRecorder } from "@/components/shared/history-recorder";
 import { BibleVerseRow } from "@/components/shared/bible-verse-row";
+import { ChapterFavoriteButton } from "@/components/shared/chapter-favorite-button";
 
 type Props = { params: Promise<{ livre: string; chapitre: string }> };
 
@@ -61,13 +62,16 @@ export default async function BibleChapterPage({ params }: Props) {
         <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           {book.name} {chapterNumber}
         </h1>
-        <Link
-          href={`/bible/${book.slug}`}
-          className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3.5 py-2 text-xs font-medium text-foreground/70 transition hover:border-gold hover:text-gold"
-        >
-          <ListOrdered size={13} />
-          Chapitres
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <ChapterFavoriteButton bookSlug={book.slug} bookName={book.name} chapterNumber={chapterNumber} />
+          <Link
+            href={`/bible/${book.slug}`}
+            className="flex items-center gap-1.5 rounded-full border border-border px-3.5 py-2 text-xs font-medium text-foreground/70 transition hover:border-gold hover:text-gold"
+          >
+            <ListOrdered size={13} />
+            Chapitres
+          </Link>
+        </div>
       </div>
 
       <ChapterNav book={book} prev={prev} next={next} />

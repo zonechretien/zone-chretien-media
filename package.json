@@ -20,6 +20,7 @@
     "bible:export": "tsx scripts/bible/export-from-lepolo.ts",
     "bible:import": "tsx --env-file=.env scripts/bible/import-to-zonechretien.ts",
     "bible:verify": "tsx --env-file=.env scripts/bible/verify-import.ts",
+    "bible:seed-full-plans": "tsx --env-file=.env scripts/bible/seed-full-bible-plans.ts",
     "lance_app": "lance_app.bat"
   },
   "dependencies": {
