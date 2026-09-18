@@ -94,6 +94,7 @@ export default async function ResourcePage({ params }: Props) {
             src={resource.coverImageUrl}
             alt={resource.title}
             fill
+            unoptimized
             className="object-cover"
             sizes="(min-width: 768px) 768px, 100vw"
             priority

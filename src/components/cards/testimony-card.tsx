@@ -16,7 +16,7 @@ export function TestimonyCard({ testimony }: { testimony: Testimony }) {
       <div className="flex items-center gap-3 pr-8">
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-navy">
           {testimony.imageUrl ? (
-            <Image src={testimony.imageUrl} alt={testimony.authorName} fill className="object-cover" sizes="40px" />
+            <Image src={testimony.imageUrl} alt={testimony.authorName} fill unoptimized className="object-cover" sizes="40px" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-gold">
               <UserRound size={18} />

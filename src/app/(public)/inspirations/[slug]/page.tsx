@@ -83,6 +83,7 @@ export default async function InspirationPage({ params }: Props) {
             src={inspiration.imageUrl}
             alt={inspiration.title}
             fill
+            unoptimized
             className="object-cover"
             sizes="(min-width: 768px) 768px, 100vw"
             priority

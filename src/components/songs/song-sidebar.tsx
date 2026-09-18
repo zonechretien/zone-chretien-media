@@ -57,7 +57,7 @@ export function SongSidebar({
               >
                 <div className="relative h-[50px] w-[66px] shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-brand-navy-mid to-brand-blue">
                   {article.coverImageUrl && (
-                    <Image src={article.coverImageUrl} alt={article.title} fill className="object-cover" sizes="66px" />
+                    <Image src={article.coverImageUrl} alt={article.title} fill unoptimized className="object-cover" sizes="66px" />
                   )}
                 </div>
                 <div className="min-w-0">
@@ -115,7 +115,7 @@ export function SongSidebar({
               >
                 <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-brand-navy to-brand-blue">
                   {artist.photoUrl && (
-                    <Image src={artist.photoUrl} alt={artist.name} fill className="object-cover" sizes="44px" />
+                    <Image src={artist.photoUrl} alt={artist.name} fill unoptimized className="object-cover" sizes="44px" />
                   )}
                 </div>
                 <div className="min-w-0">

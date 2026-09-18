@@ -34,6 +34,7 @@ export function HeroBackgroundSlideshow({ photos }: { photos: HeroPhoto[] }) {
           src={photo.imageUrl}
           alt=""
           fill
+          unoptimized
           priority={i === 0}
           sizes="100vw"
           // object-position en style inline plutôt qu'en classe Tailwind : next/image

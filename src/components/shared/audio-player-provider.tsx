@@ -519,7 +519,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
             href={currentTrack.href ?? `/chansons/${currentTrack.slug}`}
             className="relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-brand-blue to-brand-gold"
           >
-            <Image src={currentTrack.imageUrl} alt={currentTrack.title} fill className="object-cover" sizes="46px" />
+            <Image src={currentTrack.imageUrl} alt={currentTrack.title} fill unoptimized className="object-cover" sizes="46px" />
           </Link>
 
           <div className="min-w-0 flex-1 sm:w-40 sm:flex-none">

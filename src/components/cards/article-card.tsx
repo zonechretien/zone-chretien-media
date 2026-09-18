@@ -21,6 +21,7 @@ export function ArticleCard({
             src={article.coverImageUrl}
             alt={article.title}
             fill
+            unoptimized
             className="object-cover transition duration-300 group-hover:scale-105"
             sizes="(min-width: 1024px) 33vw, 100vw"
           />

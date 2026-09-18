@@ -19,6 +19,7 @@ export function ArtistCard({
             src={artist.photoUrl}
             alt={artist.name}
             fill
+            unoptimized
             className="object-cover transition duration-300 group-hover:scale-105"
             sizes="96px"
           />

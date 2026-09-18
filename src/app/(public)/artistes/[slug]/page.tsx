@@ -78,6 +78,7 @@ export default async function ArtistPage({ params }: Props) {
                   src={artist.photoUrl}
                   alt={artist.name}
                   fill
+                  unoptimized
                   className="object-cover"
                   sizes="(min-width: 640px) 42vw, 100vw"
                   priority

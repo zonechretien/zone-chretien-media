@@ -72,6 +72,7 @@ export default async function DevotionPage({ params }: Props) {
             src={devotion.imageUrl}
             alt={devotion.title}
             fill
+            unoptimized
             className="object-cover"
             sizes="(min-width: 768px) 768px, 100vw"
             priority

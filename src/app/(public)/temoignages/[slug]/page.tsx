@@ -61,7 +61,7 @@ export default async function TestimonyPage({ params }: Props) {
       <div className="flex items-center gap-3">
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-navy">
           {testimony.imageUrl ? (
-            <Image src={testimony.imageUrl} alt={testimony.authorName} fill className="object-cover" sizes="48px" />
+            <Image src={testimony.imageUrl} alt={testimony.authorName} fill unoptimized className="object-cover" sizes="48px" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-gold">
               <UserRound size={20} />

@@ -20,7 +20,7 @@ export function SongArtistCard({ artist }: { artist: Artist }) {
     >
       <div className="relative h-[70px] w-[70px] shrink-0 overflow-hidden rounded-full border-[3px] border-brand-gray-light bg-brand-navy">
         {artist.photoUrl ? (
-          <Image src={artist.photoUrl} alt={artist.name} fill className="object-cover" sizes="70px" />
+          <Image src={artist.photoUrl} alt={artist.name} fill unoptimized className="object-cover" sizes="70px" />
         ) : (
           <span className="flex h-full w-full items-center justify-center font-accent text-2xl text-brand-gold">
             {initials(artist.name)}
