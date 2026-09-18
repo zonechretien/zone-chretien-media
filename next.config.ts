@@ -16,8 +16,14 @@ const withSerwist = withSerwistInit({
 const nextConfig: NextConfig = {
   images: {
     // Le CMS accepte des URLs d'images externes arbitraires (aucun fichier
-    // n'est hébergé sur le site) : on autorise tout hôte HTTPS.
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
+    // n'est hébergé sur le site) : on autorise tout hôte, en HTTPS comme en
+    // HTTP — certains éditeurs collent des URLs encore en http:// (anciens
+    // sites, services qui ne forcent pas HTTPS), et next/image rejette
+    // silencieusement toute URL dont le protocole n'est pas listé ici.
+    remotePatterns: [
+      { protocol: "https", hostname: "**" },
+      { protocol: "http", hostname: "**" },
+    ],
   },
   // @libsql/client embarque des fichiers non-JS (LICENSE, binaires natifs)
   // que le bundler tente de parser s'il l'inclut dans le bundle. Ces packages
