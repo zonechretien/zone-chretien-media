@@ -77,7 +77,7 @@ export function PlaylistHero({ data }: { data: PlaylistHeroData }) {
         <div className="hidden lg:block">
           <div className="relative aspect-square max-h-[360px] overflow-hidden rounded-2xl bg-gradient-to-br from-brand-blue to-brand-gold shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
             {imageUrl ? (
-              <Image src={imageUrl} alt={title} fill className="object-cover" sizes="360px" priority />
+              <Image src={imageUrl} alt={title} fill unoptimized className="object-cover" sizes="360px" priority />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-white/30">
                 <ListMusic size={56} />

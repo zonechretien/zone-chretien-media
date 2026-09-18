@@ -28,7 +28,7 @@ export function TopSongRow({ rank, track }: { rank: number; track: Track }) {
         {rank}
       </span>
       <Link href={`/chansons/${track.slug}`} className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-brand-navy to-brand-blue-bright">
-        <Image src={track.imageUrl} alt={track.title} fill className="object-cover" sizes="44px" />
+        <Image src={track.imageUrl} alt={track.title} fill unoptimized className="object-cover" sizes="44px" />
       </Link>
       <Link href={`/chansons/${track.slug}`} className="min-w-0 flex-1">
         <p className="truncate font-body text-[13px] font-semibold text-brand-text">{track.title}</p>

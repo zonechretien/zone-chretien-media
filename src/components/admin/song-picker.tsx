@@ -96,7 +96,7 @@ export function SongPicker({
                 >
                   <span className="w-5 shrink-0 text-center text-xs font-medium text-muted">{index + 1}</span>
                   <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded bg-navy">
-                    <Image src={song.imageUrl} alt="" fill className="object-cover" sizes="36px" />
+                    <Image src={song.imageUrl} alt="" fill unoptimized className="object-cover" sizes="36px" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">{song.title}</p>

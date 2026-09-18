@@ -142,7 +142,7 @@ export function SongHero({ data }: { data: SongHeroData }) {
 
         <div className="hidden lg:block">
           <div className="group relative aspect-[3/4] max-h-[460px] overflow-hidden rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
-            <Image src={track.imageUrl} alt={track.title} fill className="object-cover" sizes="360px" priority />
+            <Image src={track.imageUrl} alt={track.title} fill unoptimized className="object-cover" sizes="360px" priority />
             {featured && (
               <span className="absolute left-4 top-4 rounded-xl bg-brand-gold px-3 py-1 font-body text-[11px] font-bold uppercase tracking-wide text-brand-navy">
                 En vedette
