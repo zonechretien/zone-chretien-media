@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import type { Playlist, PlaylistType, SourceType } from "@prisma/client";
+import type { Playlist, PlaylistType } from "@prisma/client";
 import { paginate, totalPages } from "./shared";
 import { getTopSongs, getTopSongsThisWeek } from "./songs";
 
@@ -8,8 +8,8 @@ const SONG_ROW_SELECT = {
   slug: true,
   title: true,
   imageUrl: true,
-  audioUrl: true,
-  sourceType: true,
+  youtubeUrl: true,
+  lyrics: true,
   published: true,
   artist: { select: { name: true, slug: true } },
 } as const;
@@ -19,8 +19,8 @@ type PlaylistSongRow = {
   slug: string;
   title: string;
   imageUrl: string;
-  audioUrl: string | null;
-  sourceType: SourceType;
+  youtubeUrl: string | null;
+  lyrics: string | null;
   published: boolean;
   artist: { name: string; slug: string };
 };
@@ -34,8 +34,8 @@ async function getDynamicSongsForType(type: PlaylistType, limit = 10): Promise<P
     slug: song.slug,
     title: song.title,
     imageUrl: song.imageUrl,
-    audioUrl: song.audioUrl,
-    sourceType: song.sourceType,
+    youtubeUrl: song.youtubeUrl,
+    lyrics: song.lyrics,
     published: song.published,
     artist: { name: song.artist.name, slug: song.artist.slug },
   }));

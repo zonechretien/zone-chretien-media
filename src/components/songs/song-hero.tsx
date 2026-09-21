@@ -4,13 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Calendar, Clock, Eye, Music4, Pause, Play } from "lucide-react";
 import { useAudioPlayer, type Track } from "@/components/shared/audio-player-provider";
-import { useVideoModal } from "@/components/shared/video-modal-provider";
-import { getYoutubeEmbedUrl } from "@/lib/utils";
-import type { SONG_SOURCE_TYPES } from "@/lib/validations/songs";
 
 export type SongHeroData = {
   track: Track;
-  sourceType: (typeof SONG_SOURCE_TYPES)[number];
   categoryName: string | null;
   featured: boolean;
   dateLabel: string;
@@ -18,54 +14,22 @@ export type SongHeroData = {
   readingMinutes: number | null;
   excerpt: string | null;
   hasLyrics: boolean;
-  hasVideo: boolean;
 };
 
 export function SongHero({ data }: { data: SongHeroData }) {
-  const { track, sourceType, categoryName, featured, dateLabel, views, readingMinutes, excerpt, hasLyrics, hasVideo } = data;
+  const { track, categoryName, featured, dateLabel, views, readingMinutes, excerpt, hasLyrics } = data;
   const { playTrack, togglePlay, currentTrack, isPlaying } = useAudioPlayer();
-  const { openVideo } = useVideoModal();
 
   const isCurrent = currentTrack?.id === track.id;
   const playing = isCurrent && isPlaying;
-  // SoundCloud est désormais lu dans le lecteur flottant, exactement comme un
-  // fichier direct (widget JS caché — voir audio-player-provider). Seul
-  // Audiomack (pas d'API de contrôle externe fiable) garde son lecteur intégré
-  // visible sur la page, et YouTube Music ouvre la modale vidéo.
-  const isFloatingPlayerSource = sourceType === "FICHIER_DIRECT" || sourceType === "SOUNDCLOUD";
-  const hasAudiomackEmbed = sourceType === "AUDIOMACK" && !!track.audioUrl;
 
   function handlePlay() {
     if (isCurrent) togglePlay();
     else playTrack(track);
   }
 
-  function handlePrimaryAction() {
-    if (isFloatingPlayerSource && track.audioUrl) {
-      handlePlay();
-    } else if (sourceType === "YOUTUBE_MUSIC" && track.audioUrl) {
-      const embedUrl = getYoutubeEmbedUrl(track.audioUrl);
-      if (embedUrl) openVideo(embedUrl, track.title);
-    } else if (hasAudiomackEmbed) {
-      document.getElementById("ecouter")?.scrollIntoView({ behavior: "smooth" });
-    } else if (hasVideo) {
-      document.getElementById("video")?.scrollIntoView({ behavior: "smooth" });
-    }
-  }
-
-  const showPrimaryButton =
-    (isFloatingPlayerSource && !!track.audioUrl) ||
-    (sourceType === "YOUTUBE_MUSIC" && !!track.audioUrl) ||
-    hasAudiomackEmbed ||
-    hasVideo;
-
-  const primaryButtonLabel = isFloatingPlayerSource
-    ? playing
-      ? "En lecture"
-      : "Écouter maintenant"
-    : sourceType === "YOUTUBE_MUSIC" || hasAudiomackEmbed
-      ? "Écouter"
-      : "Voir le clip";
+  const showPrimaryButton = !!track.playable;
+  const primaryButtonLabel = playing ? "En lecture" : "Écouter maintenant";
 
   return (
     <section className="relative overflow-hidden bg-brand-navy">
@@ -120,7 +84,7 @@ export function SongHero({ data }: { data: SongHeroData }) {
             {showPrimaryButton && (
               <button
                 type="button"
-                onClick={handlePrimaryAction}
+                onClick={handlePlay}
                 className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-br from-brand-gold to-brand-gold-light px-6 py-3 font-body text-sm font-bold text-brand-navy transition hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(232,160,32,0.4)]"
               >
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-navy text-brand-gold">
@@ -148,7 +112,7 @@ export function SongHero({ data }: { data: SongHeroData }) {
                 En vedette
               </span>
             )}
-            {isFloatingPlayerSource && track.audioUrl && (
+            {track.playable && (
               <button
                 type="button"
                 onClick={handlePlay}

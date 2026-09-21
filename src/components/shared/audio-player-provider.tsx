@@ -1,10 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { AlertTriangle, Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { recordHistory } from "@/lib/personalization";
+import { getAutoplayQueueAction } from "@/lib/actions/player";
+import {
+  loadYoutubeIframeApi,
+  EMBED_RESTRICTED_ERROR_CODES,
+  type YTPlayerInstance,
+} from "@/lib/youtube-iframe-api";
+import { NowPlayingBar } from "@/components/shared/now-playing-bar";
+import { NowPlayingOverlay } from "@/components/shared/now-playing-overlay";
 
 export type Track = {
   id: string;
@@ -13,21 +18,31 @@ export type Track = {
   artistName: string;
   artistSlug: string;
   imageUrl: string;
+  /** Pour `source: "youtube"`, c'est l'ID vidéo (11 caractères), pas l'URL
+   * complète — c'est ce qu'attend `YT.Player.loadVideoById`. */
   audioUrl: string;
   /** Lien de la pochette dans le lecteur flottant. Par défaut `/chansons/{slug}` —
    * à fournir explicitement pour toute piste qui n'est pas une Song (ex. une
    * prédication audio de la Bibliothèque, dont la page est `/bibliotheque/{slug}`). */
   href?: string;
-  /** `false` pour une chanson dont le sourceType n'est ni FICHIER_DIRECT ni
-   * SOUNDCLOUD (ex. Audiomack, YouTube Music) : elle utilise un lecteur dédié sur
-   * sa page plutôt que le lecteur flottant. Absent ou `true` = lisible normalement
-   * dans le lecteur flottant. */
+  /** `false` si la piste n'a aucune source de lecture exploitable (aucun ID
+   * YouTube reconnu). Absent ou `true` = lisible normalement. */
   playable?: boolean;
-  /** "soundcloud" : `audioUrl` est une URL d'intégration SoundCloud (format
-   * w.soundcloud.com/player/?url=…), pilotée via le widget JS caché plutôt que
-   * l'élément <audio>. Absent = fichier audio direct. */
-  source?: "soundcloud";
+  /** "soundcloud" : `audioUrl` est une URL d'intégration SoundCloud, pilotée via
+   * le widget JS caché. "youtube" : `audioUrl` est un ID vidéo YouTube, pilotée
+   * via l'API IFrame Player (voir le moteur YouTube plus bas). Absent = fichier
+   * audio direct via l'élément <audio>. */
+  source?: "soundcloud" | "youtube";
+  /** Paroles de la chanson (si disponibles) — alimente l'onglet "Paroles" du
+   * panneau "en cours de lecture" sans requête supplémentaire. */
+  lyrics?: string;
+  /** "song" marque une piste comme une vraie chanson (par opposition à une
+   * piste Bibliothèque) — seules les pistes "song" sont éligibles à la
+   * lecture automatique (chansons similaires en fin de file). */
+  kind?: "song";
 };
+
+export type RepeatMode = "off" | "all" | "one";
 
 // --- SoundCloud Widget API (https://w.soundcloud.com/player/api.js) ----------
 // Typage minimal, volontairement limité à ce que ce fichier utilise réellement.
@@ -78,8 +93,38 @@ type AudioPlayerContextValue = {
    * boutons précédent/suivant naviguent dedans ; sinon la piste joue seule. */
   playTrack: (track: Track, queue?: Track[]) => void;
   togglePlay: () => void;
+  play: () => void;
+  pause: () => void;
+  next: () => void;
+  previous: () => void;
+  seek: (time: number) => void;
   currentTrack: Track | null;
   isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  playerError: string | null;
+  queue: Track[];
+  queueIndex: number;
+  /** File restante à venir, dans l'ordre réel de lecture (respecte l'aléatoire
+   * si actif) — c'est cette liste que le panneau "À suivre" doit afficher,
+   * pas `queue` brut (qui reste dans l'ordre d'insertion). */
+  upcomingQueue: Track[];
+  /** Saute directement à `track` si elle est dans la file actuelle. */
+  playFromQueue: (track: Track) => void;
+  volume: number;
+  setVolume: (v: number) => void;
+  toggleMute: () => void;
+  shuffle: boolean;
+  toggleShuffle: () => void;
+  repeatMode: RepeatMode;
+  cycleRepeatMode: () => void;
+  autoplay: boolean;
+  toggleAutoplay: () => void;
+  addToQueue: (tracks: Track[]) => void;
+  isExpanded: boolean;
+  expand: () => void;
+  collapse: () => void;
+  toggleExpanded: () => void;
 };
 
 const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
@@ -90,39 +135,42 @@ export function useAudioPlayer() {
   return ctx;
 }
 
-function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
+/** Mélange Fisher-Yates du sous-tableau `arr[from..]` (en place, retourne une copie). */
+function shuffleFrom<T>(arr: T[], from: number): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > from; i--) {
+    const j = from + Math.floor(Math.random() * (i - from + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 export function AudioPlayerProvider({ children }: { children: React.ReactNode }) {
   const [queue, setQueue] = useState<Track[]>([]);
-  const [queueIndex, setQueueIndex] = useState(0);
+  // `playOrder` est une permutation des indices de `queue` — l'ordre réel de
+  // lecture (naturel, ou mélangé si `shuffle` est actif). `queueIndex` (exposé
+  // dans le contexte pour compat) est dérivé : playOrder[playOrderPos].
+  const [playOrder, setPlayOrder] = useState<number[]>([]);
+  const [playOrderPos, setPlayOrderPos] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.8);
+  const [volume, setVolumeState] = useState(0.8);
   const [previousVolume, setPreviousVolume] = useState(0.8);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const [shuffle, setShuffle] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
+  const [autoplay, setAutoplay] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Miroir synchrone de `isPlaying` : togglePlay() doit savoir immédiatement si la
-  // piste SoundCloud active joue ou non pour décider play()/pause(), sans pouvoir
-  // interroger le widget de façon synchrone (ses getters sont tous à callback).
+  // piste active joue ou non pour décider play()/pause(), sans pouvoir interroger
+  // certains lecteurs de façon synchrone (SoundCloud n'a que des getters à callback).
   const isPlayingRef = useRef(false);
 
   // Deux éléments <audio> permanents (jamais démontés) au lieu d'un seul : pendant
-  // que l'un joue, l'autre précharge en silence la piste suivante. C'est ce qui
-  // rend l'enchaînement automatique fiable écran verrouillé — les navigateurs
-  // mobiles bloquent/retardent fortement toute NOUVELLE requête réseau lancée
-  // pendant que la page est en arrière-plan, mais laissent filer un chargement déjà
-  // amorcé pendant que l'app était encore au premier plan. Basculer vers la piste
-  // suivante devient alors un simple changement d'élément "actif", sans requête
-  // réseau lancée en arrière-plan. (Note : contrairement à un `fetch()`, charger
-  // une URL cross-origin via un élément <audio> ne nécessite pas d'en-têtes CORS
-  // — indispensable ici puisque les MP3 sont hébergés sur GitHub, qui n'envoie pas
-  // Access-Control-Allow-Origin.)
+  // que l'un joue, l'autre précharge en silence la piste suivante (fichiers directs
+  // uniquement — voir preloadOnIdle plus bas pour le détail de ce choix).
   const audioElsRef = useRef<[HTMLAudioElement | null, HTMLAudioElement | null]>([null, null]);
   const activeIdxRef = useRef<0 | 1>(0);
   const loadedIdRef = useRef<[string | null, string | null]>([null, null]);
@@ -134,33 +182,52 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, []);
 
   // Widget SoundCloud : un nouvel iframe + une nouvelle instance SC.Widget à
-  // chaque piste, plutôt que `widget.load()` réutilisant le même widget — ce
-  // dernier est pourtant la méthode documentée par SoundCloud, mais s'est
-  // montré peu fiable pour relancer l'autoplay (l'événement ERROR se déclenche
-  // et la lecture ne démarre jamais). Recréer l'iframe reproduit à l'identique
-  // le chemin de la toute première lecture, qui lui est toujours fiable — même
-  // principe que le "mountPoint" hors JSX utilisé pour l'iframe YouTube dans
-  // video-modal-provider.tsx. `scContainerRef` est un simple conteneur que React
-  // ne gère jamais lui-même : on y insère/retire les iframes à la main.
+  // chaque piste (voir loadSoundCloudTrack ci-dessous pour le détail).
   const scContainerRef = useRef<HTMLDivElement | null>(null);
   const scIframeRef = useRef<HTMLIFrameElement | null>(null);
   const scWidgetRef = useRef<SCWidgetInstance | null>(null);
 
-  // Miroirs "impératifs" de queue/queueIndex : l'écran verrouillé (Media Session
-  // nexttrack/previoustrack) et l'enchaînement automatique (événement "ended")
-  // doivent piloter directement les éléments <audio> sans attendre un re-render
-  // React, car le scheduler de React peut être fortement retardé pendant que la
-  // page/PWA est en arrière-plan (écran éteint).
+  // Moteur YouTube : une SEULE instance YT.Player persistante (pas une par
+  // piste) — les pistes suivantes appellent `loadVideoById` dessus, mécanisme
+  // standard documenté par YouTube pour l'avance de "playlist".
+  const ytContainerRef = useRef<HTMLDivElement | null>(null);
+  const ytPlayerRef = useRef<YTPlayerInstance | null>(null);
+  const ytPlayerPromiseRef = useRef<Promise<YTPlayerInstance> | null>(null);
+  const ytPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Miroirs "impératifs" : l'écran verrouillé (Media Session nexttrack/
+  // previoustrack) et l'enchaînement automatique (fin de piste, quel que soit
+  // le moteur) doivent piloter directement les éléments/lecteurs sans attendre
+  // un re-render React, car le scheduler React peut être fortement retardé
+  // pendant que la page/PWA est en arrière-plan (écran éteint).
   const queueRef = useRef<Track[]>([]);
-  const queueIndexRef = useRef(0);
+  const playOrderRef = useRef<number[]>([]);
+  const playOrderPosRef = useRef(0);
+  const repeatModeRef = useRef<RepeatMode>("off");
+  const autoplayRef = useRef(false);
+  const autoplayFetchedForRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
   useEffect(() => {
-    queueIndexRef.current = queueIndex;
-  }, [queueIndex]);
+    playOrderRef.current = playOrder;
+  }, [playOrder]);
+  useEffect(() => {
+    playOrderPosRef.current = playOrderPos;
+  }, [playOrderPos]);
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
+  useEffect(() => {
+    autoplayRef.current = autoplay;
+  }, [autoplay]);
 
+  const queueIndex = playOrder[playOrderPos] ?? 0;
   const currentTrack = queue[queueIndex] ?? null;
+  const upcomingQueue = useMemo(
+    () => playOrder.slice(playOrderPos + 1).map((i) => queue[i]).filter((t): t is Track => !!t),
+    [playOrder, playOrderPos, queue],
+  );
 
   const setMediaSessionState = useCallback((track: Track, playing: boolean) => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
@@ -178,12 +245,10 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, []);
 
   /** Précharge silencieusement `track` sur l'élément <audio> actuellement inactif
-   * (sans jouer), pendant que l'autre élément joue la piste en cours. Ne concerne
-   * que les pistes en fichier direct — SoundCloud n'a pas d'équivalent (le widget
-   * ne gère qu'une piste à la fois) et n'en a pas besoin, `widget.load()` étant
-   * justement conçu pour changer de piste au sein d'un même widget déjà initialisé. */
+   * (sans jouer). Ne concerne que les pistes en fichier direct — SoundCloud et
+   * YouTube n'ont pas d'équivalent utile ici (un seul widget/player à la fois). */
   const preloadOnIdle = useCallback((track: Track) => {
-    if (!track.audioUrl || track.source === "soundcloud") return;
+    if (!track.audioUrl || track.source === "soundcloud" || track.source === "youtube") return;
     const idleIdx = activeIdxRef.current === 0 ? 1 : 0;
     const idle = audioElsRef.current[idleIdx];
     if (!idle || loadedIdRef.current[idleIdx] === track.id) return;
@@ -192,12 +257,88 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     loadedIdRef.current[idleIdx] = track.id;
   }, []);
 
+  /** Toujours à jour vers la dernière version de `loadAndPlay` — nécessaire car les
+   * écouteurs SoundCloud/YouTube ne sont liés qu'une fois et ne doivent jamais
+   * appeler une closure figée d'une version antérieure. */
+  const loadAndPlayRef = useRef<(index: number) => void>(() => {});
+
+  /** Avance/arrête en fin de piste — appelée par les TROIS moteurs (`ended` de
+   * <audio>, `FINISH` SoundCloud, état ENDED de YouTube) : point central où
+   * aléatoire/répétition/lecture automatique prennent leur décision, au lieu
+   * de dupliquer cette logique par moteur. `isError` (piste YouTube bloquée) :
+   * avance toujours d'un cran, ignore repeatMode "one"/"all" (répéter/boucler
+   * une piste cassée n'a pas de sens). */
+  const handleTrackEndedRef = useRef<(opts?: { isError?: boolean }) => void>(() => {});
+  const handleTrackEnded = useCallback((opts: { isError?: boolean } = {}) => {
+    if (!opts.isError && repeatModeRef.current === "one") {
+      loadAndPlayRef.current(playOrderRef.current[playOrderPosRef.current]);
+      return;
+    }
+    const newPos = playOrderPosRef.current + 1;
+    if (newPos < playOrderRef.current.length) {
+      playOrderPosRef.current = newPos;
+      setPlayOrderPos(newPos);
+      loadAndPlayRef.current(playOrderRef.current[newPos]);
+      return;
+    }
+    if (!opts.isError && repeatModeRef.current === "all" && playOrderRef.current.length > 0) {
+      playOrderPosRef.current = 0;
+      setPlayOrderPos(0);
+      loadAndPlayRef.current(playOrderRef.current[0]);
+      return;
+    }
+    setIsPlaying(false);
+    isPlayingRef.current = false;
+  }, []);
+  useEffect(() => {
+    handleTrackEndedRef.current = handleTrackEnded;
+  }, [handleTrackEnded]);
+
+  /** Ajoute des pistes en fin de file (dédupliquées par id) — utilisé par la
+   * lecture automatique pour étendre la file avec des chansons similaires. */
+  const addToQueue = useCallback((tracks: Track[]) => {
+    const existingIds = new Set(queueRef.current.map((t) => t.id));
+    const fresh = tracks.filter((t) => !existingIds.has(t.id));
+    if (fresh.length === 0) return;
+
+    const startIndex = queueRef.current.length;
+    const newQueue = [...queueRef.current, ...fresh];
+    const newOrder = [...playOrderRef.current, ...fresh.map((_, i) => startIndex + i)];
+    queueRef.current = newQueue;
+    playOrderRef.current = newOrder;
+    setQueue(newQueue);
+    setPlayOrder(newOrder);
+  }, []);
+
+  /** Charge la file "lecture automatique" (chansons similaires) une seule fois
+   * par piste — déclenché quand cette piste démarre ET qu'elle est la dernière
+   * de la file (pas à sa fin, pour laisser le temps réseau d'arriver avant). */
+  const maybeFetchAutoplay = useCallback(
+    (track: Track) => {
+      if (!autoplayRef.current || repeatModeRef.current === "one") return;
+      if (track.kind !== "song") return;
+      if (playOrderPosRef.current !== playOrderRef.current.length - 1) return;
+      if (autoplayFetchedForRef.current.has(track.id)) return;
+      autoplayFetchedForRef.current.add(track.id);
+
+      const excludeIds = queueRef.current.map((t) => t.id);
+      getAutoplayQueueAction(track.id, excludeIds)
+        .then((tracks) => {
+          if (tracks.length > 0) addToQueue(tracks);
+        })
+        .catch(() => {
+          // Silencieux : la lecture automatique est un agrément, pas une
+          // fonctionnalité critique — une erreur réseau ne doit rien casser.
+        });
+    },
+    [addToQueue],
+  );
+
   /** Joue `track` (SoundCloud) : crée un nouvel iframe + une nouvelle instance
-   * SC.Widget à chaque appel (voir le commentaire sur scContainerRef plus haut).
-   * Les écouteurs d'événements sont liés une seule fois par piste, à la
-   * création de son widget : ils lisent queueRef/queueIndexRef au moment où ils
-   * se déclenchent (jamais une closure figée), exactement comme "ended" sur
-   * <audio> ci-dessous. */
+   * SC.Widget à chaque piste — `widget.load()` réutilisant le même widget est
+   * pourtant la méthode documentée par SoundCloud, mais s'est montrée peu
+   * fiable pour relancer l'autoplay. Recréer l'iframe reproduit à l'identique
+   * le chemin de la toute première lecture, toujours fiable. */
   const loadSoundCloudTrack = useCallback((track: Track) => {
     setPlayerError(null);
     const container = scContainerRef.current;
@@ -215,8 +356,6 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     scIframeRef.current = iframe;
 
     loadSoundcloudApi().then(() => {
-      // Une piste plus récente a déjà remplacé cet iframe pendant le chargement
-      // du script — ignore ce widget devenu obsolète plutôt que de le lier.
       if (!window.SC || scIframeRef.current !== iframe) return;
 
       const widget = window.SC.Widget(iframe);
@@ -230,13 +369,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         if (e) setCurrentTime(e.currentPosition / 1000);
       });
       widget.bind(window.SC.Widget.Events.FINISH, () => {
-        if (queueRef.current[queueIndexRef.current]?.source !== "soundcloud") return;
-        const nextIndex = queueIndexRef.current + 1;
-        if (nextIndex < queueRef.current.length) loadAndPlayRef.current(nextIndex);
-        else {
-          setIsPlaying(false);
-          isPlayingRef.current = false;
-        }
+        if (queueRef.current[playOrderRef.current[playOrderPosRef.current]]?.source !== "soundcloud") return;
+        handleTrackEndedRef.current();
       });
       widget.bind(window.SC.Widget.Events.ERROR, () => {
         setPlayerError("Ce morceau SoundCloud est indisponible (privé, supprimé ou restreint dans votre région).");
@@ -246,32 +380,81 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     });
   }, []);
 
-  /** Toujours à jour vers la dernière version de `loadAndPlay` — nécessaire car les
-   * écouteurs du widget SoundCloud ne sont liés qu'une fois (voir plus haut) et ne
-   * doivent jamais appeler une closure figée d'une version antérieure. */
-  const loadAndPlayRef = useRef<(index: number) => void>(() => {});
+  /** Crée (une seule fois) l'instance YT.Player persistante, ou la retourne si
+   * déjà créée/en cours de création. Conteneur caché en `left:-9999px` (pas
+   * `display:none` — un lecteur YouTube peut se dégrader silencieusement si
+   * son conteneur est display:none), même convention que le conteneur
+   * SoundCloud ci-dessus. */
+  const ensureYoutubePlayer = useCallback((initialVideoId: string): Promise<YTPlayerInstance> => {
+    if (ytPlayerPromiseRef.current) return ytPlayerPromiseRef.current;
+    ytPlayerPromiseRef.current = loadYoutubeIframeApi().then(
+      () =>
+        new Promise<YTPlayerInstance>((resolve) => {
+          const container = ytContainerRef.current;
+          if (!container || !window.YT) throw new Error("Conteneur YouTube indisponible");
+          const mountPoint = document.createElement("div");
+          container.appendChild(mountPoint);
+          const player = new window.YT.Player(mountPoint, {
+            videoId: initialVideoId,
+            host: "https://www.youtube-nocookie.com",
+            playerVars: { autoplay: 1, controls: 0, disablekb: 1, modestbranding: 1, playsinline: 1 },
+            events: {
+              onReady: () => {
+                ytPlayerRef.current = player;
+                resolve(player);
+              },
+              onStateChange: (e) => {
+                if (e.data === 0) handleTrackEndedRef.current();
+              },
+              onError: (e) => {
+                if (EMBED_RESTRICTED_ERROR_CODES.has(e.data)) {
+                  setPlayerError("Cette vidéo n'est plus disponible ici — passage à la suivante.");
+                  handleTrackEndedRef.current({ isError: true });
+                }
+              },
+            },
+          });
+        }),
+    );
+    return ytPlayerPromiseRef.current;
+  }, []);
 
-  /** Lance la piste à `index` — c'est le seul chemin par lequel une piste démarre,
-   * que ce soit un clic utilisateur, l'enchaînement automatique ou une action de
-   * l'écran verrouillé. Pour un fichier direct déjà préchargé sur l'élément inactif
-   * (cas normal de l'enchaînement automatique), on bascule simplement dessus au lieu
-   * de charger une nouvelle URL — donc sans requête réseau lancée en arrière-plan.
-   * Pour SoundCloud, délègue à loadSoundCloudTrack (widget partagé, voir ci-dessus). */
+  /** Lance la piste à `index` (indice dans `queueRef.current`, pas dans
+   * `playOrder`) — c'est le seul chemin par lequel une piste démarre, que ce
+   * soit un clic utilisateur, l'enchaînement automatique ou une action de
+   * l'écran verrouillé. L'appelant (playTrack/next/previous/handleTrackEnded)
+   * est responsable de positionner `playOrderPos` avant d'appeler cette
+   * fonction — elle ne fait que charger/jouer. */
   const loadAndPlay = useCallback(
     (index: number) => {
       const list = queueRef.current;
       const track = list[index];
       if (!track) return;
 
-      queueIndexRef.current = index;
       setPlayerError(null);
       setCurrentTime(0);
+      setDuration(0);
 
       if (track.source === "soundcloud") {
         audioElsRef.current[activeIdxRef.current]?.pause();
+        if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
         loadSoundCloudTrack(track);
+      } else if (track.source === "youtube") {
+        audioElsRef.current[activeIdxRef.current]?.pause();
+        scWidgetRef.current?.pause();
+        const videoId = track.audioUrl;
+        if (!videoId) {
+          setIsPlaying(false);
+          isPlayingRef.current = false;
+        } else if (ytPlayerRef.current) {
+          ytPlayerRef.current.loadVideoById(videoId);
+          ytPlayerRef.current.setVolume(volume * 100);
+        } else {
+          ensureYoutubePlayer(videoId).then((player) => player.setVolume(volume * 100));
+        }
       } else {
         scWidgetRef.current?.pause();
+        if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo();
 
         const idleIdx = activeIdxRef.current === 0 ? 1 : 0;
         let audio: HTMLAudioElement | null;
@@ -291,17 +474,19 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       }
 
       setMediaSessionState(track, true);
-      setQueueIndex(index);
       setIsPlaying(true);
       isPlayingRef.current = true;
+      recordHistory({ type: "song", id: track.slug });
 
-      // Précharge la prochaine piste fichier même si celle en cours est du
-      // SoundCloud (les deux éléments <audio> sont silencieux tant qu'on ne les
-      // active pas) — seule une piste SoundCloud à venir n'a rien à précharger.
-      const upcoming = list[index + 1];
-      if (upcoming && upcoming.source !== "soundcloud") preloadOnIdle(upcoming);
+      // Précharge la prochaine piste fichier direct de la file (aucun
+      // équivalent utile pour SoundCloud/YouTube — un seul lecteur à la fois).
+      const nextIndex = playOrderRef.current[playOrderPosRef.current + 1];
+      const upcoming = nextIndex !== undefined ? list[nextIndex] : undefined;
+      if (upcoming) preloadOnIdle(upcoming);
+
+      maybeFetchAutoplay(track);
     },
-    [setMediaSessionState, preloadOnIdle, loadSoundCloudTrack],
+    [setMediaSessionState, preloadOnIdle, loadSoundCloudTrack, ensureYoutubePlayer, maybeFetchAutoplay, volume],
   );
 
   useEffect(() => {
@@ -312,19 +497,29 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     (track: Track, newQueue?: Track[]) => {
       const list = newQueue && newQueue.length > 0 ? newQueue : [track];
       const idx = list.findIndex((t) => t.id === track.id);
+      const startIdx = idx >= 0 ? idx : 0;
+      const order = list.map((_, i) => i);
+
       queueRef.current = list;
+      playOrderRef.current = order;
+      playOrderPosRef.current = startIdx;
       setQueue(list);
-      loadAndPlay(idx >= 0 ? idx : 0);
-      recordHistory({ type: "song", id: track.slug });
+      setPlayOrder(order);
+      setPlayOrderPos(startIdx);
+      setShuffle(false);
+
+      loadAndPlay(startIdx);
     },
     [loadAndPlay],
   );
 
   const play = useCallback(() => {
-    const track = queueRef.current[queueIndexRef.current];
+    const track = queueRef.current[playOrderRef.current[playOrderPosRef.current]];
     if (!track) return;
     if (track.source === "soundcloud") {
       scWidgetRef.current?.play();
+    } else if (track.source === "youtube") {
+      ytPlayerRef.current?.playVideo();
     } else {
       const audio = audioElsRef.current[activeIdxRef.current];
       if (!audio) return;
@@ -336,9 +531,11 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, [setMediaSessionState]);
 
   const pause = useCallback(() => {
-    const track = queueRef.current[queueIndexRef.current];
+    const track = queueRef.current[playOrderRef.current[playOrderPosRef.current]];
     if (track?.source === "soundcloud") {
       scWidgetRef.current?.pause();
+    } else if (track?.source === "youtube") {
+      ytPlayerRef.current?.pauseVideo();
     } else {
       audioElsRef.current[activeIdxRef.current]?.pause();
     }
@@ -348,33 +545,63 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   }, [setMediaSessionState]);
 
   const togglePlay = useCallback(() => {
-    if (!queueRef.current[queueIndexRef.current]) return;
+    if (!queueRef.current[playOrderRef.current[playOrderPosRef.current]]) return;
     if (isPlayingRef.current) pause();
     else play();
   }, [play, pause]);
 
   const next = useCallback(() => {
-    const nextIndex = queueIndexRef.current + 1;
-    if (nextIndex < queueRef.current.length) loadAndPlay(nextIndex);
+    const newPos = playOrderPosRef.current + 1;
+    if (newPos < playOrderRef.current.length) {
+      playOrderPosRef.current = newPos;
+      setPlayOrderPos(newPos);
+      loadAndPlay(playOrderRef.current[newPos]);
+    }
   }, [loadAndPlay]);
 
   const previous = useCallback(() => {
-    const track = queueRef.current[queueIndexRef.current];
-    if (track?.source !== "soundcloud") {
+    const track = queueRef.current[playOrderRef.current[playOrderPosRef.current]];
+    if (track?.source !== "soundcloud" && track?.source !== "youtube") {
       const audio = audioElsRef.current[activeIdxRef.current];
       if (audio && audio.currentTime > 3) {
         audio.currentTime = 0;
         return;
       }
+    } else if (track?.source === "youtube" && ytPlayerRef.current && ytPlayerRef.current.getCurrentTime() > 3) {
+      ytPlayerRef.current.seekTo(0, true);
+      return;
     }
-    const prevIndex = queueIndexRef.current - 1;
-    if (prevIndex >= 0) loadAndPlay(prevIndex);
+    const newPos = playOrderPosRef.current - 1;
+    if (newPos >= 0) {
+      playOrderPosRef.current = newPos;
+      setPlayOrderPos(newPos);
+      loadAndPlay(playOrderRef.current[newPos]);
+    }
   }, [loadAndPlay]);
 
+  /** Saute directement à `track` — utilisé par le panneau "À suivre" pour un
+   * clic sur un élément de la file (déjà présente dans `queue`, quelle que
+   * soit sa position dans `playOrder`). */
+  const playFromQueue = useCallback(
+    (track: Track) => {
+      const queueIdx = queueRef.current.findIndex((t) => t.id === track.id);
+      if (queueIdx === -1) return;
+      const pos = playOrderRef.current.indexOf(queueIdx);
+      if (pos === -1) return;
+      playOrderPosRef.current = pos;
+      setPlayOrderPos(pos);
+      loadAndPlay(queueIdx);
+    },
+    [loadAndPlay],
+  );
+
   const seek = useCallback((time: number) => {
-    const track = queueRef.current[queueIndexRef.current];
+    const track = queueRef.current[playOrderRef.current[playOrderPosRef.current]];
     if (track?.source === "soundcloud") {
       scWidgetRef.current?.seekTo(Math.max(0, time) * 1000);
+      setCurrentTime(time);
+    } else if (track?.source === "youtube") {
+      ytPlayerRef.current?.seekTo(Math.max(0, time), true);
       setCurrentTime(time);
     } else {
       const audio = audioElsRef.current[activeIdxRef.current];
@@ -382,13 +609,13 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  const changeVolume = useCallback((v: number) => {
-    setVolume(v);
+  const setVolume = useCallback((v: number) => {
+    setVolumeState(v);
     if (v > 0) setPreviousVolume(v);
   }, []);
 
   const toggleMute = useCallback(() => {
-    setVolume((v) => (v > 0 ? 0 : previousVolume || 0.8));
+    setVolumeState((v) => (v > 0 ? 0 : previousVolume || 0.8));
   }, [previousVolume]);
 
   useEffect(() => {
@@ -396,14 +623,67 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       if (audio) audio.volume = volume;
     });
     scWidgetRef.current?.setVolume(volume * 100);
+    ytPlayerRef.current?.setVolume(volume * 100);
+    if (ytPlayerRef.current) {
+      if (volume <= 0) ytPlayerRef.current.mute();
+      else ytPlayerRef.current.unMute();
+    }
   }, [volume]);
 
-  // Écouteurs attachés une seule fois aux DEUX éléments (jamais réattachés) :
-  // seul l'élément actif au moment de l'événement doit affecter l'état — celui en
-  // préchargement ne joue jamais (juste `.load()`), mais peut tout de même émettre
-  // "loadedmetadata". "onEnded" lit queueRef/queueIndexRef au moment où il se
-  // déclenche, jamais une closure figée, et enchaîne via loadAndPlay — donc même
-  // écran verrouillé, sans attendre de re-render React.
+  const toggleShuffle = useCallback(() => {
+    setShuffle((current) => {
+      const next = !current;
+      if (next) {
+        setPlayOrder((order) => shuffleFrom(order, playOrderPosRef.current));
+      } else {
+        // Reconstruit l'ordre naturel, en repositionnant playOrderPos sur la
+        // piste actuellement en cours (reprise "depuis maintenant").
+        const currentQueueIdx = playOrderRef.current[playOrderPosRef.current];
+        const naturalOrder = queueRef.current.map((_, i) => i);
+        setPlayOrder(naturalOrder);
+        setPlayOrderPos(currentQueueIdx ?? 0);
+      }
+      return next;
+    });
+  }, []);
+
+  const cycleRepeatMode = useCallback(() => {
+    setRepeatMode((m) => (m === "off" ? "all" : m === "all" ? "one" : "off"));
+  }, []);
+
+  const toggleAutoplay = useCallback(() => {
+    setAutoplay((a) => !a);
+  }, []);
+
+  const expand = useCallback(() => setIsExpanded(true), []);
+  const collapse = useCallback(() => setIsExpanded(false), []);
+  const toggleExpanded = useCallback(() => setIsExpanded((e) => !e), []);
+
+  // Sondage de la position/durée pour les pistes YouTube — l'API IFrame n'émet
+  // aucun événement "timeupdate" natif contrairement à <audio>.
+  useEffect(() => {
+    if (ytPollRef.current) {
+      clearInterval(ytPollRef.current);
+      ytPollRef.current = null;
+    }
+    if (currentTrack?.source !== "youtube" || !isPlaying) return;
+    ytPollRef.current = setInterval(() => {
+      const player = ytPlayerRef.current;
+      if (!player) return;
+      setCurrentTime(player.getCurrentTime());
+      const d = player.getDuration();
+      if (d > 0) setDuration(d);
+    }, 250);
+    return () => {
+      if (ytPollRef.current) clearInterval(ytPollRef.current);
+    };
+  }, [currentTrack?.source, currentTrack?.id, isPlaying]);
+
+  // Écouteurs attachés une seule fois aux DEUX éléments <audio> (jamais
+  // réattachés) : seul l'élément actif au moment de l'événement doit affecter
+  // l'état. "onEnded" lit les refs au moment où il se déclenche, jamais une
+  // closure figée, et enchaîne via handleTrackEndedRef — donc même écran
+  // verrouillé, sans attendre de re-render React.
   useEffect(() => {
     const cleanups: (() => void)[] = [];
     audioElsRef.current.forEach((audio) => {
@@ -417,12 +697,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       };
       const onEnded = () => {
         if (!isActive()) return;
-        const nextIndex = queueIndexRef.current + 1;
-        if (nextIndex < queueRef.current.length) {
-          loadAndPlay(nextIndex);
-        } else {
-          setIsPlaying(false);
-        }
+        handleTrackEndedRef.current();
       };
       audio.addEventListener("timeupdate", onTime);
       audio.addEventListener("loadedmetadata", onLoaded);
@@ -434,7 +709,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       });
     });
     return () => cleanups.forEach((fn) => fn());
-  }, [loadAndPlay]);
+  }, []);
 
   // Media Session : contrôles sur l'écran verrouillé / notification système
   // (Android, PWA installée, et centre de contrôle iOS). Les métadonnées et le
@@ -489,8 +764,51 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [currentTime, duration]);
 
+  const contextValue = useMemo<AudioPlayerContextValue>(
+    () => ({
+      playTrack,
+      togglePlay,
+      play,
+      pause,
+      next,
+      previous,
+      seek,
+      currentTrack,
+      isPlaying,
+      currentTime,
+      duration,
+      playerError,
+      queue,
+      queueIndex,
+      upcomingQueue,
+      playFromQueue,
+      volume,
+      setVolume,
+      toggleMute,
+      shuffle,
+      toggleShuffle,
+      repeatMode,
+      cycleRepeatMode,
+      autoplay,
+      toggleAutoplay,
+      addToQueue,
+      isExpanded,
+      expand,
+      collapse,
+      toggleExpanded,
+    }),
+    [
+      playTrack, togglePlay, play, pause, next, previous, seek,
+      currentTrack, isPlaying, currentTime, duration, playerError,
+      queue, queueIndex, upcomingQueue, playFromQueue, volume, setVolume, toggleMute,
+      shuffle, toggleShuffle, repeatMode, cycleRepeatMode,
+      autoplay, toggleAutoplay, addToQueue,
+      isExpanded, expand, collapse, toggleExpanded,
+    ],
+  );
+
   return (
-    <AudioPlayerContext.Provider value={{ playTrack, togglePlay, currentTrack, isPlaying }}>
+    <AudioPlayerContext.Provider value={contextValue}>
       {children}
       {/* Toujours montés (même sans piste) pour ne jamais perdre l'état de lecture
           entre deux navigations de page côté client. Pas de prop `src` déclarative :
@@ -499,154 +817,14 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
           valeur identique), ce qui relance le chargement et coupe la lecture en cours. */}
       <audio ref={setAudioEl0} />
       <audio ref={setAudioEl1} />
-      {/* Conteneur pour l'iframe SoundCloud, recréé à chaque piste — jamais géré
-          par React lui-même (voir loadSoundCloudTrack) : l'audio doit continuer
-          à streamer depuis SoundCloud, seule l'apparence de leur lecteur est
-          masquée au profit du lecteur flottant ci-dessous, piloté via le
-          widget JS. */}
+      {/* Conteneurs SoundCloud/YouTube, jamais gérés par React lui-même (voir
+          loadSoundCloudTrack/ensureYoutubePlayer) : l'audio doit continuer à
+          streamer, seule l'apparence de leur lecteur est masquée au profit du
+          lecteur flottant/panneau ci-dessous, piloté via leurs API JS. */}
       <div ref={scContainerRef} aria-hidden="true" className="fixed left-[-9999px] top-[-9999px]" />
-      {currentTrack && <div className="h-[72px]" aria-hidden />}
-      {currentTrack && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-brand-gold bg-brand-navy shadow-[0_-4px_30px_rgba(0,0,0,0.3)]">
-          {playerError && (
-            <div className="flex items-center gap-2 border-b border-white/10 bg-red-500/10 px-4 py-1.5 font-body text-[12px] text-red-200 sm:px-6">
-              <AlertTriangle size={13} className="shrink-0" />
-              <span className="truncate">{playerError}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-3 px-4 py-2.5 sm:gap-5 sm:px-6">
-          <Link
-            href={currentTrack.href ?? `/chansons/${currentTrack.slug}`}
-            className="relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-brand-blue to-brand-gold"
-          >
-            <Image src={currentTrack.imageUrl} alt={currentTrack.title} fill unoptimized className="object-cover" sizes="46px" />
-          </Link>
-
-          <div className="min-w-0 flex-1 sm:w-40 sm:flex-none">
-            <p className="truncate font-body text-[13px] font-semibold text-white">{currentTrack.title}</p>
-            {currentTrack.artistSlug ? (
-              <Link
-                href={`/artistes/${currentTrack.artistSlug}`}
-                className="block truncate text-[11px] text-brand-gray hover:text-brand-gold"
-              >
-                {currentTrack.artistName}
-              </Link>
-            ) : (
-              <span className="block truncate text-[11px] text-brand-gray">{currentTrack.artistName}</span>
-            )}
-          </div>
-
-          <div className="hidden items-center gap-3.5 sm:flex">
-            <button
-              type="button"
-              onClick={previous}
-              disabled={queueIndex === 0}
-              aria-label="Piste précédente"
-              className="rounded-full p-1.5 text-brand-gray transition hover:bg-white/10 hover:text-white disabled:opacity-30"
-            >
-              <SkipBack size={16} fill="currentColor" />
-            </button>
-            <button
-              type="button"
-              onClick={togglePlay}
-              aria-label={isPlaying ? "Mettre en pause" : "Lire"}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold text-brand-navy transition hover:scale-105 hover:bg-brand-gold-light"
-            >
-              {isPlaying ? (
-                <Pause size={16} fill="currentColor" />
-              ) : (
-                <Play size={16} fill="currentColor" className="ml-0.5" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={next}
-              disabled={queueIndex + 1 >= queue.length}
-              aria-label="Piste suivante"
-              className="rounded-full p-1.5 text-brand-gray transition hover:bg-white/10 hover:text-white disabled:opacity-30"
-            >
-              <SkipForward size={16} fill="currentColor" />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={togglePlay}
-            aria-label={isPlaying ? "Mettre en pause" : "Lire"}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gold text-brand-navy sm:hidden"
-          >
-            {isPlaying ? (
-              <Pause size={14} fill="currentColor" />
-            ) : (
-              <Play size={14} fill="currentColor" className="ml-0.5" />
-            )}
-          </button>
-
-          <div className="hidden flex-[2] items-center gap-2.5 md:flex">
-            <span className="w-9 shrink-0 text-right font-body text-[11px] text-brand-gray">
-              {formatTime(currentTime)}
-            </span>
-            <ProgressBar current={currentTime} duration={duration} onSeek={seek} />
-            <span className="w-9 shrink-0 font-body text-[11px] text-brand-gray">{formatTime(duration)}</span>
-          </div>
-
-          <div className="hidden items-center gap-2 lg:flex">
-            <button
-              type="button"
-              onClick={toggleMute}
-              aria-label={volume > 0 ? "Couper le son" : "Rétablir le son"}
-              className="text-brand-gray transition hover:text-white"
-            >
-              {volume > 0 ? <Volume2 size={15} /> : <VolumeX size={15} />}
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => changeVolume(Number(e.target.value))}
-              aria-label="Volume"
-              className="h-1 w-[70px] cursor-pointer accent-brand-blue-bright"
-            />
-          </div>
-          </div>
-        </div>
-      )}
+      <div ref={ytContainerRef} aria-hidden="true" className="fixed left-[-9999px] top-[-9999px] h-[1px] w-[1px] overflow-hidden" />
+      <NowPlayingBar />
+      <NowPlayingOverlay />
     </AudioPlayerContext.Provider>
-  );
-}
-
-function ProgressBar({
-  current,
-  duration,
-  onSeek,
-}: {
-  current: number;
-  duration: number;
-  onSeek: (time: number) => void;
-}) {
-  const pct = duration > 0 ? (current / duration) * 100 : 0;
-  return (
-    <div
-      role="slider"
-      aria-label="Progression"
-      aria-valuemin={0}
-      aria-valuemax={Math.round(duration)}
-      aria-valuenow={Math.round(current)}
-      className="relative h-1 flex-1 cursor-pointer rounded-full bg-white/15"
-      onClick={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const ratio = (e.clientX - rect.left) / rect.width;
-        onSeek(Math.max(0, Math.min(1, ratio)) * duration);
-      }}
-    >
-      <div
-        className="relative h-full rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-light"
-        style={{ width: `${pct}%` }}
-      >
-        <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-white shadow-[0_0_6px_rgba(232,160,32,0.6)]" />
-      </div>
-    </div>
   );
 }

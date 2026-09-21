@@ -5,7 +5,7 @@ import type { Article, Artist, Category, Song } from "@prisma/client";
 import { formatDateShort } from "@/lib/utils";
 import { NewsletterForm } from "@/components/shared/newsletter-form";
 import { TopSongRow } from "@/components/songs/top-song-row";
-import { songTrackAudioFields } from "@/lib/validations/songs";
+import { songToTrack } from "@/lib/validations/songs";
 
 function WidgetCard({
   title,
@@ -78,19 +78,7 @@ export function SongSidebar({
         <WidgetCard title="Top musiques" icon={Trophy}>
           <div className="flex flex-col">
             {topSongs.map((song, i) => (
-              <TopSongRow
-                key={song.id}
-                rank={i + 1}
-                track={{
-                  id: song.id,
-                  slug: song.slug,
-                  title: song.title,
-                  artistName: song.artist.name,
-                  artistSlug: song.artist.slug,
-                  imageUrl: song.imageUrl,
-                  ...songTrackAudioFields(song.sourceType, song.audioUrl),
-                }}
-              />
+              <TopSongRow key={song.id} rank={i + 1} track={songToTrack(song)} />
             ))}
           </div>
         </WidgetCard>

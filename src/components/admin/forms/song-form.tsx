@@ -3,15 +3,9 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Loader2, Sparkles } from "lucide-react";
+import { ImageDown, Loader2, Sparkles } from "lucide-react";
 import type { Artist, Category, Song, Tag } from "@prisma/client";
-import {
-  SONG_SOURCE_TYPES,
-  SONG_SOURCE_TYPE_LABELS,
-  SONG_SOURCE_FIELD_CONFIG,
-  songSchema,
-  type SongInput,
-} from "@/lib/validations/songs";
+import { songSchema, type SongInput } from "@/lib/validations/songs";
 import { createSong, updateSong } from "@/lib/actions/songs";
 import { useSlugSync } from "@/lib/admin/use-slug-sync";
 import { generateSongDescriptionAction } from "@/lib/actions/ai";
@@ -31,7 +25,7 @@ import { TagPicker } from "@/components/admin/tag-picker";
 import { PublishedAtField } from "@/components/admin/published-at-field";
 import { SubmitButton, CancelLink } from "@/components/admin/submit-button";
 import { YoutubeEmbedCheck } from "@/components/admin/youtube-embed-check";
-import { dateToUrlSlug } from "@/lib/utils";
+import { dateToUrlSlug, getYoutubeThumbnail } from "@/lib/utils";
 
 type SongWithRelations = Song & { tags: Tag[] };
 
@@ -66,8 +60,6 @@ export function SongForm({
           description: song.description ?? "",
           lyrics: song.lyrics ?? "",
           imageUrl: song.imageUrl,
-          sourceType: song.sourceType,
-          audioUrl: song.audioUrl ?? "",
           youtubeUrl: song.youtubeUrl ?? "",
           artistId: song.artistId,
           categoryId: song.categoryId ?? "",
@@ -79,7 +71,6 @@ export function SongForm({
           published: song.published,
         }
       : {
-          sourceType: "FICHIER_DIRECT",
           published: true,
           tagIds: [],
           publishedAt: dateToUrlSlug(new Date()),
@@ -91,8 +82,19 @@ export function SongForm({
   const titleValue = watch("title");
   const artistIdValue = watch("artistId");
   const youtubeUrlValue = watch("youtubeUrl");
-  const sourceTypeValue = watch("sourceType") ?? "FICHIER_DIRECT";
-  const audioFieldConfig = SONG_SOURCE_FIELD_CONFIG[sourceTypeValue] ?? SONG_SOURCE_FIELD_CONFIG.FICHIER_DIRECT;
+
+  // Remonte ImageUrlField (input non contrôlé, synchronisé seulement via
+  // defaultValue) quand on lui pousse la miniature YouTube depuis l'extérieur.
+  const [imageUrlKey, setImageUrlKey] = useState(0);
+  const [imageUrlOverride, setImageUrlOverride] = useState<string | undefined>(undefined);
+  const youtubeThumbnail = getYoutubeThumbnail(youtubeUrlValue ?? "");
+
+  function handleUseYoutubeThumbnail() {
+    if (!youtubeThumbnail) return;
+    setValue("imageUrl", youtubeThumbnail, { shouldDirty: true, shouldValidate: true });
+    setImageUrlOverride(youtubeThumbnail);
+    setImageUrlKey((k) => k + 1);
+  }
 
   function handleGenerateDescription() {
     const artistName = artists.find((a) => a.id === artistIdValue)?.name;
@@ -182,48 +184,37 @@ export function SongForm({
       </FormRow>
 
       <FormRow>
-        <FieldLabel htmlFor="imageUrl" required>Image de couverture (URL)</FieldLabel>
-        <ImageUrlField register={register("imageUrl")} defaultValue={song?.imageUrl} />
-        <FieldError error={errors.imageUrl} />
+        <FieldLabel htmlFor="youtubeUrl" required>Vidéo YouTube</FieldLabel>
+        <input id="youtubeUrl" className={inputClass} placeholder="https://youtube.com/watch?v=…" {...register("youtubeUrl")} />
+        <FieldError error={errors.youtubeUrl} />
+        <YoutubeEmbedCheck url={youtubeUrlValue ?? ""} />
+        <p className="mt-1 text-xs text-muted">
+          Source de lecture unique de la chanson — YouTube héberge la vidéo, le site ne fait
+          qu&apos;orchestrer la lecture (audio uniquement dans l&apos;interface du site).
+        </p>
       </FormRow>
 
       <FormRow>
-        <FieldLabel htmlFor="sourceType" required>Source audio</FieldLabel>
-        <select id="sourceType" className={selectClass} {...register("sourceType")}>
-          {SONG_SOURCE_TYPES.map((t) => (
-            <option key={t} value={t}>{SONG_SOURCE_TYPE_LABELS[t]}</option>
-          ))}
-        </select>
-        {sourceTypeValue === "FICHIER_DIRECT" && (
-          <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            <AlertCircle size={14} className="mt-0.5 shrink-0" />
-            ⚠️ Cette option nécessite d&apos;avoir obtenu l&apos;autorisation explicite de l&apos;artiste
-            pour héberger sa chanson directement. Privilégiez SoundCloud/Audiomack/YouTube Music
-            quand c&apos;est possible : l&apos;artiste y a déjà consenti à la diffusion en publiant
-            lui-même.
-          </p>
-        )}
+        <div className="mb-1.5 flex items-center justify-between">
+          <FieldLabel htmlFor="imageUrl" required>Image de couverture (URL)</FieldLabel>
+          {youtubeThumbnail && (
+            <button
+              type="button"
+              onClick={handleUseYoutubeThumbnail}
+              className="flex items-center gap-1 text-xs font-medium text-gold transition hover:text-gold-soft"
+            >
+              <ImageDown size={12} />
+              Utiliser la miniature YouTube
+            </button>
+          )}
+        </div>
+        <ImageUrlField
+          key={imageUrlKey}
+          register={register("imageUrl")}
+          defaultValue={imageUrlOverride ?? song?.imageUrl}
+        />
+        <FieldError error={errors.imageUrl} />
       </FormRow>
-
-      <FormGrid>
-        <FormRow>
-          <FieldLabel htmlFor="audioUrl">{audioFieldConfig.label}</FieldLabel>
-          <input
-            id="audioUrl"
-            className={inputClass}
-            placeholder={audioFieldConfig.placeholder}
-            {...register("audioUrl")}
-          />
-          <FieldError error={errors.audioUrl} />
-          {audioFieldConfig.help && <p className="mt-1 text-xs text-muted">{audioFieldConfig.help}</p>}
-        </FormRow>
-        <FormRow>
-          <FieldLabel htmlFor="youtubeUrl">Vidéo YouTube (URL)</FieldLabel>
-          <input id="youtubeUrl" className={inputClass} placeholder="https://youtube.com/…" {...register("youtubeUrl")} />
-          <FieldError error={errors.youtubeUrl} />
-          <YoutubeEmbedCheck url={youtubeUrlValue ?? ""} />
-        </FormRow>
-      </FormGrid>
 
       <FormRow>
         <FieldLabel htmlFor="tags">Tags</FieldLabel>

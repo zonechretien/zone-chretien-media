@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, PenLine, Tag as TagIcon, LayoutGrid, Music2 } from "lucide-react";
+import { ChevronRight, PenLine, Tag as TagIcon, LayoutGrid } from "lucide-react";
 import { YoutubeIcon } from "@/components/icons/social-icons";
 import { getSimilarSongs, getSongBySlug, getTopSongs } from "@/lib/queries/songs";
 import { getLatestArticles } from "@/lib/queries/articles";
@@ -9,7 +9,6 @@ import { getPopularArtists } from "@/lib/queries/artists";
 import { trackView } from "@/lib/queries/shared";
 import { formatDate } from "@/lib/utils";
 import { YoutubeEmbed } from "@/components/shared/youtube-embed";
-import { AudiomackEmbed } from "@/components/shared/audiomack-embed";
 import { ShareButtons } from "@/components/shared/share-buttons";
 import { ReportContentLink } from "@/components/shared/report-content-link";
 import { SongCard } from "@/components/cards/song-card";
@@ -21,7 +20,7 @@ import { SongLyrics } from "@/components/songs/song-lyrics";
 import { SongArtistCard } from "@/components/songs/song-artist-card";
 import { SectionLabel } from "@/components/songs/section-label";
 import { SongSidebar } from "@/components/songs/song-sidebar";
-import { songTrackAudioFields } from "@/lib/validations/songs";
+import { songToTrack } from "@/lib/validations/songs";
 import { HistoryRecorder } from "@/components/shared/history-recorder";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -93,16 +92,7 @@ export default async function SongPage({ params }: Props) {
 
       <SongHero
         data={{
-          track: {
-            id: song.id,
-            slug: song.slug,
-            title: song.title,
-            artistName: song.artist.name,
-            artistSlug: song.artist.slug,
-            imageUrl: song.imageUrl,
-            ...songTrackAudioFields(song.sourceType, song.audioUrl),
-          },
-          sourceType: song.sourceType,
+          track: songToTrack(song),
           categoryName: song.category?.name ?? null,
           featured: song.featured,
           dateLabel: formatDate(song.publishedAt ?? song.createdAt),
@@ -110,7 +100,6 @@ export default async function SongPage({ params }: Props) {
           readingMinutes,
           excerpt,
           hasLyrics: !!song.lyrics,
-          hasVideo: !!song.youtubeUrl,
         }}
       />
 
@@ -132,18 +121,6 @@ export default async function SongPage({ params }: Props) {
 
       <div className="mx-auto max-w-7xl px-4 py-9 sm:px-6 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-9 lg:px-8">
       <div className="min-w-0">
-        {song.sourceType === "AUDIOMACK" && song.audioUrl && (
-          <div id="ecouter" className="mb-7 scroll-mt-24 overflow-hidden rounded-2xl bg-brand-white shadow-brand-sm">
-            <div className="flex items-center gap-2.5 border-b border-brand-gray-light px-5 py-4">
-              <Music2 size={20} className="text-brand-gold" />
-              <h3 className="font-body text-[15px] font-semibold text-brand-text">Écouter</h3>
-            </div>
-            <div className="p-4 sm:p-5">
-              <AudiomackEmbed url={song.audioUrl} title={song.title} />
-            </div>
-          </div>
-        )}
-
         {song.youtubeUrl && (
           <div id="video" className="mb-7 scroll-mt-24 overflow-hidden rounded-2xl bg-brand-white shadow-brand-sm">
             <div className="flex items-center gap-2.5 border-b border-brand-gray-light px-5 py-4">

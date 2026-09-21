@@ -5,23 +5,11 @@ import Link from "next/link";
 import { Play, Eye } from "lucide-react";
 import type { Artist, Category, Song } from "@prisma/client";
 import { formatDateShort, formatViews } from "@/lib/utils";
-import { useAudioPlayer, type Track } from "@/components/shared/audio-player-provider";
-import { songTrackAudioFields } from "@/lib/validations/songs";
+import { useAudioPlayer } from "@/components/shared/audio-player-provider";
+import { songToTrack } from "@/lib/validations/songs";
 import { FavoriteButton } from "@/components/shared/favorite-button";
 
 type SongWithRelations = Song & { artist: Artist; category: Category | null };
-
-function toTrack(song: SongWithRelations): Track {
-  return {
-    id: song.id,
-    slug: song.slug,
-    title: song.title,
-    artistName: song.artist.name,
-    artistSlug: song.artist.slug,
-    imageUrl: song.imageUrl,
-    ...songTrackAudioFields(song.sourceType, song.audioUrl),
-  };
-}
 
 export function SongCard({
   song,
@@ -33,14 +21,14 @@ export function SongCard({
 }) {
   const { playTrack } = useAudioPlayer();
 
-  const isPlayableSource = song.sourceType === "FICHIER_DIRECT" || song.sourceType === "SOUNDCLOUD";
+  const isPlayable = !!song.youtubeUrl;
 
   function handlePlay(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     playTrack(
-      toTrack(song),
-      queue?.filter((s) => s.audioUrl && (s.sourceType === "FICHIER_DIRECT" || s.sourceType === "SOUNDCLOUD")).map(toTrack),
+      songToTrack(song),
+      queue?.filter((s) => s.youtubeUrl).map(songToTrack),
     );
   }
 
@@ -58,7 +46,7 @@ export function SongCard({
           className="object-cover transition duration-300 group-hover:scale-105"
           sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
         />
-        {song.audioUrl && isPlayableSource && (
+        {isPlayable && (
           <div className="absolute inset-0 flex items-center justify-center bg-navy/0 opacity-0 transition group-hover:bg-navy/40 group-hover:opacity-100">
             <button
               type="button"

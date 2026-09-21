@@ -9,7 +9,7 @@ import { ShareButtons } from "@/components/shared/share-buttons";
 import { JsonLd } from "@/components/shared/json-ld";
 import { absoluteUrl } from "@/lib/seo";
 import type { Track } from "@/components/shared/audio-player-provider";
-import { songTrackAudioFields } from "@/lib/validations/songs";
+import { songToTrack } from "@/lib/validations/songs";
 import { HistoryRecorder } from "@/components/shared/history-recorder";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -47,15 +47,7 @@ export default async function PlaylistPage({ params }: Props) {
   const playlist = await getPlaylistBySlug(slug);
   if (!playlist) notFound();
 
-  const tracks: Track[] = playlist.songs.map((song) => ({
-    id: song.id,
-    slug: song.slug,
-    title: song.title,
-    artistName: song.artist.name,
-    artistSlug: song.artist.slug,
-    imageUrl: song.imageUrl,
-    ...songTrackAudioFields(song.sourceType, song.audioUrl),
-  }));
+  const tracks: Track[] = playlist.songs.map(songToTrack);
 
   return (
     <article>

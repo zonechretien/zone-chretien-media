@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { createPortal } from "react-dom";
 import { AlertTriangle, X } from "lucide-react";
 import { YoutubeIcon } from "@/components/icons/social-icons";
+import { loadYoutubeIframeApi, EMBED_RESTRICTED_ERROR_CODES, type YTPlayerInstance } from "@/lib/youtube-iframe-api";
 
 type VideoModalState = { embedUrl: string; title: string } | null;
 
@@ -22,57 +23,6 @@ function getVideoIdFromEmbedUrl(embedUrl: string): string | null {
   const match = embedUrl.match(/\/embed\/([\w-]{11})/);
   return match?.[1] ?? null;
 }
-
-// --- Chargement paresseux (une seule fois) de l'API IFrame YouTube -----------------------
-type YTPlayerInstance = { destroy: () => void };
-type YTPlayerCtor = new (
-  target: HTMLElement,
-  options: {
-    videoId: string;
-    host?: string;
-    playerVars?: Record<string, number | string>;
-    events?: {
-      onReady?: () => void;
-      onError?: (e: { data: number }) => void;
-    };
-  },
-) => YTPlayerInstance;
-
-declare global {
-  interface Window {
-    YT?: { Player: YTPlayerCtor };
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
-let youtubeApiPromise: Promise<void> | null = null;
-
-function loadYoutubeIframeApi(): Promise<void> {
-  if (youtubeApiPromise) return youtubeApiPromise;
-  youtubeApiPromise = new Promise((resolve) => {
-    if (window.YT?.Player) {
-      resolve();
-      return;
-    }
-    const previous = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      previous?.();
-      resolve();
-    };
-    const script = document.createElement("script");
-    script.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(script);
-  });
-  return youtubeApiPromise;
-}
-
-/**
- * Codes d'erreur du player YouTube indiquant que l'intégration a été désactivée par
- * l'ayant droit (label/Vevo notamment) — cas fréquent qu'on ne peut pas contourner,
- * seulement afficher proprement avec un lien de repli vers YouTube.
- * Voir https://developers.google.com/youtube/iframe_api_reference#onError
- */
-const EMBED_RESTRICTED_ERROR_CODES = new Set([101, 150]);
 
 function YoutubePlayer({
   videoId,

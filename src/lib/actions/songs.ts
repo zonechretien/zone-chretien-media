@@ -5,19 +5,13 @@ import { revalidatePath } from "next/cache";
 import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
-import { slugify, parseDateInput, getAudiomackEmbedUrl, getSoundcloudEmbedUrl } from "@/lib/utils";
+import { slugify, parseDateInput } from "@/lib/utils";
 import { songSchema, type SongInput } from "@/lib/validations/songs";
 
-/** Nettoie l'URL saisie selon la source : SoundCloud/Audiomack acceptent l'URL
- * normale de la page dans le CMS, mais seule l'URL d'intégration fonctionne en
- * iframe côté public — on la convertit une bonne fois à l'enregistrement. */
-function normalizeAudioUrl(sourceType: SongInput["sourceType"], audioUrl: string | undefined): string | null {
-  if (!audioUrl) return null;
-  if (sourceType === "SOUNDCLOUD") return getSoundcloudEmbedUrl(audioUrl) ?? audioUrl;
-  if (sourceType === "AUDIOMACK") return getAudiomackEmbedUrl(audioUrl) ?? audioUrl;
-  return audioUrl;
-}
-
+// `sourceType`/`audioUrl` ne sont plus collectés par le formulaire (YouTube via
+// `youtubeUrl` est l'unique source de lecture) — volontairement omis de l'objet
+// ci-dessous plutôt que mis à `null` : en édition, ça laisse intacte la valeur
+// legacy déjà en base ; en création, le défaut Prisma s'applique sans conséquence.
 function toData(input: SongInput) {
   return {
     title: input.title,
@@ -25,8 +19,6 @@ function toData(input: SongInput) {
     description: input.description || null,
     lyrics: input.lyrics || null,
     imageUrl: input.imageUrl,
-    sourceType: input.sourceType ?? "FICHIER_DIRECT",
-    audioUrl: normalizeAudioUrl(input.sourceType, input.audioUrl),
     youtubeUrl: input.youtubeUrl || null,
     artistId: input.artistId,
     categoryId: input.categoryId || null,

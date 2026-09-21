@@ -1,44 +1,13 @@
 import { z } from "zod";
-import { getSoundcloudEmbedUrl } from "@/lib/utils";
+import { getYoutubeId } from "@/lib/utils";
+import type { Track } from "@/components/shared/audio-player-provider";
 
 const optionalUrl = z.string().url("URL invalide").optional().or(z.literal(""));
 
-export const SONG_SOURCE_TYPES = ["FICHIER_DIRECT", "SOUNDCLOUD", "AUDIOMACK", "YOUTUBE_MUSIC"] as const;
-
-export const SONG_SOURCE_TYPE_LABELS: Record<(typeof SONG_SOURCE_TYPES)[number], string> = {
-  FICHIER_DIRECT: "Fichier direct (hébergé)",
-  SOUNDCLOUD: "SoundCloud",
-  AUDIOMACK: "Audiomack",
-  YOUTUBE_MUSIC: "YouTube Music",
-};
-
-/** Libellé + placeholder du champ "audioUrl" dans le CMS, adaptés à la source
- * choisie — son contenu attendu change entièrement selon le type. */
-export const SONG_SOURCE_FIELD_CONFIG: Record<
-  (typeof SONG_SOURCE_TYPES)[number],
-  { label: string; placeholder: string; help: string | null }
-> = {
-  FICHIER_DIRECT: {
-    label: "Audio (URL du fichier)",
-    placeholder: "https://…",
-    help: null,
-  },
-  SOUNDCLOUD: {
-    label: "URL SoundCloud",
-    placeholder: "https://soundcloud.com/artiste/titre",
-    help: "Collez l'URL normale de la page SoundCloud de la chanson — elle sera automatiquement convertie au format d'intégration.",
-  },
-  AUDIOMACK: {
-    label: "URL Audiomack",
-    placeholder: "https://audiomack.com/song/artiste/titre",
-    help: "Collez l'URL normale de la page Audiomack de la chanson (ex : https://audiomack.com/song/artiste/titre) — elle sera automatiquement convertie au format d'intégration.",
-  },
-  YOUTUBE_MUSIC: {
-    label: "URL YouTube (Music)",
-    placeholder: "https://music.youtube.com/watch?v=…",
-    help: null,
-  },
-};
+// Conservé uniquement pour valider les valeurs legacy de `sourceType` (champ
+// retiré du formulaire, plus jamais collecté — voir songToTrack ci-dessous,
+// qui construit désormais toujours le Track depuis `youtubeUrl`).
+const LEGACY_SOURCE_TYPES = ["FICHIER_DIRECT", "SOUNDCLOUD", "AUDIOMACK", "YOUTUBE_MUSIC"] as const;
 
 export const songSchema = z.object({
   title: z.string().min(2, "Titre requis (2 caractères min.)"),
@@ -46,9 +15,13 @@ export const songSchema = z.object({
   description: z.string().optional().or(z.literal("")),
   lyrics: z.string().optional().or(z.literal("")),
   imageUrl: z.string().url("URL d'image requise et valide"),
-  sourceType: z.enum(SONG_SOURCE_TYPES).optional(),
+  sourceType: z.enum(LEGACY_SOURCE_TYPES).optional(),
   audioUrl: optionalUrl,
-  youtubeUrl: optionalUrl,
+  youtubeUrl: z
+    .string()
+    .min(1, "URL YouTube requise")
+    .url("URL invalide")
+    .refine((u) => getYoutubeId(u) !== null, "Lien YouTube non reconnu (watch/youtu.be attendu)"),
   artistId: z.string().min(1, "Artiste requis"),
   categoryId: z.string().optional().or(z.literal("")),
   tagIds: z.array(z.string()).optional(),
@@ -61,22 +34,35 @@ export const songSchema = z.object({
 
 export type SongInput = z.infer<typeof songSchema>;
 
-/** Détermine, à partir du sourceType d'une chanson, comment construire son
- * `Track` pour le lecteur flottant : FICHIER_DIRECT et SOUNDCLOUD sont lisibles
- * directement (SoundCloud via le widget JS caché, voir audio-player-provider) ;
- * AUDIOMACK (pas d'API de contrôle externe fiable) et YOUTUBE_MUSIC (ouvre la
- * modale vidéo) restent exclus du lecteur flottant. Normalise aussi l'URL
- * SoundCloud au format d'intégration si une chanson plus ancienne a encore
- * l'URL de page normale en base. */
-export function songTrackAudioFields(
-  sourceType: (typeof SONG_SOURCE_TYPES)[number],
-  audioUrl: string | null,
-): { audioUrl: string; playable: boolean; source?: "soundcloud" } {
-  if (sourceType === "SOUNDCLOUD") {
-    return { audioUrl: (audioUrl && (getSoundcloudEmbedUrl(audioUrl) ?? audioUrl)) || "", playable: true, source: "soundcloud" };
-  }
-  if (sourceType === "FICHIER_DIRECT") {
-    return { audioUrl: audioUrl ?? "", playable: true };
-  }
-  return { audioUrl: audioUrl ?? "", playable: false };
+/**
+ * Construit le `Track` public d'une chanson à partir de son `youtubeUrl` —
+ * seule et unique source de lecture désormais (remplace l'ancien
+ * `songTrackAudioFields` basé sur `sourceType`/`audioUrl`, retiré). `audioUrl`
+ * du Track porte l'ID vidéo YouTube (pas l'URL complète) : c'est ce que le
+ * moteur de lecture YouTube de `audio-player-provider.tsx` attend pour
+ * `loadVideoById`.
+ */
+export function songToTrack(song: {
+  id: string;
+  slug: string;
+  title: string;
+  imageUrl: string;
+  youtubeUrl: string | null;
+  lyrics?: string | null;
+  artist: { name: string; slug: string };
+}): Track {
+  const videoId = song.youtubeUrl ? getYoutubeId(song.youtubeUrl) : null;
+  return {
+    id: song.id,
+    slug: song.slug,
+    title: song.title,
+    artistName: song.artist.name,
+    artistSlug: song.artist.slug,
+    imageUrl: song.imageUrl,
+    audioUrl: videoId ?? "",
+    source: videoId ? "youtube" : undefined,
+    playable: !!videoId,
+    kind: "song",
+    lyrics: song.lyrics ?? undefined,
+  };
 }
