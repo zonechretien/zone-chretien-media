@@ -1,48 +1,47 @@
 import type { Metadata } from "next";
 import { Library } from "lucide-react";
 import { getResources } from "@/lib/queries/resources";
-import { getTags } from "@/lib/queries/tags";
-import { RESOURCE_TYPES, RESOURCE_TYPE_LABELS, type ResourceInput } from "@/lib/validations/resources";
+import { getCategories } from "@/lib/queries/categories";
 import { PageHeader } from "@/components/shared/page-header";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { InlineSearchInput } from "@/components/shared/inline-search-input";
-import { ResourceCard } from "@/components/cards/resource-card";
+import { BookCard } from "@/components/cards/book-card";
 import { Pagination } from "@/components/shared/pagination";
 import { EmptyState } from "@/components/shared/empty-state";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Bibliothèque numérique chrétienne",
+  title: "Bibliothèque",
   description:
-    "Livres, études bibliques, prédications audio et vidéo, conférences et cours — la bibliothèque numérique de Zone-Chrétien Media.",
+    "Découvrez et lisez un extrait gratuit de nos livres chrétiens : théologie, dévotion, témoignages et plus encore.",
   path: "/bibliotheque",
 });
 
-function isResourceType(value: string | undefined): value is ResourceInput["type"] {
-  return !!value && (RESOURCE_TYPES as readonly string[]).includes(value);
+function isSort(value: string | undefined): value is "recent" | "ancien" {
+  return value === "recent" || value === "ancien";
 }
 
-export default async function ResourcesPage({
+export default async function BibliothequePage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const params = await searchParams;
   const page = Number(params.page ?? 1) || 1;
-  const typeParam = isResourceType(params.type) ? params.type : undefined;
-  const tagSlug = params.tag;
+  const categorySlug = params.category;
   const query = params.q;
+  const sort = isSort(params.sort) ? params.sort : "recent";
 
-  const [{ resources, pages }, tags] = await Promise.all([
-    getResources({ page, type: typeParam, tagSlug, query }),
-    getTags(),
+  const [{ resources: books, pages }, categories] = await Promise.all([
+    getResources({ page, type: "BOOK", categorySlug, query, sort }),
+    getCategories("RESOURCE"),
   ]);
 
   return (
     <div>
       <PageHeader
-        title="Bibliothèque numérique chrétienne"
-        description="Livres, études bibliques, prédications et conférences à télécharger ou consulter en ligne."
+        title="Bibliothèque"
+        description="Découvrez nos livres chrétiens, lisez un extrait gratuit et contactez-nous pour obtenir l'ouvrage complet."
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <InlineSearchInput
@@ -54,14 +53,14 @@ export default async function ResourcesPage({
             basePath="/bibliotheque"
             filters={[
               {
-                key: "type",
-                label: "Tous les types",
-                options: RESOURCE_TYPES.map((t) => ({ value: t, label: RESOURCE_TYPE_LABELS[t] })),
+                key: "category",
+                label: "Toutes les catégories",
+                options: categories.map((c) => ({ value: c.slug, label: c.name })),
               },
               {
-                key: "tag",
-                label: "Tous les tags",
-                options: tags.map((t) => ({ value: t.slug, label: t.name })),
+                key: "sort",
+                label: "Plus récents",
+                options: [{ value: "ancien", label: "Plus anciens" }],
               },
             ]}
           />
@@ -69,24 +68,24 @@ export default async function ResourcesPage({
       </PageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {resources.length > 0 ? (
+        {books.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {resources.map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {books.map((book) => (
+                <BookCard key={book.id} book={book} />
               ))}
             </div>
             <Pagination
               page={page}
               pages={pages}
               basePath="/bibliotheque"
-              searchParams={{ type: typeParam, tag: tagSlug, q: query }}
+              searchParams={{ category: categorySlug, q: query, sort: sort === "ancien" ? sort : undefined }}
             />
           </>
         ) : (
           <EmptyState
             icon={Library}
-            title="Aucune ressource trouvée"
+            title="Aucun livre trouvé"
             description="Essayez d'ajuster vos filtres ou revenez plus tard."
           />
         )}

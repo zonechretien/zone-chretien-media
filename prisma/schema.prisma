@@ -519,6 +519,15 @@ model Resource {
   fileUrl       String
   coverImageUrl String?
 
+  // Pertinents uniquement pour type: BOOK, mais laissés optionnels pour
+  // tous les types (comme le reste du modèle) plutôt que de créer une
+  // sous-table dédiée aux livres.
+  pageCount        Int?
+  language         String?
+  publicationYear  Int?
+  fileSizeLabel    String? // ex. "2.4 Mo" — affiché tel quel, pas calculé
+  freePreviewPages Int? // pages visibles gratuitement dans le lecteur d'extrait
+
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
   tags       Tag[]

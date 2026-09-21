@@ -8,6 +8,14 @@ import { requireSession } from "@/lib/admin/session";
 import { slugify, parseDateInput } from "@/lib/utils";
 import { resourceSchema, type ResourceInput } from "@/lib/validations/resources";
 
+/** Convertit un champ numérique de formulaire (string, potentiellement vide)
+ * en entier ou null — une chaîne vide ou non numérique reste "absent". */
+function toOptionalInt(value: string | undefined): number | null {
+  if (!value) return null;
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
 function toData(input: ResourceInput) {
   return {
     title: input.title,
@@ -17,6 +25,11 @@ function toData(input: ResourceInput) {
     type: input.type,
     fileUrl: input.fileUrl,
     coverImageUrl: input.coverImageUrl || null,
+    pageCount: toOptionalInt(input.pageCount),
+    language: input.language || null,
+    publicationYear: toOptionalInt(input.publicationYear),
+    fileSizeLabel: input.fileSizeLabel || null,
+    freePreviewPages: toOptionalInt(input.freePreviewPages),
     categoryId: input.categoryId || null,
     publishedAt: input.publishedAt ? parseDateInput(input.publishedAt) : null,
     published: input.published ?? true,

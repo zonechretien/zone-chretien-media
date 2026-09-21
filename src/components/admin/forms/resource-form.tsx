@@ -63,12 +63,23 @@ export function ResourceForm({
           type: resource.type,
           fileUrl: resource.fileUrl,
           coverImageUrl: resource.coverImageUrl ?? "",
+          pageCount: resource.pageCount != null ? String(resource.pageCount) : "",
+          language: resource.language ?? "",
+          publicationYear: resource.publicationYear != null ? String(resource.publicationYear) : "",
+          fileSizeLabel: resource.fileSizeLabel ?? "",
+          freePreviewPages: resource.freePreviewPages != null ? String(resource.freePreviewPages) : "",
           categoryId: resource.categoryId ?? "",
           tagIds: resource.tags.map((t) => t.id),
           publishedAt: dateToUrlSlug(resource.publishedAt ?? resource.createdAt),
           published: resource.published,
         }
-      : { type: "BOOK", published: true, tagIds: [], publishedAt: dateToUrlSlug(new Date()) },
+      : {
+          type: "BOOK",
+          published: true,
+          tagIds: [],
+          publishedAt: dateToUrlSlug(new Date()),
+          freePreviewPages: "10",
+        },
   });
 
   const { onSlugManualEdit } = useSlugSync(watch("title"), setValue, !!resource);
@@ -142,6 +153,43 @@ export function ResourceForm({
         <FieldLabel htmlFor="coverImageUrl">Image de couverture (URL)</FieldLabel>
         <ImageUrlField register={register("coverImageUrl")} defaultValue={resource?.coverImageUrl ?? undefined} />
       </FormRow>
+
+      {typeValue === "BOOK" && (
+        <fieldset className="mb-5 rounded-xl border border-border p-4">
+          <legend className="px-1.5 text-sm font-semibold text-foreground">Détails du livre</legend>
+          <FormGrid className="mt-1">
+            <FormRow>
+              <FieldLabel htmlFor="pageCount">Nombre de pages</FieldLabel>
+              <input id="pageCount" type="number" min={1} className={inputClass} {...register("pageCount")} />
+              <FieldError error={errors.pageCount} />
+            </FormRow>
+            <FormRow>
+              <FieldLabel htmlFor="language">Langue</FieldLabel>
+              <input id="language" className={inputClass} placeholder="Français" {...register("language")} />
+            </FormRow>
+            <FormRow>
+              <FieldLabel htmlFor="publicationYear">Année de publication</FieldLabel>
+              <input id="publicationYear" type="number" className={inputClass} {...register("publicationYear")} />
+              <FieldError error={errors.publicationYear} />
+            </FormRow>
+            <FormRow>
+              <FieldLabel htmlFor="fileSizeLabel">Taille du fichier</FieldLabel>
+              <input id="fileSizeLabel" className={inputClass} placeholder="2.4 Mo" {...register("fileSizeLabel")} />
+            </FormRow>
+          </FormGrid>
+          <FormRow className="mb-0">
+            <FieldLabel htmlFor="freePreviewPages">Pages visibles en extrait gratuit</FieldLabel>
+            <input
+              id="freePreviewPages"
+              type="number"
+              min={1}
+              className={inputClass}
+              {...register("freePreviewPages")}
+            />
+            <FieldError error={errors.freePreviewPages} />
+          </FormRow>
+        </fieldset>
+      )}
 
       <FormGrid>
         <FormRow>

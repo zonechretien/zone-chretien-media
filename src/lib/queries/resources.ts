@@ -8,12 +8,14 @@ export async function getResources({
   categorySlug,
   tagSlug,
   query,
+  sort = "recent",
 }: {
   page?: number;
   type?: ResourceType;
   categorySlug?: string;
   tagSlug?: string;
   query?: string;
+  sort?: "recent" | "ancien";
 } = {}) {
   const where: Prisma.ResourceWhereInput = {
     published: true,
@@ -31,10 +33,12 @@ export async function getResources({
       : {}),
   };
 
+  const direction = sort === "ancien" ? "asc" : "desc";
+
   const [resources, count] = await Promise.all([
     prisma.resource.findMany({
       where,
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ publishedAt: direction }, { createdAt: direction }],
       include: { category: true, tags: true },
       ...paginate(page),
     }),

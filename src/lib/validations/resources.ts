@@ -41,6 +41,16 @@ export const resourceSchema = z.object({
   type: z.enum(RESOURCE_TYPES, { message: "Type requis" }),
   fileUrl: z.string().url("URL invalide"),
   coverImageUrl: z.string().url("URL invalide").optional().or(z.literal("")),
+  // Champs "Détails du livre" (type BOOK) : gardés en string comme les autres
+  // champs de formulaire optionnels ci-dessus (ex. publishedAt) — la coercion
+  // en nombre se fait dans src/lib/actions/resources.ts (toData), pas ici,
+  // pour éviter que z.preprocess() casse l'inférence de type attendue par
+  // @hookform/resolvers/zod (erreur de build sinon).
+  pageCount: z.string().optional().or(z.literal("")),
+  language: z.string().optional().or(z.literal("")),
+  publicationYear: z.string().optional().or(z.literal("")),
+  fileSizeLabel: z.string().optional().or(z.literal("")),
+  freePreviewPages: z.string().optional().or(z.literal("")),
   categoryId: z.string().optional().or(z.literal("")),
   tagIds: z.array(z.string()).optional(),
   publishedAt: z.string().optional().or(z.literal("")),
