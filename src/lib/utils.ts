@@ -78,6 +78,19 @@ export function getYoutubeEmbedUrl(url: string): string | null {
   return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
 }
 
+/** Normalise un lien "blob" GitHub (page HTML de visualisation d'un fichier dans
+ * un repo) vers son équivalent brut (raw.githubusercontent.com) : un fetch()
+ * programmatique (ex. lecteur PDF page par page) sur une URL blob reçoit la
+ * page HTML de GitHub, pas le fichier lui-même — piège fréquent quand on copie
+ * le lien "normal" d'un fichier plutôt que son lien "Raw". Laisse toute autre
+ * URL (déjà raw, ou hébergée ailleurs) inchangée. */
+export function toRawGithubUrl(url: string): string {
+  const match = url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/);
+  if (!match) return url;
+  const [, owner, repo, ref, path] = match;
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}`;
+}
+
 /** Construit le lien wa.me à partir d'un numéro saisi dans n'importe quel format
  * (espaces, tirets, +) — wa.me n'accepte que des chiffres, indicatif pays inclus. */
 export function getWhatsappUrl(whatsappNumber: string): string | null {

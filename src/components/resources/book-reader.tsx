@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Loader2, Mail, X } from "lucide-react";
+import { toRawGithubUrl } from "@/lib/utils";
 
 const DEFAULT_FREE_PREVIEW_PAGES = 10;
 
@@ -39,8 +40,10 @@ export function BookReader({
     Math.min(freePreviewPages ?? DEFAULT_FREE_PREVIEW_PAGES, totalPages || Infinity),
   );
 
+  const resolvedUrl = toRawGithubUrl(fileUrl);
+
   useEffect(() => {
-    if (!fileUrl.toLowerCase().split("?")[0].endsWith(".pdf")) {
+    if (!resolvedUrl.toLowerCase().split("?")[0].endsWith(".pdf")) {
       setStatus("unsupported");
       return;
     }
@@ -55,7 +58,7 @@ export function BookReader({
           import.meta.url,
         ).toString();
 
-        const loadingTask = pdfjs.getDocument({ url: fileUrl });
+        const loadingTask = pdfjs.getDocument({ url: resolvedUrl });
         loadingTaskRef.current = loadingTask;
         const doc = await loadingTask.promise;
         if (cancelled) return;
@@ -72,7 +75,7 @@ export function BookReader({
       cancelled = true;
       loadingTaskRef.current?.destroy();
     };
-  }, [fileUrl]);
+  }, [resolvedUrl]);
 
   useEffect(() => {
     if (status !== "ready" || showEndMessage) return;
