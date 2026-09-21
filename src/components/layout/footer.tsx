@@ -139,9 +139,14 @@ export async function Footer() {
         <span>
           © {new Date().getFullYear()} {settings?.siteName ?? "Zone-Chrétien Media"}. Tous droits réservés.
         </span>
-        <a href="/sitemap.xml" className="text-brand-gold transition hover:text-brand-gold-light">
-          Sitemap
-        </a>
+        <div className="flex items-center gap-4">
+          <Link href="/confidentialite" className="transition hover:text-brand-gold">
+            Politique de confidentialité
+          </Link>
+          <a href="/sitemap.xml" className="text-brand-gold transition hover:text-brand-gold-light">
+            Sitemap
+          </a>
+        </div>
       </div>
     </footer>
   );
