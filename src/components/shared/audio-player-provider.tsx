@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { recordHistory } from "@/lib/personalization";
 import { getAutoplayQueueAction } from "@/lib/actions/player";
 import {
@@ -10,6 +11,22 @@ import {
 } from "@/lib/youtube-iframe-api";
 import { NowPlayingBar } from "@/components/shared/now-playing-bar";
 import { NowPlayingOverlay } from "@/components/shared/now-playing-overlay";
+import { PipDocumentContent } from "@/components/shared/pip-document-content";
+
+// --- Document Picture-in-Picture API (Chrome/Edge, Firefox 151+) -------------
+// Pas encore dans les types DOM standard — déclaration minimale, même
+// convention que window.SC/window.YT ci-dessous.
+interface DocumentPictureInPicture {
+  requestWindow(options?: { width?: number; height?: number }): Promise<Window>;
+  window: Window | null;
+}
+declare global {
+  interface Window {
+    documentPictureInPicture?: DocumentPictureInPicture;
+  }
+}
+
+export type PipSupport = "document" | "video" | "none";
 
 export type Track = {
   id: string;
@@ -125,6 +142,11 @@ type AudioPlayerContextValue = {
   expand: () => void;
   collapse: () => void;
   toggleExpanded: () => void;
+  /** "none" : cache le bouton fenêtre flottante — aucune des deux API n'est
+   * disponible sur ce navigateur. */
+  pipSupport: PipSupport;
+  pipOpen: boolean;
+  togglePip: () => void;
 };
 
 const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
@@ -162,6 +184,20 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
   const [autoplay, setAutoplay] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Fenêtre flottante (Picture-in-Picture) — support détecté une seule fois,
+  // paresseusement (pas de useEffect : évite un re-render supplémentaire au
+  // montage, et window n'existe de toute façon qu'au premier rendu client).
+  const [pipSupport] = useState<PipSupport>(() => {
+    if (typeof window === "undefined") return "none";
+    if ("documentPictureInPicture" in window) return "document";
+    if (document.pictureInPictureEnabled && "captureStream" in HTMLCanvasElement.prototype) return "video";
+    return "none";
+  });
+  const [pipWindow, setPipWindow] = useState<Window | null>(null);
+  const [videoPipOpen, setVideoPipOpen] = useState(false);
+  const pipCanvasRef = useRef<HTMLCanvasElement>(null);
+  const pipVideoRef = useRef<HTMLVideoElement>(null);
 
   // Miroir synchrone de `isPlaying` : togglePlay() doit savoir immédiatement si la
   // piste active joue ou non pour décider play()/pause(), sans pouvoir interroger
@@ -659,6 +695,129 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const collapse = useCallback(() => setIsExpanded(false), []);
   const toggleExpanded = useCallback(() => setIsExpanded((e) => !e), []);
 
+  /** Dessine la pochette de `track` sur le canvas caché — utilisé par le repli
+   * vidéo (Safari). `crossOrigin` est nécessaire pour que `captureStream()` ne
+   * produise pas un flux "tainted" ; si l'hôte de l'image ne renvoie pas les
+   * en-têtes CORS voulus, on se rabat sur un simple bloc de couleur + titre
+   * plutôt que de bloquer avec une erreur. */
+  const drawPipCanvas = useCallback((track: Track): Promise<void> => {
+    return new Promise((resolve) => {
+      const canvas = pipCanvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!canvas || !ctx) {
+        resolve();
+        return;
+      }
+
+      const drawFallback = () => {
+        ctx.fillStyle = "#0a1628";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#e8a020";
+        ctx.font = "bold 22px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(track.title, canvas.width / 2, canvas.height / 2, canvas.width - 40);
+        resolve();
+      };
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve();
+      };
+      img.onerror = drawFallback;
+      img.src = track.imageUrl;
+    });
+  }, []);
+
+  const openDocumentPip = useCallback(async () => {
+    if (!window.documentPictureInPicture) return;
+    const win = await window.documentPictureInPicture.requestWindow({ width: 320, height: 180 });
+
+    // Sans ça la fenêtre PiP est un document vierge, sans styles Tailwind —
+    // on clone les feuilles de style déjà chargées par la page principale.
+    [...document.styleSheets].forEach((sheet) => {
+      try {
+        if (sheet.ownerNode instanceof HTMLElement) {
+          win.document.head.appendChild(sheet.ownerNode.cloneNode(true));
+        }
+      } catch {
+        // Feuille de style inaccessible (cross-origin) — sans conséquence,
+        // les styles utiles de ce site sont tous same-origin.
+      }
+    });
+    // Pas besoin de fond posé sur <body> lui-même : PipDocumentContent
+    // couvre déjà tout l'espace avec son propre bg-brand-navy (h-full).
+
+    win.addEventListener("pagehide", () => setPipWindow(null), { once: true });
+    setPipWindow(win);
+  }, []);
+
+  const closeDocumentPip = useCallback(() => {
+    pipWindow?.close();
+    setPipWindow(null);
+  }, [pipWindow]);
+
+  const openVideoPip = useCallback(async () => {
+    const video = pipVideoRef.current;
+    const track = queueRef.current[playOrderRef.current[playOrderPosRef.current]];
+    if (!video || !track) return;
+    // Attendre le dessin réel (le chargement de l'image est asynchrone) avant
+    // de capturer le flux — sinon captureStream() démarre sur un canvas
+    // encore vide et la vidéo obtient des dimensions nulles.
+    await drawPipCanvas(track);
+
+    const canvas = pipCanvasRef.current;
+    if (!canvas) return;
+    const stream = canvas.captureStream(1);
+    video.srcObject = stream;
+    await video.play();
+    await video.requestPictureInPicture();
+    setVideoPipOpen(true);
+  }, [drawPipCanvas]);
+
+  const closeVideoPip = useCallback(() => {
+    if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+    setVideoPipOpen(false);
+  }, []);
+
+  const togglePip = useCallback(() => {
+    if (pipSupport === "document") {
+      if (pipWindow) closeDocumentPip();
+      else openDocumentPip();
+    } else if (pipSupport === "video") {
+      if (videoPipOpen) closeVideoPip();
+      else openVideoPip();
+    }
+  }, [pipSupport, pipWindow, videoPipOpen, openDocumentPip, closeDocumentPip, openVideoPip, closeVideoPip]);
+
+  // Repeint le canvas du repli vidéo à chaque changement de piste tant que la
+  // PiP vidéo est ouverte (la fenêtre Document PiP, elle, se redessine toute
+  // seule — c'est un composant React normal via le portail plus bas).
+  useEffect(() => {
+    if (!videoPipOpen || !currentTrack) return;
+    drawPipCanvas(currentTrack);
+  }, [videoPipOpen, currentTrack, drawPipCanvas]);
+
+  // Relaie les boutons natifs play/pause de la mini-fenêtre Safari vers le
+  // vrai lecteur (ce ne sont pas des "contrôles personnalisés" : ce sont les
+  // boutons déjà fournis nativement par la PiP vidéo du navigateur).
+  useEffect(() => {
+    const video = pipVideoRef.current;
+    if (!video) return;
+    const onLeave = () => setVideoPipOpen(false);
+    const onPlay = () => play();
+    const onPause = () => pause();
+    video.addEventListener("leavepictureinpicture", onLeave);
+    video.addEventListener("play", onPlay);
+    video.addEventListener("pause", onPause);
+    return () => {
+      video.removeEventListener("leavepictureinpicture", onLeave);
+      video.removeEventListener("play", onPlay);
+      video.removeEventListener("pause", onPause);
+    };
+  }, [play, pause]);
+
   // Sondage de la position/durée pour les pistes YouTube — l'API IFrame n'émet
   // aucun événement "timeupdate" natif contrairement à <audio>.
   useEffect(() => {
@@ -796,6 +955,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       expand,
       collapse,
       toggleExpanded,
+      pipSupport,
+      pipOpen: !!pipWindow || videoPipOpen,
+      togglePip,
     }),
     [
       playTrack, togglePlay, play, pause, next, previous, seek,
@@ -804,6 +966,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       shuffle, toggleShuffle, repeatMode, cycleRepeatMode,
       autoplay, toggleAutoplay, addToQueue,
       isExpanded, expand, collapse, toggleExpanded,
+      pipSupport, pipWindow, videoPipOpen, togglePip,
     ],
   );
 
@@ -823,6 +986,17 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
           lecteur flottant/panneau ci-dessous, piloté via leurs API JS. */}
       <div ref={scContainerRef} aria-hidden="true" className="fixed left-[-9999px] top-[-9999px]" />
       <div ref={ytContainerRef} aria-hidden="true" className="fixed left-[-9999px] top-[-9999px] h-[1px] w-[1px] overflow-hidden" />
+      {/* Repli PiP vidéo (Safari) : canvas jamais affiché, sert uniquement de
+          source à captureStream() ; la vidéo est cachée hors-écran (pas
+          display:none, même raison que les conteneurs SC/YT ci-dessus — un
+          flux vidéo peut se dégrader silencieusement dans un élément masqué
+          par display:none) mais c'est SA fenêtre native de PiP qui est visible. */}
+      <canvas ref={pipCanvasRef} width={320} height={320} hidden />
+      <video ref={pipVideoRef} muted playsInline className="fixed left-[-9999px] top-[-9999px] h-px w-px" />
+      {/* Fenêtre Document PiP : un vrai Window séparé, avec son propre
+          document — createPortal y rend PipDocumentContent tout en le gardant
+          dans CET arbre React, donc useAudioPlayer() y fonctionne normalement. */}
+      {pipWindow && createPortal(<PipDocumentContent />, pipWindow.document.body)}
       <NowPlayingBar />
       <NowPlayingOverlay />
     </AudioPlayerContext.Provider>

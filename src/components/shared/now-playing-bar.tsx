@@ -6,6 +6,7 @@ import {
   ChevronUp,
   ListMusic,
   Pause,
+  PictureInPicture2,
   Play,
   Repeat,
   Repeat1,
@@ -43,6 +44,9 @@ export function NowPlayingBar() {
     cycleRepeatMode,
     playerError,
     expand,
+    pipSupport,
+    pipOpen,
+    togglePip,
   } = useAudioPlayer();
 
   if (!currentTrack) return null;
@@ -167,6 +171,19 @@ export function NowPlayingBar() {
             >
               <ListMusic size={15} />
             </span>
+            {pipSupport !== "none" && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); togglePip(); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); togglePip(); } }}
+                aria-label="Fenêtre flottante"
+                aria-pressed={pipOpen}
+                className={cn("rounded-full p-1.5 transition hover:bg-white/10", pipOpen ? "text-brand-gold" : "text-brand-gray hover:text-white")}
+              >
+                <PictureInPicture2 size={15} />
+              </span>
+            )}
           </span>
 
           <span className="hidden items-center gap-2 lg:flex">
