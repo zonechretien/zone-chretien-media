@@ -9,6 +9,8 @@ const valid: VersetProps = {
   reference: "Psaume 34:8",
   text: "Sentez et voyez combien l'Éternel est bon!",
   showVersion: true,
+  music: null,
+  voiceOver: null,
 };
 
 describe("versetSchema", () => {
@@ -40,5 +42,30 @@ describe("fond vidéo", () => {
       const bg = { type: "video", path: "Fonds/nuages.mp4", dim: 0.3, mediaDurationSeconds: d };
       expect(versetSchema.safeParse({ ...valid, background: bg }).success).toBe(true);
     }
+  });
+});
+
+describe("audio (étape 6)", () => {
+  it("un projet enregistré avant l'audio reste valide (musique et voix off à null)", () => {
+    const old: Record<string, unknown> = { ...valid };
+    delete old.music;
+    delete old.voiceOver;
+    const r = versetSchema.safeParse(old);
+    expect(r.success).toBe(true);
+    expect(r.data).toMatchObject({ music: null, voiceOver: null });
+  });
+
+  it("accepte une musique et une voix off valides", () => {
+    const r = versetSchema.safeParse({
+      ...valid,
+      music: { path: "Musiques/douce.mp3", volume: 0.6, fadeInSeconds: 1, fadeOutSeconds: 2 },
+      voiceOver: { path: "VoixOff/voix.webm", volume: 1, startSeconds: 0.5, mediaDurationSeconds: 5.2, musicDuckVolume: 0.25, fitDuration: true },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("refuse une musique sans fichier ou avec un chemin dangereux", () => {
+    expect(versetSchema.safeParse({ ...valid, music: { path: "", volume: 0.6, fadeInSeconds: 1, fadeOutSeconds: 2 } }).success).toBe(false);
+    expect(versetSchema.safeParse({ ...valid, music: { path: "../x.mp3", volume: 0.6, fadeInSeconds: 1, fadeOutSeconds: 2 } }).success).toBe(false);
   });
 });

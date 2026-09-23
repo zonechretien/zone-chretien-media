@@ -78,6 +78,14 @@ export const studio = {
     }),
   render: (id: string) => call<RenderJob>(`/api/rendus/${id}`),
   cancelRender: (id: string) => call<RenderJob>(`/api/rendus/${id}/annuler`, { method: "POST" }),
+  /** Dépose une voix off enregistrée au micro dans le dossier VoixOff/ du disque. */
+  uploadVoiceOver: (audio: Blob) =>
+    call<{ chemin: string; dureeSecondes: number | null }>("/api/voix-off", {
+      method: "POST",
+      headers: { "Content-Type": audio.type || "audio/webm" },
+      body: audio,
+      timeoutMs: 60_000,
+    }),
 };
 
 export function thumbnailUrl(chemin: string): string {

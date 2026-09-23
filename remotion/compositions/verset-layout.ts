@@ -1,6 +1,7 @@
 import { BRAND } from "../brand";
 import { FORMATS, contentBox, type FormatId } from "../formats";
 import { fitText, paginateText, type Pagination } from "../lib/text-fit";
+import { durationFittedToVoice } from "../lib/audio";
 import { computeSequenceTiming, readingSeconds, type SequenceTiming } from "../lib/timing";
 import { frenchQuote, frenchTypography } from "../lib/typography";
 import type { VersetProps } from "../schemas";
@@ -66,7 +67,8 @@ export function computeVersetLayout(p: VersetProps): VersetLayout {
     segmentSeconds: pagination.pages.map((page) => readingSeconds(page.split(" ").length)),
     introSeconds: 0.3,
     endCardSeconds: BRAND.endCardSeconds,
-    durationSeconds: p.durationSeconds,
+    // Durée calée sur la voix off si demandé, sinon durée imposée ou automatique.
+    durationSeconds: durationFittedToVoice(p.voiceOver, BRAND.endCardSeconds) ?? p.durationSeconds,
     minSegmentSeconds: 2.5,
   });
 

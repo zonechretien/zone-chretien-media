@@ -5,6 +5,7 @@ import type { FieldDesc } from "@/lib/reels/form-model";
 import { studio } from "@/lib/reels/studio-client";
 import { BibleInsert } from "./bible-insert";
 import { MediaPicker } from "./media-picker";
+import { VoiceRecorder } from "./voice-recorder";
 
 type Path = string[];
 
@@ -100,7 +101,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
               className="w-full accent-[var(--gold)]"
               min={field.min ?? 0}
               max={field.max ?? 1}
-              step={0.05}
+              step={field.step}
               value={n ?? field.min ?? 0}
               onChange={(e) => ctx.set(path, Number(e.target.value))}
             />
@@ -118,7 +119,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
             className={inputClass}
             min={field.min}
             max={field.max}
-            step={1}
+            step={field.step}
             placeholder={field.nullable ? "Automatique" : undefined}
             value={n ?? ""}
             onChange={(e) => ctx.set(path, e.target.value === "" ? (field.nullable ? null : 0) : Number(e.target.value))}
@@ -143,19 +144,22 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
       );
     }
 
-    case "media":
+    case "media": {
+      // Vidéo de fond (boucle) et voix off (baisse de la musique, durée calée) :
+      // leur durée, fournie par le studio, est rangée dans mediaDurationSeconds.
+      const tracksDuration = field.mediaKind === "video" || field.recordable;
+      const durationPath = [...path.slice(0, -1), "mediaDurationSeconds"];
       return (
         <FormRow>
           <FieldLabel htmlFor={id} required>{field.label}</FieldLabel>
           <MediaPicker
             kind={field.mediaKind}
+            folders={field.folders}
             value={typeof value === "string" ? value : ""}
             online={ctx.studioOnline}
             onChange={(chemin) => {
               ctx.set(path, chemin);
-              // Vidéo : sa durée permet de la faire boucler si elle est plus courte que le Reel.
-              if (field.mediaKind === "video") {
-                const durationPath = [...path.slice(0, -1), "mediaDurationSeconds"];
+              if (tracksDuration) {
                 ctx.set(durationPath, null);
                 studio
                   .mediaInfo(chemin)
@@ -165,10 +169,42 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
               }
             }}
           />
+          {field.recordable && (
+            <VoiceRecorder
+              studioOnline={ctx.studioOnline}
+              onSaved={(chemin, seconds) => {
+                ctx.set(path, chemin);
+                ctx.set(durationPath, seconds);
+              }}
+            />
+          )}
           <Help text={field.help} />
           <Error ctx={ctx} path={path} />
         </FormRow>
       );
+    }
+
+    case "group": {
+      const enabled = value !== null && value !== undefined;
+      return (
+        <fieldset className="mb-5 rounded-xl border border-border p-4">
+          <legend className="px-1 text-sm font-medium text-foreground">{field.label}</legend>
+          {field.nullable && (
+            <label className="mb-3 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                className={checkboxClass}
+                checked={enabled}
+                onChange={(e) => ctx.set(path, e.target.checked ? { ...field.defaults } : null)}
+              />
+              Ajouter : {field.label.toLowerCase()}
+            </label>
+          )}
+          <Help text={field.help} />
+          {enabled && <ReelFields fields={field.fields} ctx={ctx} prefix={path} />}
+        </fieldset>
+      );
+    }
 
     case "enum":
       return (

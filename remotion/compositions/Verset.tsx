@@ -4,6 +4,7 @@ import { BRAND } from "../brand";
 import { Background } from "../components/Background";
 import { BrandMark } from "../components/BrandMark";
 import { EndCard } from "../components/EndCard";
+import { ReelAudio } from "../components/ReelAudio";
 import { SafeZoneOverlay } from "../components/SafeZoneOverlay";
 import { WordReveal } from "../components/WordReveal";
 import { ensureBrandFonts } from "../fonts";
@@ -40,6 +41,7 @@ export function Verset(props: VersetProps & RuntimeProps) {
   return (
     <AbsoluteFill>
       <Background background={props.background} mediaBaseUrl={props.mediaBaseUrl} />
+      <ReelAudio music={props.music} voiceOver={props.voiceOver} mediaBaseUrl={props.mediaBaseUrl} />
 
       <div
         style={{

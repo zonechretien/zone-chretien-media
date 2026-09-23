@@ -56,3 +56,17 @@ export async function makeThumbnail(input: string, output: string, isVideo: bool
     await run("ffmpeg", ["-v", "error", "-y", "-i", input, "-frames:v", "1", "-vf", "scale=320:-2", "-q:v", "4", output], 30_000);
   });
 }
+
+/**
+ * Convertit un enregistrement du navigateur (.webm / .ogg de MediaRecorder,
+ * souvent sans durée dans l'en-tête) en .m4a (AAC) : durée fiable et lecture
+ * sans surprise à l'aperçu comme au rendu.
+ */
+export async function convertToM4a(input: string, output: string): Promise<void> {
+  // « -f mp4 » : le ffmpeg allégé livré avec Remotion n'associe aucun format à l'extension .m4a.
+  await run(
+    "ffmpeg",
+    ["-v", "error", "-y", "-i", input, "-vn", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "-f", "mp4", output],
+    120_000,
+  );
+}

@@ -4,7 +4,7 @@
 import { FolderOpen, Loader2, Music, X } from "lucide-react";
 import { useState } from "react";
 import type { MediaKind } from "@/lib/reels/form-model";
-import { studio, thumbnailUrl, type LibraryItem } from "@/lib/reels/studio-client";
+import { mediaUrl, studio, thumbnailUrl, type LibraryItem } from "@/lib/reels/studio-client";
 import { cn } from "@/lib/utils";
 
 /** Dossiers de la bibliothèque où chercher chaque type de média. */
@@ -22,13 +22,17 @@ export function MediaPicker({
   kind,
   value,
   online,
+  folders: foldersOverride,
   onChange,
 }: {
   kind: MediaKind;
   value: string;
   online: boolean;
+  /** Dossiers proposés (sinon selon le type de média). */
+  folders?: string[];
   onChange: (chemin: string, item: LibraryItem) => void;
 }) {
+  const folders = foldersOverride ?? FOLDERS[kind];
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<LibraryItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +44,7 @@ export function MediaPicker({
     setError(null);
     try {
       const { dossiers } = await studio.library();
-      setItems(FOLDERS[kind].flatMap((f) => dossiers[f] ?? []).filter((i) => i.type === kind));
+      setItems(folders.flatMap((f) => dossiers[f] ?? []).filter((i) => i.type === kind));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Bibliothèque indisponible.");
     } finally {
@@ -64,12 +68,16 @@ export function MediaPicker({
         </button>
       </div>
       {!online && <p className="mt-1 text-xs text-muted">Lancez le studio local pour parcourir le disque.</p>}
+      {online && kind === "audio" && value && (
+        // Écoute du son choisi, servi par le studio local.
+        <audio key={value} src={mediaUrl(value)} controls preload="none" className="mt-2 h-9 w-full max-w-md" />
+      )}
 
       {open && (
         <div className="mt-3 rounded-xl border border-border bg-surface p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-medium text-foreground/70">
-              Dossier{FOLDERS[kind].length > 1 ? "s" : ""} {FOLDERS[kind].join(", ")} du disque
+              Dossier{folders.length > 1 ? "s" : ""} {folders.join(", ")} du disque
             </p>
             <button type="button" onClick={() => setOpen(false)} aria-label="Fermer" className="text-foreground/60 hover:text-gold">
               <X size={16} />
@@ -82,7 +90,7 @@ export function MediaPicker({
           )}
           {error && <p className="text-sm text-red-500">{error}</p>}
           {items && items.length === 0 && (
-            <p className="text-sm text-muted">Aucun fichier de ce type. Copiez vos fichiers dans le dossier {FOLDERS[kind][0]} du disque.</p>
+            <p className="text-sm text-muted">Aucun fichier de ce type. Copiez vos fichiers dans le dossier {folders[0]} du disque.</p>
           )}
           {items && items.length > 0 && (
             <ul className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">

@@ -27,6 +27,8 @@ function props(v: { reference: string; text: string }, format: VersetProps["form
     reference: v.reference,
     text: v.text,
     showVersion: true,
+    music: null,
+    voiceOver: null,
   };
 }
 
@@ -57,5 +59,16 @@ describe("computeVersetLayout", () => {
   it("réduit une référence très longue pour qu'elle tienne sur une ligne", () => {
     const L = computeVersetLayout({ ...props(verses[0], "9:16"), reference: "1 Thessaloniciens 5:16-18, 23-24 et 2 Thessaloniciens 3" });
     expect(L.referenceSize).toBeLessThan(L.sizes.reference);
+  });
+});
+
+describe("durée calée sur la voix off", () => {
+  it("la vidéo dure début + voix + pause + écran de fin", () => {
+    const base = props(verses[0], "9:16");
+    const L = computeVersetLayout({
+      ...base,
+      voiceOver: { path: "VoixOff/v.webm", volume: 1, startSeconds: 0.5, mediaDurationSeconds: 12, musicDuckVolume: 0.25, fitDuration: true },
+    });
+    expect(L.timing.totalFrames).toBe(Math.round((0.5 + 12 + 0.8 + 2.5) * 30));
   });
 });

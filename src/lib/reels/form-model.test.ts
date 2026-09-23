@@ -8,7 +8,7 @@ const byKey = (key: string) => fields.find((f) => f.key === key) as FieldDesc;
 
 describe("describeObject (template Verset)", () => {
   it("masque le format (géré à part) et génère les autres champs dans l'ordre du schéma", () => {
-    expect(fields.map((f) => f.key)).toEqual(["background", "durationSeconds", "kicker", "reference", "text", "showVersion"]);
+    expect(fields.map((f) => f.key)).toEqual(["background", "durationSeconds", "music", "voiceOver", "kicker", "reference", "text", "showVersion"]);
   });
 
   it("reprend libellés et contraintes du schéma", () => {
@@ -67,5 +67,25 @@ describe("setIn / getIn", () => {
     expect(original.bg.path).toBe("x.jpg");
     expect(getIn(next, ["bg", "path"])).toBe("y.jpg");
     expect(getIn(next, ["absent", "x"])).toBeUndefined();
+  });
+});
+
+describe("groupes audio (étape 6)", () => {
+  it("musique : section facultative avec sélecteur audio du dossier Musiques et valeurs de départ", () => {
+    const music = byKey("music");
+    if (music.kind !== "group") throw new Error("groupe attendu");
+    expect(music.nullable).toBe(true);
+    expect(music.fields.map((f) => f.key)).toEqual(["path", "volume", "fadeInSeconds", "fadeOutSeconds"]);
+    expect(music.fields[0]).toMatchObject({ kind: "media", mediaKind: "audio", folders: ["Musiques"], recordable: false });
+    expect(music.fields[2]).toMatchObject({ kind: "number", step: 0.5, min: 0, max: 5 });
+    expect(music.defaults).toEqual({ path: "", volume: 0.6, fadeInSeconds: 1, fadeOutSeconds: 2 });
+  });
+
+  it("voix off : enregistrable au micro, durée masquée, durée calée par défaut", () => {
+    const voice = byKey("voiceOver");
+    if (voice.kind !== "group") throw new Error("groupe attendu");
+    expect(voice.fields.map((f) => f.key)).toEqual(["path", "volume", "startSeconds", "musicDuckVolume", "fitDuration"]);
+    expect(voice.fields[0]).toMatchObject({ kind: "media", mediaKind: "audio", folders: ["VoixOff"], recordable: true });
+    expect(voice.defaults).toMatchObject({ mediaDurationSeconds: null, musicDuckVolume: 0.25, fitDuration: true, startSeconds: 0.5 });
   });
 });

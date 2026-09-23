@@ -38,6 +38,8 @@ function versetProps(reference: string, text: string, kicker: string, showVersio
     reference: reference.trim(),
     text: text.trim(),
     showVersion,
+    music: null,
+    voiceOver: null,
   };
 }
 

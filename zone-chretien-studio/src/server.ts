@@ -23,7 +23,7 @@ import {
   ensureLibraryFolders,
   type Library,
 } from "./drive";
-import { probeDuration } from "./ffmpeg";
+import { convertToM4a, probeDuration } from "./ffmpeg";
 import { isAllowedHost, isLoopbackOrigin, isOriginAllowed, parseRange, fileTimestamp } from "./http-utils";
 import { RenderQueue } from "./jobs";
 import { listLibrary, thumbnailFor } from "./library";
@@ -345,12 +345,26 @@ async function handle(req: Req, res: Res): Promise<void> {
     if (data.length === 0) return fail(req, res, 400, "Enregistrement vide.");
     const dir = path.join(lib.root, "VoixOff");
     fs.mkdirSync(dir, { recursive: true });
-    const file = path.join(dir, `voix-off_${fileTimestamp(new Date())}${ext}`);
+    const base = path.join(dir, `voix-off_${fileTimestamp(new Date())}`);
+    let file = `${base}${ext}`;
     try {
       fs.writeFileSync(file, data, { flag: "wx" });
     } catch (e) {
       const code = (e as NodeJS.ErrnoException).code;
       return fail(req, res, 500, code === "ENOSPC" ? "Espace disque insuffisant." : "Impossible d'enregistrer la voix off sur le disque.");
+    }
+    // Les enregistrements du navigateur (.webm, .ogg) sont convertis en .m4a :
+    // durée fiable et lecture identique à l'aperçu et au rendu. En cas d'échec
+    // de la conversion, le fichier d'origine est conservé.
+    if (ext === ".webm" || ext === ".ogg") {
+      const m4a = `${base}.m4a`;
+      try {
+        await convertToM4a(file, m4a);
+        fs.rmSync(file);
+        file = m4a;
+      } catch {
+        fs.rmSync(m4a, { force: true });
+      }
     }
     return json(req, res, 201, { chemin: toRelative(lib.root, file), dureeSecondes: await probeDuration(file) });
   }

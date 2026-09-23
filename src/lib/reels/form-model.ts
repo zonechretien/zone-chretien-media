@@ -24,11 +24,23 @@ export type FieldDesc =
       bibleTextField?: string;
     }
   | { kind: "boolean"; key: string; label: string; help?: string }
-  | { kind: "number"; key: string; label: string; help?: string; min?: number; max?: number; nullable: boolean; slider: boolean }
+  | { kind: "number"; key: string; label: string; help?: string; min?: number; max?: number; step: number; nullable: boolean; slider: boolean }
   | { kind: "color"; key: string; label: string; help?: string }
-  | { kind: "media"; key: string; label: string; help?: string; mediaKind: MediaKind }
+  | {
+      kind: "media";
+      key: string;
+      label: string;
+      help?: string;
+      mediaKind: MediaKind;
+      /** Dossiers du disque proposés (par défaut selon le type de média). */
+      folders?: string[];
+      /** Voix off : propose aussi l'enregistrement au micro. */
+      recordable: boolean;
+    }
   | { kind: "enum"; key: string; label: string; help?: string; options: string[] }
-  | { kind: "union"; key: string; label: string; help?: string; discriminator: string; options: UnionOption[] };
+  | { kind: "union"; key: string; label: string; help?: string; discriminator: string; options: UnionOption[] }
+  /** Sous-objet (ex. musique) ; « nullable » = section facultative à activer. */
+  | { kind: "group"; key: string; label: string; help?: string; nullable: boolean; fields: FieldDesc[]; defaults: Record<string, unknown> };
 
 export type UnionOption = { value: string; label: string; fields: FieldDesc[]; defaults: Record<string, unknown> };
 
@@ -40,9 +52,15 @@ const asAny = (s: unknown) => s as AnySchema;
 /** Métadonnées posées avec .meta() dans remotion/schemas.ts. */
 const readMeta = (s: unknown) => (s as { meta: () => FieldMeta | undefined }).meta();
 
+/** Retire les enveloppes nullable / default / optional (« .nullable().default(null) »). */
 function unwrapNullable(s: AnySchema): { inner: AnySchema; nullable: boolean } {
-  if (s.def.type === "nullable") return { inner: asAny((s as unknown as { unwrap: () => AnySchema }).unwrap()), nullable: true };
-  return { inner: s, nullable: false };
+  let inner = s;
+  let nullable = false;
+  while (["nullable", "default", "optional"].includes(inner.def.type)) {
+    if (inner.def.type === "nullable") nullable = true;
+    inner = asAny((inner as unknown as { unwrap: () => AnySchema }).unwrap());
+  }
+  return { inner, nullable };
 }
 
 /** Champs d'un objet zod ; `context.mediaKind` sert aux sous-objets d'une union (image / vidéo). */
@@ -66,7 +84,15 @@ function describeField(key: string, schema: AnySchema, context: { mediaKind?: Me
 
   if (t === "literal") return null; // discriminant d'une union : géré par l'union
   if (meta.widget === "color") return { kind: "color", ...base };
-  if (meta.widget === "media") return { kind: "media", ...base, mediaKind: context.mediaKind ?? "image" };
+  if (meta.widget === "media" || meta.widget === "voice") {
+    return {
+      kind: "media",
+      ...base,
+      mediaKind: meta.mediaKind ?? context.mediaKind ?? "image",
+      folders: meta.folders,
+      recordable: meta.widget === "voice",
+    };
+  }
 
   if (t === "string") {
     const s = inner as unknown as { maxLength: number | null; minLength: number | null };
@@ -88,6 +114,7 @@ function describeField(key: string, schema: AnySchema, context: { mediaKind?: Me
       ...base,
       min: Number.isFinite(n.minValue) ? (n.minValue as number) : undefined,
       max: Number.isFinite(n.maxValue) ? (n.maxValue as number) : undefined,
+      step: meta.step ?? (meta.widget === "slider" ? 0.05 : 1),
       nullable,
       slider: meta.widget === "slider",
     };
@@ -108,6 +135,10 @@ function describeField(key: string, schema: AnySchema, context: { mediaKind?: Me
     });
     return { kind: "union", ...base, discriminator, options };
   }
+  if (t === "object") {
+    const obj = inner as unknown as z.ZodType;
+    return { kind: "group", ...base, nullable, fields: describeObject(obj), defaults: defaultsFor(obj) };
+  }
   return null;
 }
 
@@ -119,7 +150,8 @@ export function defaultsFor(schema: z.ZodType): Record<string, unknown> {
     const meta = readMeta(s);
     const { inner, nullable } = unwrapNullable(s);
     const t = inner.def.type;
-    if (nullable) out[key] = null;
+    if (meta?.defaultValue !== undefined) out[key] = meta.defaultValue;
+    else if (nullable) out[key] = null;
     else if (t === "literal") out[key] = (inner as unknown as { value: unknown }).value;
     else if (meta?.widget === "color") out[key] = "#0B1E3D";
     else if (t === "string") out[key] = "";

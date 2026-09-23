@@ -140,7 +140,7 @@ proche, seules des adresses exactes sont acceptées.
 | POST | `/api/rendus` | Lancer un export `{ templateId, titre, props }` |
 | GET | `/api/rendus`, `/api/rendus/<id>` | Progression des exports |
 | POST | `/api/rendus/<id>/annuler` | Annuler un export |
-| POST | `/api/voix-off` | Déposer une voix off (corps = audio, `Content-Type: audio/webm`…) |
+| POST | `/api/voix-off` | Déposer une voix off (corps = audio, `Content-Type: audio/webm`…) ; les enregistrements du navigateur (.webm, .ogg) sont convertis en .m4a (AAC) pour une durée fiable |
 
 Les requêtes POST doivent porter l'en-tête `X-ZC-Studio: 1`. Les erreurs sont renvoyées en
 JSON `{ "erreur": "message en français" }`.

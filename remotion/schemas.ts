@@ -18,9 +18,16 @@ export type FieldMeta = {
   help?: string;
   placeholder?: string;
   /** Rendu particulier ; par défaut, déduit du type zod. */
-  widget?: "textarea" | "color" | "media" | "slider" | "hidden" | "format";
+  widget?: "textarea" | "color" | "media" | "voice" | "slider" | "hidden" | "format";
   /** Champ « référence biblique » : bouton d'insertion du texte LSG 1910 dans le champ indiqué. */
   bible?: { textField: string };
+  /** Média : type attendu et dossiers du disque proposés. */
+  mediaKind?: "image" | "video" | "audio";
+  folders?: string[];
+  /** Valeur de départ quand le champ apparaît (ex. ajout d'une musique). */
+  defaultValue?: unknown;
+  /** Pas d'un champ numérique (1 par défaut). */
+  step?: number;
 };
 const field = (meta: FieldMeta) => meta;
 
@@ -70,6 +77,35 @@ export const backgroundSchema = z.discriminatedUnion("type", [
 ]);
 export type BackgroundProps = z.infer<typeof backgroundSchema>;
 
+/** Musique de fond (dossier Musiques/ du disque). Rejouée en boucle si elle est plus courte que le Reel. */
+export const musicSchema = z.object({
+  path: mediaPathSchema.meta(field({ label: "Musique", widget: "media", mediaKind: "audio", folders: ["Musiques"] })),
+  volume: z.number().min(0).max(1).meta(field({ label: "Volume", widget: "slider", defaultValue: 0.6 })),
+  fadeInSeconds: z.number().min(0).max(5).meta(field({ label: "Fondu d'entrée (secondes)", step: 0.5, defaultValue: 1 })),
+  fadeOutSeconds: z.number().min(0).max(5).meta(field({ label: "Fondu de sortie (secondes)", step: 0.5, defaultValue: 2 })),
+});
+export type MusicProps = z.infer<typeof musicSchema>;
+
+/** Voix off enregistrée depuis l'éditeur (dossier VoixOff/ du disque). */
+export const voiceOverSchema = z.object({
+  path: mediaPathSchema.meta(field({ label: "Voix off", widget: "voice", mediaKind: "audio", folders: ["VoixOff"] })),
+  volume: z.number().min(0).max(1).meta(field({ label: "Volume de la voix", widget: "slider", defaultValue: 1 })),
+  startSeconds: z
+    .number()
+    .min(0)
+    .max(10)
+    .meta(field({ label: "Début de la voix (secondes)", step: 0.5, defaultValue: 0.5 })),
+  /** Durée du fichier, fournie par le studio local (baisse de la musique, durée calée). */
+  mediaDurationSeconds: z.number().positive().nullable().meta(field({ label: "Durée de la voix", widget: "hidden" })),
+  musicDuckVolume: z
+    .number()
+    .min(0)
+    .max(1)
+    .meta(field({ label: "Musique pendant la voix", widget: "slider", defaultValue: 0.25, help: "La musique baisse automatiquement à ce niveau pendant la voix off." })),
+  fitDuration: z.boolean().meta(field({ label: "Caler la durée de la vidéo sur la voix off", defaultValue: true })),
+});
+export type VoiceOverProps = z.infer<typeof voiceOverSchema>;
+
 /** Champs communs à tous les templates. */
 export const baseTemplateSchema = z.object({
   format: z.enum(FORMAT_IDS).meta(field({ label: "Format", widget: "format" })),
@@ -80,7 +116,10 @@ export const baseTemplateSchema = z.object({
     .min(6)
     .max(90)
     .nullable()
-    .meta(field({ label: "Durée (secondes)", help: "Vide = durée calculée selon la longueur du texte." })),
+    .meta(field({ label: "Durée (secondes)", help: "Vide = durée calculée selon la longueur du texte (ou calée sur la voix off si demandé)." })),
+  // Facultatifs, avec null par défaut : les projets enregistrés avant l'audio restent valides.
+  music: musicSchema.nullable().default(null).meta(field({ label: "Musique" })),
+  voiceOver: voiceOverSchema.nullable().default(null).meta(field({ label: "Voix off" })),
 });
 
 export const versetSchema = baseTemplateSchema.extend({

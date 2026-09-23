@@ -36,6 +36,8 @@ const verset: TemplateMeta<VersetProps> = {
     reference: "Psaume 34:8",
     text: "Sentez et voyez combien l'Éternel est bon! Heureux l'homme qui cherche en lui son refuge!",
     showVersion: true,
+    music: null,
+    voiceOver: null,
   }),
   metadata: (props) => {
     const L = computeVersetLayout(props);
