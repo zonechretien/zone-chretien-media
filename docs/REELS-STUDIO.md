@@ -127,6 +127,18 @@ Une seule table ajoutée, `reel_projects` (migration `20260923120000_add_reel_pr
 uniquement `CREATE TABLE` + 2 index) — **appliquée sur Turso production le 23/09/2026**.
 Les props de chaque projet sont une chaîne JSON validée par le schéma zod du template.
 
+**Sauvegarde de la base Turso** (avant une fusion ou une migration) :
+
+1. app.turso.tech → base `zone-chretien-media` → **Create Token** → jeton **en lecture seule**.
+2. À la racine du dépôt, fichier `.env.backup` (ignoré par Git grâce à la règle `.env*`) :
+   `TURSO_BACKUP_URL="libsql://…turso.io"` et `TURSO_BACKUP_TOKEN="…"`.
+3. `npm run db:backup` → `Documents\Sauvegardes-Turso\<base>_<date>.sql` dans le profil
+   Windows (ou `--out <dossier>`). Le script refuse tout dossier situé dans le dépôt Git ou
+   dans une bibliothèque de médias du studio (sous un `zc-studio.json`, donc tout le disque
+   externe), vérifie la sauvegarde en la rechargeant, et doit finir par « Sauvegarde vérifiée ».
+4. Restauration, toujours dans une nouvelle base :
+   `turso db create zone-chretien-media-restauree --from-dump <fichier.sql>`.
+
 ⚠ Ne pas utiliser `prisma migrate dev` dans ce dépôt : il propose de supprimer les tables de
 recherche de la Bible (`bible_verses_fts*`), créées hors Prisma. Générer les migrations avec
 `prisma migrate diff --from-schema <ancien> --to-schema prisma/schema.prisma --script`.

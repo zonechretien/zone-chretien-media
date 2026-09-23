@@ -8,12 +8,14 @@
  *   2. Créer le fichier .env.backup à la racine du dépôt (jamais versionné) :
  *        TURSO_BACKUP_URL="libsql://zone-chretien-media-….turso.io"
  *        TURSO_BACKUP_TOKEN="<le jeton en lecture seule>"
- *   3. npm run db:backup                       → ../sauvegardes-turso/<base>_<date>.sql
- *      npm run db:backup -- --out G:\Sauvegardes   (dossier au choix, hors du dépôt)
+ *   3. npm run db:backup     → Documents\Sauvegardes-Turso\<base>_<date>.sql (profil Windows)
+ *      npm run db:backup -- --out <dossier>   (autre dossier, par ex. une clé USB dédiée)
  *
  * Le script n'exécute que des lectures sur la base. Le fichier produit contient
  * toutes les données (comptes, empreintes de mots de passe, newsletter…) : il
- * est refusé dans le dépôt Git, à ranger dans un endroit sûr.
+ * est REFUSÉ dans le dépôt Git et dans la bibliothèque de médias du studio
+ * local (tout dossier situé sous un zc-studio.json, quelle que soit la lettre
+ * du disque) — à ranger dans un endroit sûr.
  *
  * Restauration (dans une NOUVELLE base, jamais par-dessus la production) :
  *   turso db create zone-chretien-media-restauree --from-dump <fichier.sql>
@@ -26,6 +28,26 @@ import path from "node:path";
 type SchemaRow = { type: string; name: string; tbl_name: string; sql: string | null };
 
 const REPO_ROOT = path.resolve(__dirname, "..");
+/** Dossier par défaut : dans le profil Windows, jamais dans le dépôt ni sur le disque des médias. */
+export const DEFAULT_OUT_DIR = path.join(os.homedir(), "Documents", "Sauvegardes-Turso");
+/** Repère de la bibliothèque de médias servie par le studio local (voir zone-chretien-studio/src/drive.ts). */
+const LIBRARY_MARKER = "zc-studio.json";
+
+/**
+ * Raison de refuser un dossier de sortie, ou null s'il convient : le fichier
+ * ne doit être ni dans le dépôt Git, ni dans une bibliothèque de médias (un
+ * dossier dont lui-même ou un parent contient zc-studio.json).
+ */
+export function unsafeOutDirReason(outDir: string, repoRoot: string = REPO_ROOT): string | null {
+  const dir = path.resolve(outDir);
+  const rel = path.relative(repoRoot, dir);
+  if (!rel.startsWith("..") && !path.isAbsolute(rel)) return "ce dossier est dans le dépôt Git";
+  for (let d = dir; ; d = path.dirname(d)) {
+    const marker = path.join(d, LIBRARY_MARKER);
+    if (fs.existsSync(marker)) return `ce dossier est dans la bibliothèque de médias du studio (${marker})`;
+    if (path.dirname(d) === d) return null;
+  }
+}
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -149,10 +171,10 @@ async function main() {
     process.exit(2);
   }
 
-  const outDir = path.resolve(arg("out") ?? path.join(REPO_ROOT, "..", "sauvegardes-turso"));
-  const rel = path.relative(REPO_ROOT, outDir);
-  if (!rel.startsWith("..") && !path.isAbsolute(rel)) {
-    console.error(`Refusé : ${outDir} est dans le dépôt Git. Choisissez un dossier en dehors (la sauvegarde contient des données personnelles).`);
+  const outDir = path.resolve(arg("out") ?? DEFAULT_OUT_DIR);
+  const refusal = unsafeOutDirReason(outDir);
+  if (refusal) {
+    console.error(`Refusé : ${outDir} — ${refusal}. Choisissez un dossier en dehors (la sauvegarde contient des données personnelles).`);
     process.exit(2);
   }
 
