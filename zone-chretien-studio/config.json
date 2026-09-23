@@ -1,5 +1,6 @@
 {
   "port": 4317,
+  "dossierBibliotheque": "Zone-Chretien-Studio",
   "originesAutorisees": [
     "https://zone-chretien-media.vercel.app",
     "https://zone-chretien.org",

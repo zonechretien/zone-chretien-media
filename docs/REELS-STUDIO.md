@@ -16,18 +16,29 @@ Spécification d'origine : [`SPEC-REELS-STUDIO.md`](SPEC-REELS-STUDIO.md).
         │  fetch depuis le navigateur vers http://127.0.0.1:4317
         ▼
 [Studio local sur le PC — Node portable, sans droits admin]
-  Détecte le disque, sert les médias (lecture seule), reçoit les voix off,
+  Détecte la bibliothèque, sert les médias (lecture seule), reçoit les voix off,
   rend les MP4 (@remotion/renderer), les enregistre dans Exports/
         ▼
-[Disque externe]  zc-studio.json · Fonds/ · Musiques/ · VoixOff/ · Logos/ · Polices/ · Exports/ · runtime/
+[Disque externe]  X:\Zone-Chretien-Studio\  zc-studio.json · Fonds/ · Musiques/ · VoixOff/ · Logos/ · Polices/ · Exports/
 ```
+
+- **Bibliothèque = un dossier dédié**, `Zone-Chretien-Studio` à la racine d'un lecteur, qui
+  contient le repère `zc-studio.json`. Le studio le cherche sur chaque lecteur (C: à Z:),
+  quelle que soit la lettre, et **ne lit jamais rien d'autre sur le disque** : les autres
+  dossiers et fichiers du disque (documents personnels…) restent inaccessibles. Le nom du
+  dossier se change dans `zone-chretien-studio/config.local.json` :
+  `{ "dossierBibliotheque": "Mon-Dossier" }` (un seul nom de dossier, sans `\ / :`).
+- **Sécurité du service des médias** : chemins relatifs uniquement, sans `..`, lettre de
+  lecteur, URL ni dossier caché ; fichier résolu obligatoirement sous le dossier de la
+  bibliothèque, y compris après résolution des liens symboliques et jonctions ; un dossier de
+  bibliothèque qui serait lui-même un lien ou une jonction est ignoré.
 
 - **Vercel ne touche jamais aux vidéos** : il sert l'éditeur et enregistre les projets. Les
   médias et les MP4 restent sur le disque externe.
 - **Aperçu = MP4** : les templates (`remotion/`) sont le même code pour l'aperçu du CMS et
   pour le rendu du studio.
-- **Chemins relatifs uniquement** (`Musiques/douce.mp3`, `Exports/…mp4`) : la lettre du disque
-  peut changer.
+- **Chemins relatifs au dossier de la bibliothèque uniquement** (`Musiques/douce.mp3`,
+  `Exports/…mp4`) : la lettre du disque peut changer.
 
 ## 2. Fichiers ajoutés
 
@@ -62,7 +73,9 @@ En résumé :
 
 1. Décompresser **Node.js 24 LTS** (ZIP « Windows Binary ») dans `G:\runtime\node\`.
 2. Copier le dépôt dans `G:\zone-chretien\` (avec PortableGit ou le ZIP de GitHub).
-3. Double-cliquer `zone-chretien-studio\PREPARER-DISQUE.bat` (une fois).
+3. Double-cliquer `zone-chretien-studio\PREPARER-DISQUE.bat` (une fois) : crée
+   `G:\Zone-Chretien-Studio\` avec `zc-studio.json` et ses sous-dossiers, sans toucher au reste
+   du disque. Pour un autre disque : `npm run preparer-disque -- D:`.
 4. Double-cliquer `zone-chretien-studio\LANCER-STUDIO.bat` à chaque utilisation.
 5. Dans Chrome / Edge, à la première connexion de l'éditeur au studio : **Autoriser** l'accès
    aux appareils de cet ordinateur (« Local Network Access »).
@@ -134,10 +147,27 @@ Les props de chaque projet sont une chaîne JSON validée par le schéma zod du 
    `TURSO_BACKUP_URL="libsql://…turso.io"` et `TURSO_BACKUP_TOKEN="…"`.
 3. `npm run db:backup` → `Documents\Sauvegardes-Turso\<base>_<date>.sql` dans le profil
    Windows (ou `--out <dossier>`). Le script refuse tout dossier situé dans le dépôt Git ou
-   dans une bibliothèque de médias du studio (sous un `zc-studio.json`, donc tout le disque
-   externe), vérifie la sauvegarde en la rechargeant, et doit finir par « Sauvegarde vérifiée ».
+   dans la bibliothèque de médias du studio (`<lecteur>:\Zone-Chretien-Studio` sur n'importe
+   quelle lettre, ou sous un `zc-studio.json`, y compris via un lien ou une jonction ; le
+   reste du disque externe est accepté), vérifie la sauvegarde en la rechargeant, et doit
+   finir par « Sauvegarde vérifiée ». L'avertissement « verses_fts restauré vide » est normal :
+   index plein texte orphelin hérité de l'import Lepolo_Bible, inutilisé par le site.
 4. Restauration, toujours dans une nouvelle base :
    `turso db create zone-chretien-media-restauree --from-dump <fichier.sql>`.
+
+**Base de prévisualisation** (déploiements Preview de la branche `reels-studio`) : base Turso
+séparée `zone-chretien-media-preview` (même organisation et même groupe que la production),
+remplie depuis une sauvegarde vérifiée :
+
+1. Fichier `.env.preview-restore` (non versionné) : `TURSO_PREVIEW_URL` et `TURSO_PREVIEW_TOKEN`
+   (jeton lecture/écriture de la base preview uniquement).
+2. `npm run db:restore-preview -- --fichier <sauvegarde.sql>` : recharge d'abord la sauvegarde
+   dans une base locale temporaire, puis la restaure et vérifie chaque table et la recherche
+   biblique. Refuse l'URL de production, toute base qui ne s'appelle pas
+   `zone-chretien-media-preview` et toute base non vide.
+3. Vercel → variables `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` (base preview) et `AUTH_SECRET`
+   (distinct de la production) pour l'environnement **Preview, branche `reels-studio`**
+   uniquement.
 
 ⚠ Ne pas utiliser `prisma migrate dev` dans ce dépôt : il propose de supprimer les tables de
 recherche de la Bible (`bible_verses_fts*`), créées hors Prisma. Générer les migrations avec
@@ -192,6 +222,9 @@ les réseaux sociaux, template pour les articles, charte et logo définitifs.
 - Le studio prépare les templates au démarrage : relancer le studio après un `git pull`.
 - Un export à la fois ; ~30 à 60 s par vidéo selon la durée et le PC.
 - Chemins Windows limités à 260 caractères : garder le dépôt près de la racine du disque.
+- Service worker du site : il laisse passer sans les intercepter les requêtes vers le studio
+  local (`127.0.0.1`, `localhost`) ; sinon Chrome ne peut pas afficher la demande d'accès au
+  réseau local et l'éditeur reste « Studio local non connecté » sur le site HTTPS.
 - Accès au studio depuis le site HTTPS : Chrome / Edge demandent une autorisation ; Safari non
   pris en charge ; Firefox non testé.
 - Numérotation des versets alignée sur le site (titres des psaumes inclus dans le verset 1).

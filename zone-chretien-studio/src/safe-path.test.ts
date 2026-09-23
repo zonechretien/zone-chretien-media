@@ -9,7 +9,8 @@ let root: string;
 
 beforeAll(() => {
   base = fs.mkdtempSync(path.join(os.tmpdir(), "zc-safe-path-"));
-  root = path.join(base, "disque");
+  // base = le disque, root = le dossier dédié de la bibliothèque à sa racine.
+  root = path.join(base, "Zone-Chretien-Studio");
   fs.mkdirSync(path.join(root, "Musiques", "Calme"), { recursive: true });
   fs.writeFileSync(path.join(root, "Musiques", "Calme", "douce.mp3"), "x");
   fs.mkdirSync(path.join(root, ".zc-cache"));
@@ -17,8 +18,11 @@ beforeAll(() => {
   fs.mkdirSync(path.join(base, "secret"));
   fs.writeFileSync(path.join(base, "secret", "motdepasse.txt"), "x");
   fs.writeFileSync(path.join(base, "disque-voisin.txt"), "x");
+  fs.mkdirSync(path.join(base, "Documents personnels"));
+  fs.writeFileSync(path.join(base, "Documents personnels", "lettre.docx"), "x");
   // Jonction Windows (pas besoin de droits administrateur) qui pointe hors de la bibliothèque.
   fs.symlinkSync(path.join(base, "secret"), path.join(root, "Musiques", "lien"), "junction");
+  fs.symlinkSync(base, path.join(root, "Fonds-disque"), "junction");
 });
 
 afterAll(() => fs.rmSync(base, { recursive: true, force: true }));
@@ -47,6 +51,12 @@ describe("resolveLibraryFile", () => {
   it("refuse la traversée de chemin", () => {
     expect(() => resolveLibraryFile(root, "../secret/motdepasse.txt")).toThrow(UnsafePathError);
     expect(() => resolveLibraryFile(root, "Musiques/../../disque-voisin.txt")).toThrow(UnsafePathError);
+  });
+
+  it("ne lit jamais les autres fichiers du disque, hors du dossier de la bibliothèque", () => {
+    expect(() => resolveLibraryFile(root, "../Documents personnels/lettre.docx")).toThrow(UnsafePathError);
+    expect(() => resolveLibraryFile(root, "Fonds-disque/Documents personnels/lettre.docx")).toThrow(UnsafePathError);
+    expect(() => resolveLibraryFile(root, "Fonds-disque/disque-voisin.txt")).toThrow(UnsafePathError);
   });
 
   it("refuse un chemin absolu", () => {

@@ -1,6 +1,8 @@
 /**
- * Prépare un disque pour Zone-Chrétien : crée le fichier repère
- * zc-studio.json et les dossiers de la bibliothèque à la racine du disque.
+ * Prépare un disque pour Zone-Chrétien : crée, à la racine du disque, le
+ * dossier dédié de la bibliothèque (config.json → dossierBibliotheque, par
+ * défaut Zone-Chretien-Studio), son fichier repère zc-studio.json et ses
+ * sous-dossiers. Rien d'autre n'est créé ni modifié sur le disque.
  *
  *   npm run preparer-disque            → disque où se trouve le studio
  *   npm run preparer-disque -- G:      → autre disque
@@ -9,17 +11,24 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { APP_ID } from "./config";
+import { APP_ID, loadConfig } from "./config";
 import { LIBRARY_FOLDERS, MARKER_FILE, ensureLibraryFolders, type Marker } from "./drive";
 import { STUDIO_DIR } from "./paths";
 
 const target = process.argv[2];
-const root = target ? path.parse(path.resolve(target.endsWith(":") ? `${target}\\` : target)).root : path.parse(STUDIO_DIR).root;
+const driveRoot = target ? path.parse(path.resolve(target.endsWith(":") ? `${target}\\` : target)).root : path.parse(STUDIO_DIR).root;
 
-if (!fs.existsSync(root)) {
-  console.error(`Disque introuvable : ${root}`);
+if (!fs.existsSync(driveRoot)) {
+  console.error(`Disque introuvable : ${driveRoot}`);
   process.exit(1);
 }
+
+const root = path.join(driveRoot, loadConfig().dossierBibliotheque);
+if (fs.existsSync(root) && !fs.lstatSync(root).isDirectory()) {
+  console.error(`Refusé : ${root} existe mais n'est pas un vrai dossier (fichier, lien symbolique ou jonction).`);
+  process.exit(1);
+}
+fs.mkdirSync(root, { recursive: true });
 
 const markerPath = path.join(root, MARKER_FILE);
 if (fs.existsSync(markerPath)) {
@@ -30,4 +39,4 @@ if (fs.existsSync(markerPath)) {
   console.log(`Repère créé : ${markerPath}`);
 }
 ensureLibraryFolders(root);
-console.log(`Dossiers prêts : ${LIBRARY_FOLDERS.join(", ")}`);
+console.log(`Bibliothèque prête : ${root} (${LIBRARY_FOLDERS.join(", ")})`);

@@ -14,8 +14,9 @@
  * Le script n'exécute que des lectures sur la base. Le fichier produit contient
  * toutes les données (comptes, empreintes de mots de passe, newsletter…) : il
  * est REFUSÉ dans le dépôt Git et dans la bibliothèque de médias du studio
- * local (tout dossier situé sous un zc-studio.json, quelle que soit la lettre
- * du disque) — à ranger dans un endroit sûr.
+ * local (dossier <lecteur>:\Zone-Chretien-Studio, quelle que soit la lettre du
+ * disque, et tout dossier situé sous un zc-studio.json) — à ranger dans un
+ * endroit sûr.
  *
  * Restauration (dans une NOUVELLE base, jamais par-dessus la production) :
  *   turso db create zone-chretien-media-restauree --from-dump <fichier.sql>
@@ -33,21 +34,67 @@ const REPO_ROOT = path.resolve(__dirname, "..");
 export const DEFAULT_OUT_DIR = path.join(os.homedir(), "Documents", "Sauvegardes-Turso");
 /** Repère de la bibliothèque de médias servie par le studio local (voir zone-chretien-studio/src/drive.ts). */
 const LIBRARY_MARKER = "zc-studio.json";
+const STUDIO_DIR = path.join(REPO_ROOT, "zone-chretien-studio");
+
+/**
+ * Nom du dossier de la bibliothèque du studio, à la racine d'un lecteur
+ * (config.json du studio → dossierBibliotheque, éventuellement changé par config.local.json).
+ */
+export function libraryFolderName(studioDir: string = STUDIO_DIR): string {
+  let name = "Zone-Chretien-Studio";
+  for (const file of ["config.json", "config.local.json"]) {
+    try {
+      const value = (JSON.parse(fs.readFileSync(path.join(studioDir, file), "utf8")) as { dossierBibliotheque?: unknown }).dossierBibliotheque;
+      if (typeof value === "string" && value) name = value;
+    } catch {
+      // Fichier absent ou illisible : valeur précédente conservée.
+    }
+  }
+  return name;
+}
+
+/** Chemin réel (liens symboliques et jonctions résolus) du plus proche parent existant, suivi du reste du chemin. */
+function realPathOfNearest(p: string): string {
+  const rest: string[] = [];
+  let cur = p;
+  while (!fs.existsSync(cur) && path.dirname(cur) !== cur) {
+    rest.unshift(path.basename(cur));
+    cur = path.dirname(cur);
+  }
+  try {
+    cur = fs.realpathSync.native(cur);
+  } catch {
+    // Lecteur absent : chemin laissé tel quel.
+  }
+  return path.join(cur, ...rest);
+}
+
+function isInsideDir(parent: string, child: string): boolean {
+  const norm = (p: string) => (process.platform === "win32" ? p.toLowerCase() : p);
+  const rel = path.relative(norm(parent), norm(child));
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
 
 /**
  * Raison de refuser un dossier de sortie, ou null s'il convient : le fichier
- * ne doit être ni dans le dépôt Git, ni dans une bibliothèque de médias (un
- * dossier dont lui-même ou un parent contient zc-studio.json).
+ * ne doit être ni dans le dépôt Git, ni dans la bibliothèque de médias du
+ * studio, c'est-à-dire ni sous <lecteur>:\<dossierBibliotheque> (quelle que
+ * soit la lettre), ni sous un dossier contenant zc-studio.json. Le chemin est
+ * aussi vérifié après résolution des liens symboliques et jonctions.
  */
-export function unsafeOutDirReason(outDir: string, repoRoot: string = REPO_ROOT): string | null {
-  const dir = path.resolve(outDir);
-  const rel = path.relative(repoRoot, dir);
-  if (!rel.startsWith("..") && !path.isAbsolute(rel)) return "ce dossier est dans le dépôt Git";
-  for (let d = dir; ; d = path.dirname(d)) {
-    const marker = path.join(d, LIBRARY_MARKER);
-    if (fs.existsSync(marker)) return `ce dossier est dans la bibliothèque de médias du studio (${marker})`;
-    if (path.dirname(d) === d) return null;
+export function unsafeOutDirReason(outDir: string, repoRoot: string = REPO_ROOT, folderName: string = libraryFolderName()): string | null {
+  const asGiven = path.resolve(outDir);
+  for (const dir of new Set([asGiven, realPathOfNearest(asGiven)])) {
+    if (isInsideDir(repoRoot, dir)) return "ce dossier est dans le dépôt Git";
+    const libraryDir = path.join(path.parse(dir).root, folderName);
+    if (isInsideDir(libraryDir, dir)) return `ce dossier est dans la bibliothèque de médias du studio (${libraryDir})`;
+    for (let d = dir; ; d = path.dirname(d)) {
+      const marker = path.join(d, LIBRARY_MARKER);
+      if (fs.existsSync(marker)) return `ce dossier est dans la bibliothèque de médias du studio (${marker})`;
+      if (path.dirname(d) === d) break;
+    }
   }
+  return null;
 }
 
 function arg(name: string): string | undefined {

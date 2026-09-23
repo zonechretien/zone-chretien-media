@@ -6,12 +6,21 @@ import { STUDIO_DIR } from "./paths";
 /**
  * Configuration du studio : config.json (versionné, valeurs par défaut) puis
  * config.local.json (facultatif, non versionné) qui le complète — par exemple
- * pour ajouter l'adresse exacte d'un déploiement de prévisualisation Vercel.
+ * pour ajouter l'adresse exacte d'un déploiement de prévisualisation Vercel ou
+ * changer le nom du dossier de la bibliothèque.
  */
+
+/** Nom d'un dossier unique à la racine d'un lecteur : ni séparateur, ni lettre de lecteur, ni « . » / « .. ». */
+export function isValidFolderName(name: string): boolean {
+  return /^[^\\/:*?"<>|\0]{1,64}$/.test(name) && name.trim() === name && !name.startsWith(".") && !name.endsWith(".");
+}
+
 const configSchema = z.object({
   port: z.number().int().min(1024).max(65535),
   /** Origines exactes (schéma + hôte + port) autorisées à appeler le studio. */
   originesAutorisees: z.array(z.string().url()),
+  /** Dossier de la bibliothèque, cherché à la racine de chaque lecteur (X:\<dossier>\zc-studio.json). */
+  dossierBibliotheque: z.string().refine(isValidFolderName, 'nom de dossier invalide (un seul dossier, sans \\ / : * ? " < > |)'),
 });
 export type StudioConfig = z.infer<typeof configSchema>;
 
@@ -29,5 +38,6 @@ export function loadConfig(dir = STUDIO_DIR): StudioConfig {
   return {
     port: local.port ?? base.port,
     originesAutorisees: [...new Set([...base.originesAutorisees, ...(local.originesAutorisees ?? [])])],
+    dossierBibliotheque: local.dossierBibliotheque ?? base.dossierBibliotheque,
   };
 }

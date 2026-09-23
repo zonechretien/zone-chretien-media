@@ -12,15 +12,17 @@ Développé par Lepolo.
 ## 1. Organisation du disque externe
 
 ```
-G:\                                  (la lettre peut changer : E:, F:, G:…)
-├── zc-studio.json                   repère du disque (créé par PREPARER-DISQUE.bat)
-├── Fonds\                           images et vidéos de fond (.jpg .png .webp .mp4 .mov .webm)
-├── Musiques\                        musiques (.mp3 .m4a .aac .wav .ogg)
-├── VoixOff\                         voix off enregistrées depuis l'éditeur
-├── Logos\                           logos (.png .jpg .webp)
-├── Polices\                         polices supplémentaires (.ttf .otf .woff .woff2)
-├── Exports\                         vidéos MP4 exportées
-├── .zc-cache\                       miniatures générées (peut être supprimé sans risque)
+G:\                                  (la lettre peut changer : D:, E:, F:, G:…)
+├── Zone-Chretien-Studio\            BIBLIOTHÈQUE : le seul dossier que le studio lit et écrit
+│   ├── zc-studio.json               repère de la bibliothèque (créé par PREPARER-DISQUE.bat)
+│   ├── Fonds\                       images et vidéos de fond (.jpg .png .webp .mp4 .mov .webm)
+│   ├── Musiques\                    musiques (.mp3 .m4a .aac .wav .ogg)
+│   ├── VoixOff\                     voix off enregistrées depuis l'éditeur
+│   ├── Logos\                       logos (.png .jpg .webp)
+│   ├── Polices\                     polices supplémentaires (.ttf .otf .woff .woff2)
+│   ├── Exports\                     vidéos MP4 exportées
+│   └── .zc-cache\                   miniatures générées (peut être supprimé sans risque)
+├── (vos autres dossiers)            jamais lus par le studio
 ├── runtime\
 │   ├── node\                        Node.js portable (node.exe)
 │   └── git\                         PortableGit (facultatif)
@@ -30,9 +32,18 @@ G:\                                  (la lettre peut changer : E:, F:, G:…)
         └── PREPARER-DISQUE.bat
 ```
 
-Tous les médias sont référencés par **chemin relatif** à la racine du disque
+Le studio cherche `<lecteur>:\Zone-Chretien-Studio\zc-studio.json` sur chaque lecteur (C: à Z:)
+et ne sert que le contenu de ce dossier : le reste du disque n'est jamais lu. Pour un autre
+nom de dossier, créer `zone-chretien-studio\config.local.json` (non versionné) :
+`{ "dossierBibliotheque": "Mon-Dossier" }` — un seul nom de dossier, sans `\ / :`.
+
+Tous les médias sont référencés par **chemin relatif** au dossier de la bibliothèque
 (ex. `Musiques/adoration-douce.mp3`) : aucun chemin absolu ni lettre de lecteur n'est
 enregistré, le disque peut changer de lettre d'un branchement à l'autre.
+
+> Disque préparé avec une version précédente (repère `zc-studio.json` à la racine) : relancer
+> `PREPARER-DISQUE.bat`, puis déplacer `Fonds\`, `Musiques\`, `VoixOff\`, `Logos\`, `Polices\`
+> et `Exports\` dans `Zone-Chretien-Studio\` et supprimer l'ancien `zc-studio.json` de la racine.
 
 > Gardez le dépôt **près de la racine** du disque (`G:\zone-chretien\`) : Windows limite les
 > chemins à 260 caractères et le navigateur de rendu est rangé assez profondément.
@@ -61,14 +72,16 @@ de variable d'environnement système. Tout reste sur le disque.
      `G:\zone-chretien\`.
 3. **Préparer le disque** — double-cliquer `zone-chretien-studio\PREPARER-DISQUE.bat`.
    Au premier lancement, il installe le studio (connexion Internet requise, ~1 minute), puis
-   crée `zc-studio.json` et les dossiers de la bibliothèque. Il ne supprime ni n'écrase rien.
+   crée `Zone-Chretien-Studio\` avec `zc-studio.json` et les dossiers de la bibliothèque. Il
+   ne touche à rien d'autre sur le disque et ne supprime ni n'écrase rien. Pour préparer un
+   autre disque que celui du studio : `npm run preparer-disque -- D:`.
 4. **Lancer le studio** — double-cliquer `zone-chretien-studio\LANCER-STUDIO.bat`.
    Au premier lancement, il télécharge le navigateur de rendu (~115 Mo, une seule fois, rangé
    dans `zone-chretien-studio\node_modules\.remotion\`). La fenêtre affiche :
    ```
    Zone-Chrétien Reels Studio — développé par Lepolo
    Adresse : http://127.0.0.1:4317
-   Disque  : Bibliothèque Zone-Chrétien (G:\)
+   Disque  : Bibliothèque Zone-Chrétien (G:\Zone-Chretien-Studio)
    ```
    **Laisser cette fenêtre ouverte** pendant l'utilisation de l'éditeur ; `Ctrl+C` ou la
    fermeture de la fenêtre arrête le studio.
@@ -122,8 +135,9 @@ proche, seules des adresses exactes sont acceptées.
   ce qui oblige le navigateur à demander l'autorisation au studio : un site non autorisé ne
   peut ni lancer un rendu ni déposer un fichier.
 - Médias en **lecture seule**, limités à la bibliothèque : chemins `..`, chemins absolus,
-  lettres de lecteur, dossiers cachés et liens symboliques / jonctions qui sortent du disque
-  sont refusés.
+  lettres de lecteur, dossiers cachés et liens symboliques / jonctions qui sortent du dossier
+  `Zone-Chretien-Studio` sont refusés ; un dossier de bibliothèque qui serait lui-même un lien
+  ou une jonction est ignoré. Le reste du disque n'est jamais lu.
 - Seul le dossier `VoixOff/` reçoit des fichiers (voix off, 50 Mo maximum), jamais
   d'écrasement ; les exports vont dans `Exports/`.
 
@@ -169,7 +183,7 @@ TikTok et YouTube). `Ctrl+C` annule proprement.
 
 | Message | Que faire |
 |---|---|
-| Disque Zone-Chrétien non détecté… | Brancher le disque, puis « Réessayer » |
+| Disque Zone-Chrétien non détecté… | Brancher le disque, puis « Réessayer ». Vérifier que `Zone-Chretien-Studio\zc-studio.json` existe à la racine du disque (sinon `PREPARER-DISQUE.bat`) |
 | Média introuvable : … | Le fichier a été déplacé ou renommé sur le disque |
 | Format de média non supporté | Convertir le fichier (voir les formats au §1) |
 | Espace disque insuffisant… | Libérer au moins 500 Mo sur le disque |

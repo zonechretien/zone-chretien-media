@@ -23,10 +23,11 @@ déployé sur Vercel, et studio local de Reels dans `zone-chretien-studio/`).
    `eslint.config.mjs`). Le studio a son propre `package.json` : ses dépendances de rendu ne
    doivent jamais être installées ni compilées par Vercel.
 
-4. **Les sauvegardes Turso ne doivent jamais être créées dans le dépôt Git ni sur le disque
-   externe des médias** (tout dossier situé sous un `zc-studio.json`). Utiliser
-   `npm run db:backup`, qui écrit par défaut dans `Documents\Sauvegardes-Turso` et refuse ces
-   emplacements.
+4. **Les sauvegardes Turso ne doivent jamais être créées dans le dépôt Git ni dans la
+   bibliothèque de médias du studio** : le dossier dédié `<lecteur>:\Zone-Chretien-Studio`
+   (quelle que soit la lettre ; nom réglable par `dossierBibliotheque` dans la configuration
+   du studio) et tout dossier situé sous un `zc-studio.json`. Utiliser `npm run db:backup`,
+   qui écrit par défaut dans `Documents\Sauvegardes-Turso` et refuse ces emplacements.
 
 5. **Aucun fichier `.env` ne doit être commité** (`.env`, `.env.backup`, etc. — règle `.env*`
    du `.gitignore`).

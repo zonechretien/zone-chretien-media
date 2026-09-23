@@ -18,7 +18,7 @@ import { APP_ID, loadConfig } from "./config";
 import {
   DRIVE_NOT_FOUND_MESSAGE,
   MARKER_FILE,
-  candidateRoots,
+  candidateLibraries,
   detectLibrary,
   ensureLibraryFolders,
   type Library,
@@ -50,7 +50,12 @@ let library: Library | null = null;
 
 function detect(): Library | null {
   library = detectLibrary(
-    candidateRoots({ override: process.env.ZC_BIBLIOTHEQUE, studioDir: STUDIO_DIR, platform: process.platform }),
+    candidateLibraries({
+      override: process.env.ZC_BIBLIOTHEQUE,
+      studioDir: STUDIO_DIR,
+      platform: process.platform,
+      folderName: config.dossierBibliotheque,
+    }),
   );
   if (library) ensureLibraryFolders(library.root);
   return library;
@@ -398,7 +403,7 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log("");
   console.log("  Zone-Chrétien Reels Studio — développé par Lepolo");
   console.log(`  Adresse : http://127.0.0.1:${PORT}`);
-  console.log(lib ? `  Disque  : ${lib.marker.nom} (${path.parse(lib.root).root})` : `  ${DRIVE_NOT_FOUND_MESSAGE}`);
+  console.log(lib ? `  Disque  : ${lib.marker.nom} (${lib.root})` : `  ${DRIVE_NOT_FOUND_MESSAGE} (dossier cherché : <lecteur>:\\${config.dossierBibliotheque})`);
   console.log("  Laisse cette fenêtre ouverte pendant l'utilisation. Ctrl+C pour arrêter.");
   console.log("");
   void checkBrowser();

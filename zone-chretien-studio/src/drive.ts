@@ -4,16 +4,19 @@ import { z } from "zod";
 import { APP_ID } from "./config";
 
 /**
- * Détection du disque externe Zone-Chrétien.
+ * Détection de la bibliothèque Zone-Chrétien sur un disque externe.
  *
- * Un fichier repère `zc-studio.json` à la racine du disque identifie la
- * bibliothèque. La lettre du disque peut changer d'un branchement à l'autre :
- * elle n'est jamais enregistrée, on la retrouve à chaque démarrage.
+ * La bibliothèque est un dossier dédié à la racine d'un lecteur
+ * (`X:\Zone-Chretien-Studio`, nom réglable par `dossierBibliotheque` dans
+ * config.local.json) qui contient le fichier repère `zc-studio.json`. Le
+ * reste du disque n'est jamais lu. La lettre du disque peut changer d'un
+ * branchement à l'autre : elle n'est jamais enregistrée, on la retrouve à
+ * chaque démarrage.
  */
 
 export const MARKER_FILE = "zc-studio.json";
 
-/** Dossiers de la bibliothèque (à la racine du disque). */
+/** Sous-dossiers de la bibliothèque. */
 export const LIBRARY_FOLDERS = ["Fonds", "Musiques", "VoixOff", "Logos", "Polices", "Exports"] as const;
 export type LibraryFolder = (typeof LIBRARY_FOLDERS)[number];
 
@@ -33,6 +36,8 @@ export const DRIVE_NOT_FOUND_MESSAGE =
 export type DriveFs = {
   exists: (p: string) => boolean;
   readText: (p: string) => string;
+  /** Vrai si le chemin est un vrai dossier (pas un lien symbolique ni une jonction). */
+  isRealDirectory: (p: string) => boolean;
 };
 
 const realFs: DriveFs = {
@@ -44,6 +49,13 @@ const realFs: DriveFs = {
     }
   },
   readText: (p) => fs.readFileSync(p, "utf8"),
+  isRealDirectory: (p) => {
+    try {
+      return fs.lstatSync(p).isDirectory();
+    } catch {
+      return false;
+    }
+  },
 };
 
 /** Racines de lecteurs Windows possibles, de C: à Z: (A: et B: sont des lecteurs de disquettes). */
@@ -52,19 +64,25 @@ export function windowsDriveRoots(): string[] {
 }
 
 /**
- * Ordre de recherche : dossier forcé (développement), puis le disque où se
- * trouve le studio lui-même (cas normal : tout est sur le disque externe),
- * puis toutes les autres lettres.
+ * Dossiers de bibliothèque possibles, dans l'ordre de recherche : dossier
+ * forcé (développement, variable ZC_BIBLIOTHEQUE), sinon <lecteur>\<dossier>
+ * sur le disque où se trouve le studio lui-même, puis sur toutes les autres lettres.
  */
-export function candidateRoots(opts: { override?: string; studioDir: string; platform: NodeJS.Platform }): string[] {
+export function candidateLibraries(opts: { override?: string; studioDir: string; platform: NodeJS.Platform; folderName: string }): string[] {
   if (opts.override) return [path.resolve(opts.override)];
-  if (opts.platform !== "win32") return [path.parse(opts.studioDir).root];
-  const own = path.parse(opts.studioDir).root.toUpperCase();
-  return [own, ...windowsDriveRoots().filter((r) => r !== own)];
+  const own = path.parse(opts.studioDir).root;
+  const roots = opts.platform !== "win32" ? [own] : [own.toUpperCase(), ...windowsDriveRoots().filter((r) => r !== own.toUpperCase())];
+  return roots.map((root) => path.join(root, opts.folderName));
 }
 
-export function detectLibrary(roots: string[], fsApi: DriveFs = realFs): Library | null {
-  for (const root of roots) {
+/**
+ * Premier dossier candidat qui contient un repère valide. Un dossier qui est
+ * un lien symbolique ou une jonction est ignoré : la bibliothèque doit être
+ * un vrai dossier, pour que rien ne puisse être servi depuis ailleurs.
+ */
+export function detectLibrary(candidates: string[], fsApi: DriveFs = realFs): Library | null {
+  for (const root of candidates) {
+    if (!fsApi.isRealDirectory(root)) continue;
     const markerPath = path.join(root, MARKER_FILE);
     if (!fsApi.exists(markerPath)) continue;
     try {
