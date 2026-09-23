@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/admin/session";
 import { TEMPLATE_METAS, isTemplateId, parseTemplateData } from "@reels/template-meta";
 import { exportPathSchema, newReelSchema, saveReelSchema, type NewReelInput, type SaveReelInput } from "@/lib/validations/reels";
+import { lookupPassage } from "@/lib/bible/lsg1910";
+import { REEL_SOURCES, draftFromDevotion, draftFromVerse, sameBibleText, type ReelDraft, type ReelSourceType } from "@/lib/reels/sources";
 
 /** Crée un projet de Reel avec les valeurs par défaut du template, puis ouvre l'éditeur. */
 export async function createReel(input: NewReelInput): Promise<{ error?: string }> {
@@ -79,4 +81,47 @@ export async function deleteReel(id: string): Promise<{ error?: string }> {
   await prisma.reelProject.delete({ where: { id } });
   revalidatePath("/admin/reels");
   return {};
+}
+
+/** Référence mise en forme et vérification que le texte est bien celui de la LSG 1910. */
+function checkBibleText(reference: string, text: string) {
+  const found = lookupPassage(reference);
+  if (!found.ok) return { formattedReference: null, isLsg1910: false };
+  return { formattedReference: found.passage.reference, isLsg1910: sameBibleText(found.passage.text, text) };
+}
+
+/**
+ * « Transformer en Reel » : crée un projet prérempli à partir d'un contenu du
+ * CMS (lié à sa source via sourceType / sourceId), puis ouvre l'éditeur.
+ */
+export async function createReelFromContent(sourceType: ReelSourceType, sourceId: string): Promise<{ error?: string }> {
+  await requireSession();
+  if (!REEL_SOURCES[sourceType]) return { error: "Fonction en développement pour ce type de contenu." };
+
+  let draft: ReelDraft | null = null;
+  if (sourceType === "VERSE") {
+    const verse = await prisma.verse.findUnique({ where: { id: sourceId }, select: { reference: true, text: true, date: true } });
+    if (verse) draft = draftFromVerse(verse, checkBibleText(verse.reference, verse.text));
+  } else if (sourceType === "DEVOTION") {
+    const devotion = await prisma.devotion.findUnique({
+      where: { id: sourceId },
+      select: { title: true, mainVerseRef: true, mainVerseText: true },
+    });
+    if (devotion) draft = draftFromDevotion(devotion, checkBibleText(devotion.mainVerseRef, devotion.mainVerseText));
+  }
+  if (!draft) return { error: "Contenu introuvable." };
+
+  const reel = await prisma.reelProject.create({
+    data: {
+      title: draft.title,
+      templateId: draft.templateId,
+      format: draft.props.format,
+      data: JSON.stringify(draft.props),
+      sourceType,
+      sourceId,
+    },
+  });
+
+  revalidatePath("/admin/reels");
+  redirect(`/admin/reels/${reel.id}`);
 }
