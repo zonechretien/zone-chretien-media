@@ -28,6 +28,16 @@ const serwist = new Serwist({
   },
 });
 
+// Studio local des Reels (http://127.0.0.1:4317) : requêtes jamais interceptées.
+// Relayées par le service worker, elles échouent depuis le site HTTPS : Chrome
+// n'affiche la demande d'accès au réseau local que pour une requête faite par
+// la page elle-même. Enregistré avant Serwist pour l'empêcher d'y répondre.
+const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin && LOCAL_HOSTS.has(url.hostname)) event.stopImmediatePropagation();
+});
+
 serwist.addEventListeners();
 
 // --- Notifications push (verset du jour) -------------------------------------
