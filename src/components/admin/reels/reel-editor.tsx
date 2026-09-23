@@ -139,7 +139,10 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
               >
                 <option value="DRAFT">{REEL_STATUS_LABELS.DRAFT}</option>
                 <option value="READY">{REEL_STATUS_LABELS.READY}</option>
-                <option value="EXPORTED" disabled>{REEL_STATUS_LABELS.EXPORTED} (après un export)</option>
+                <option value="EXPORTED" disabled>
+                  {REEL_STATUS_LABELS.EXPORTED}
+                  {status === "EXPORTED" ? "" : " (après un export)"}
+                </option>
               </select>
             </FormRow>
           </div>

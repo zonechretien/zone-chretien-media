@@ -12,7 +12,7 @@ describe("describeObject (template Verset)", () => {
   });
 
   it("reprend libellés et contraintes du schéma", () => {
-    expect(byKey("reference")).toMatchObject({ kind: "text", label: "Référence", maxLength: 60, multiline: false, optional: false });
+    expect(byKey("reference")).toMatchObject({ kind: "text", label: "Référence", maxLength: 60, multiline: false, optional: false, bibleTextField: "text" });
     expect(byKey("kicker")).toMatchObject({ kind: "text", optional: true, maxLength: 40 });
     expect(byKey("text")).toMatchObject({ kind: "text", multiline: true, maxLength: 1500 });
     expect(byKey("durationSeconds")).toMatchObject({ kind: "number", nullable: true, min: 6, max: 90 });

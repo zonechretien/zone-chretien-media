@@ -3,6 +3,7 @@
 import { FieldLabel, FormRow, checkboxClass, inputClass, selectClass, textareaClass } from "@/components/admin/form-fields";
 import type { FieldDesc } from "@/lib/reels/form-model";
 import { studio } from "@/lib/reels/studio-client";
+import { BibleInsert } from "./bible-insert";
 import { MediaPicker } from "./media-picker";
 
 type Path = string[];
@@ -19,7 +20,7 @@ export function ReelFields({ fields, ctx, prefix = [] }: { fields: FieldDesc[]; 
   return (
     <>
       {fields.map((field) => (
-        <Field key={field.key} field={field} ctx={ctx} path={[...prefix, field.key]} />
+        <Field key={field.key} field={field} siblings={fields} ctx={ctx} path={[...prefix, field.key]} />
       ))}
     </>
   );
@@ -34,7 +35,7 @@ function Error({ ctx, path }: { ctx: FieldsContext; path: Path }) {
   return message ? <p className="mt-1 text-sm text-red-500">{message}</p> : null;
 }
 
-function Field({ field, ctx, path }: { field: FieldDesc; ctx: FieldsContext; path: Path }) {
+function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: FieldDesc[]; ctx: FieldsContext; path: Path }) {
   const id = `reel-${path.join("-")}`;
   const value = ctx.get(path);
 
@@ -59,6 +60,19 @@ function Field({ field, ctx, path }: { field: FieldDesc; ctx: FieldsContext; pat
           )}
           <Help text={field.help} />
           <Error ctx={ctx} path={path} />
+          {field.bibleTextField && (
+            <BibleInsert
+              reference={text}
+              maxTextLength={(() => {
+                const target = siblings.find((s) => s.key === field.bibleTextField);
+                return target?.kind === "text" ? target.maxLength : undefined;
+              })()}
+              onInsert={(reference, passage) => {
+                ctx.set(path, reference);
+                ctx.set([...path.slice(0, -1), field.bibleTextField!], passage);
+              }}
+            />
+          )}
         </FormRow>
       );
     }

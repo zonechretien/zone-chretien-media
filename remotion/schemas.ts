@@ -19,6 +19,8 @@ export type FieldMeta = {
   placeholder?: string;
   /** Rendu particulier ; par défaut, déduit du type zod. */
   widget?: "textarea" | "color" | "media" | "slider" | "hidden" | "format";
+  /** Champ « référence biblique » : bouton d'insertion du texte LSG 1910 dans le champ indiqué. */
+  bible?: { textField: string };
 };
 const field = (meta: FieldMeta) => meta;
 
@@ -89,7 +91,7 @@ export const versetSchema = baseTemplateSchema.extend({
     .trim()
     .min(1, "La référence est obligatoire")
     .max(60)
-    .meta(field({ label: "Référence", placeholder: "Ex. Psaume 34:8" })),
+    .meta(field({ label: "Référence", placeholder: "Ex. Psaume 34:8, Jn 3:16-17, 1 Co 13:4", bible: { textField: "text" } })),
   text: z
     .string()
     .trim()

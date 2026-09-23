@@ -11,7 +11,18 @@ import type { FieldMeta } from "@reels/schemas";
 export type MediaKind = "image" | "video" | "audio";
 
 export type FieldDesc =
-  | { kind: "text"; key: string; label: string; help?: string; placeholder?: string; maxLength?: number; multiline: boolean; optional: boolean }
+  | {
+      kind: "text";
+      key: string;
+      label: string;
+      help?: string;
+      placeholder?: string;
+      maxLength?: number;
+      multiline: boolean;
+      optional: boolean;
+      /** Référence biblique : nom du champ voisin qui reçoit le texte LSG 1910. */
+      bibleTextField?: string;
+    }
   | { kind: "boolean"; key: string; label: string; help?: string }
   | { kind: "number"; key: string; label: string; help?: string; min?: number; max?: number; nullable: boolean; slider: boolean }
   | { kind: "color"; key: string; label: string; help?: string }
@@ -66,6 +77,7 @@ function describeField(key: string, schema: AnySchema, context: { mediaKind?: Me
       maxLength: s.maxLength ?? undefined,
       multiline: meta.widget === "textarea",
       optional: !s.minLength,
+      bibleTextField: meta.bible?.textField,
     };
   }
   if (t === "boolean") return { kind: "boolean", ...base };
