@@ -55,3 +55,11 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Reels Studio (studio local, voir docs/SPEC-REELS-STUDIO.md) : dépendances,
+# navigateur de rendu, caches, exports et Node portable — jamais versionnés.
+/zone-chretien-studio/node_modules/
+/zone-chretien-studio/.cache/
+/zone-chretien-studio/out/
+/runtime/
+*.mp4

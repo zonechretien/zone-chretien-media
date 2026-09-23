@@ -1,0 +1,5 @@
+# Studio local Reels (serveur + moteur de rendu MP4 sur le PC) : jamais déployé ni
+# construit par Vercel. Ses dépendances (@remotion/renderer, @remotion/bundler…)
+# vivent dans son propre package.json.
+zone-chretien-studio/
+runtime/

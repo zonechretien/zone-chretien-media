@@ -1,0 +1,31 @@
+{
+  "name": "zc-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zone-Chrétien Reels Studio — serveur local et moteur de rendu MP4 (Node portable, sans droits administrateur).",
+  "author": "Lepolo",
+  "zcStudio": {
+    "appId": "com.lepolo.zc-studio"
+  },
+  "scripts": {
+    "navigateur": "tsx src/install-browser.ts",
+    "rendu": "tsx src/render-cli.ts",
+    "rendu:exemple": "tsx src/render-cli.ts --template Verset --props exemples/verset-psaume-34.json --out out/verset-psaume-34.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.527",
+    "@remotion/fonts": "4.0.527",
+    "@remotion/renderer": "4.0.527",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.527",
+    "tsx": "4.23.15",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@types/react": "19.2.18",
+    "typescript": "5.9.3"
+  }
+}
