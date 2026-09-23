@@ -23,7 +23,8 @@
     "bible:verify": "tsx --env-file=.env scripts/bible/verify-import.ts",
     "bible:seed-full-plans": "tsx --env-file=.env scripts/bible/seed-full-bible-plans.ts",
     "lance_app": "lance_app.bat",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:backup": "tsx --env-file-if-exists=.env.backup scripts/turso-backup.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.0",
