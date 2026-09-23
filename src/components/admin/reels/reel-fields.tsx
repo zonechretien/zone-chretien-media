@@ -37,7 +37,8 @@ function Error({ ctx, path }: { ctx: FieldsContext; path: Path }) {
 }
 
 function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: FieldDesc[]; ctx: FieldsContext; path: Path }) {
-  const id = `reel-${path.join("-")}`;
+  // Préfixe distinct des champs fixes de l'éditeur (ex. « reel-title », titre du projet).
+  const id = `reel-field-${path.join("-")}`;
   const value = ctx.get(path);
 
   switch (field.kind) {
