@@ -3,7 +3,7 @@
 import { Player } from "@remotion/player";
 import { useMemo } from "react";
 import { TEMPLATES, type TemplateId } from "@reels/templates";
-import type { VersetProps } from "@reels/schemas";
+import type { AnyTemplateProps } from "@reels/template-meta";
 
 /**
  * Aperçu en direct : le MÊME composant Remotion que celui rendu en MP4 par le
@@ -17,7 +17,7 @@ export default function ReelPreview({
   showSafeZones,
 }: {
   templateId: TemplateId;
-  props: VersetProps;
+  props: AnyTemplateProps;
   mediaBaseUrl?: string;
   showSafeZones: boolean;
 }) {

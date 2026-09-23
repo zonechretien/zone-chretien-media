@@ -29,3 +29,12 @@ describe("computeSequenceTiming", () => {
     for (const s of t.segments) expect(s.duration).toBeGreaterThanOrEqual(2.5 * 30);
   });
 });
+
+describe("durée imposée exacte à l'image près", () => {
+  it("la somme des écrans tombe pile sur la durée demandée", () => {
+    for (const d of [7, 12.3, 30, 61]) {
+      const t = computeSequenceTiming({ ...base, segmentSeconds: [2.9, 4.1, 3.7, 5.3], durationSeconds: d });
+      if (t.segments.every((s) => s.duration > 2.5 * 30)) expect(t.totalFrames).toBe(Math.round(d * 30));
+    }
+  });
+});

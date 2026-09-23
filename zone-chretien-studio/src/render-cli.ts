@@ -2,6 +2,10 @@
  * Rendu d'un Reel en ligne de commande.
  *
  *   npm run rendu -- --template Verset --props exemples/verset-psaume-34.json --out out/verset.mp4
+ *   npm run rendu -- --template Evenement --format 16:9 --out out/evenement.mp4
+ *
+ * Sans --props, les valeurs d'exemple du template sont utilisées.
+ * Templates : Verset, Priere, Devotion, Citation, Evenement. Formats : 9:16, 1:1, 16:9.
  *
  * Ctrl+C annule proprement le rendu en cours.
  */
@@ -20,15 +24,18 @@ async function main() {
   const templateId = arg("template");
   const propsFile = arg("props");
   const out = arg("out");
-  if (!templateId || !propsFile || !out) {
-    console.error("Usage : npm run rendu -- --template <Id> --props <fichier.json> --out <fichier.mp4>");
+  const format = arg("format");
+  if (!templateId || !out) {
+    console.error("Usage : npm run rendu -- --template <Id> [--props <fichier.json>] [--format 9:16|1:1|16:9] --out <fichier.mp4>");
     process.exit(2);
   }
 
   // Chemins relatifs au dossier du studio (jamais de chemin absolu enregistré).
-  const propsPath = path.resolve(STUDIO_DIR, propsFile);
   const outputPath = path.resolve(STUDIO_DIR, out);
-  const props = JSON.parse(fs.readFileSync(propsPath, "utf8")) as Record<string, unknown>;
+  const props = propsFile
+    ? (JSON.parse(fs.readFileSync(path.resolve(STUDIO_DIR, propsFile), "utf8")) as Record<string, unknown>)
+    : {};
+  if (format) props.format = format;
 
   const { cancelSignal, cancel } = makeCancelSignal();
   process.on("SIGINT", () => {

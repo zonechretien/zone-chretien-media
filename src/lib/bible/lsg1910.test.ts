@@ -49,3 +49,20 @@ describe("lookupPassage (LSG 1910 hors ligne)", () => {
     if (!r.ok) expect(r.error).toMatch(message);
   });
 });
+
+describe("versets d'exemple des templates", () => {
+  it("sont exactement le texte LSG 1910 (ils s'affichent avec « LSG 1910 »)", async () => {
+    const { TEMPLATE_METAS } = await import("@reels/template-meta");
+    const { sameBibleText } = await import("@/lib/reels/sources");
+    const samples: [string, string][] = [
+      [TEMPLATE_METAS.Verset.defaultProps("9:16").reference, TEMPLATE_METAS.Verset.defaultProps("9:16").text],
+      [TEMPLATE_METAS.Priere.defaultProps("9:16").verseReference, TEMPLATE_METAS.Priere.defaultProps("9:16").verseText],
+      [TEMPLATE_METAS.Devotion.defaultProps("9:16").verseReference, TEMPLATE_METAS.Devotion.defaultProps("9:16").verseText],
+    ];
+    for (const [ref, sample] of samples) {
+      const r = lookupPassage(ref);
+      if (!r.ok) throw new Error(r.error);
+      expect(sameBibleText(r.passage.text, sample), ref).toBe(true);
+    }
+  });
+});

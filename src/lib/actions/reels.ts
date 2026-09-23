@@ -7,7 +7,16 @@ import { requireSession } from "@/lib/admin/session";
 import { TEMPLATE_METAS, isTemplateId, parseTemplateData } from "@reels/template-meta";
 import { exportPathSchema, newReelSchema, saveReelSchema, type NewReelInput, type SaveReelInput } from "@/lib/validations/reels";
 import { lookupPassage } from "@/lib/bible/lsg1910";
-import { REEL_SOURCES, draftFromDevotion, draftFromVerse, sameBibleText, type ReelDraft, type ReelSourceType } from "@/lib/reels/sources";
+import {
+  REEL_SOURCES,
+  draftFromDevotion,
+  draftFromPrayer,
+  draftFromQuote,
+  draftFromVerse,
+  sameBibleText,
+  type ReelDraft,
+  type ReelSourceType,
+} from "@/lib/reels/sources";
 
 /** Crée un projet de Reel avec les valeurs par défaut du template, puis ouvre l'éditeur. */
 export async function createReel(input: NewReelInput): Promise<{ error?: string }> {
@@ -105,9 +114,18 @@ export async function createReelFromContent(sourceType: ReelSourceType, sourceId
   } else if (sourceType === "DEVOTION") {
     const devotion = await prisma.devotion.findUnique({
       where: { id: sourceId },
-      select: { title: true, mainVerseRef: true, mainVerseText: true },
+      select: { title: true, mainVerseRef: true, mainVerseText: true, reflection: true },
     });
     if (devotion) draft = draftFromDevotion(devotion, checkBibleText(devotion.mainVerseRef, devotion.mainVerseText));
+  } else if (sourceType === "PRAYER") {
+    const prayer = await prisma.prayer.findUnique({ where: { id: sourceId }, select: { title: true, content: true } });
+    if (prayer) draft = draftFromPrayer(prayer);
+  } else if (sourceType === "INSPIRATION") {
+    const inspiration = await prisma.inspiration.findUnique({ where: { id: sourceId }, select: { title: true, content: true, author: true } });
+    if (inspiration) draft = draftFromQuote("INSPIRATION", { title: inspiration.title, text: inspiration.content, author: inspiration.author });
+  } else if (sourceType === "TESTIMONY") {
+    const testimony = await prisma.testimony.findUnique({ where: { id: sourceId }, select: { title: true, content: true, authorName: true } });
+    if (testimony) draft = draftFromQuote("TESTIMONY", { title: testimony.title, text: testimony.content, author: testimony.authorName });
   }
   if (!draft) return { error: "Contenu introuvable." };
 

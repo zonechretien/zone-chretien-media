@@ -18,7 +18,7 @@ export type FieldMeta = {
   help?: string;
   placeholder?: string;
   /** Rendu particulier ; par défaut, déduit du type zod. */
-  widget?: "textarea" | "color" | "media" | "voice" | "slider" | "hidden" | "format";
+  widget?: "textarea" | "color" | "media" | "voice" | "slider" | "hidden" | "format" | "date" | "time";
   /** Champ « référence biblique » : bouton d'insertion du texte LSG 1910 dans le champ indiqué. */
   bible?: { textField: string };
   /** Média : type attendu et dossiers du disque proposés. */
@@ -141,6 +141,79 @@ export const versetSchema = baseTemplateSchema.extend({
   showVersion: z.boolean().meta(field({ label: "Afficher « LSG 1910 » après la référence" })),
 });
 export type VersetProps = z.infer<typeof versetSchema>;
+
+const kicker = (placeholder: string) =>
+  z.string().max(40).meta(field({ label: "Accroche", placeholder: `Ex. ${placeholder}`, help: "Petit libellé en haut de la vidéo (facultatif)." }));
+const title = (label: string) => z.string().trim().min(1, "Le titre est obligatoire").max(80).meta(field({ label }));
+const showVersion = z.boolean().meta(field({ label: "Afficher « LSG 1910 » après la référence" }));
+const callToAction = z
+  .string()
+  .max(60)
+  .meta(field({ label: "Appel à l'action (écran final)", placeholder: "Ex. Rejoins-nous sur zone-chretien.org", help: "Facultatif." }));
+
+export const priereSchema = baseTemplateSchema.extend({
+  kicker: kicker("Prions ensemble"),
+  title: title("Titre de la prière"),
+  text: z
+    .string()
+    .trim()
+    .min(1, "Le texte de la prière est obligatoire")
+    .max(1500)
+    .meta(field({ label: "Texte de la prière", widget: "textarea", help: "Un texte long est réparti automatiquement sur plusieurs écrans." })),
+  verseReference: z
+    .string()
+    .trim()
+    .max(60)
+    .meta(field({ label: "Verset (facultatif) — référence", placeholder: "Ex. Philippiens 4:6-7", bible: { textField: "verseText" } })),
+  verseText: z.string().trim().max(600).meta(field({ label: "Verset (facultatif) — texte", widget: "textarea" })),
+  showVersion,
+});
+export type PriereProps = z.infer<typeof priereSchema>;
+
+export const devotionSchema = baseTemplateSchema.extend({
+  kicker: kicker("Dévotion du jour"),
+  title: title("Titre de la dévotion"),
+  verseReference: z
+    .string()
+    .trim()
+    .min(1, "La référence est obligatoire")
+    .max(60)
+    .meta(field({ label: "Verset — référence", placeholder: "Ex. 2 Corinthiens 12:9", bible: { textField: "verseText" } })),
+  verseText: z.string().trim().min(1, "Le texte du verset est obligatoire").max(600).meta(field({ label: "Verset — texte", widget: "textarea" })),
+  reflection: z
+    .string()
+    .trim()
+    .min(1, "La réflexion est obligatoire")
+    .max(1200)
+    .meta(field({ label: "Réflexion courte", widget: "textarea", help: "Quelques phrases : répartie automatiquement sur plusieurs écrans si besoin." })),
+  callToAction,
+  showVersion,
+});
+export type DevotionProps = z.infer<typeof devotionSchema>;
+
+export const citationSchema = baseTemplateSchema.extend({
+  kicker: kicker("Citation"),
+  quote: z.string().trim().min(1, "La citation est obligatoire").max(800).meta(field({ label: "Citation", widget: "textarea" })),
+  author: z.string().trim().min(1, "L'auteur est obligatoire").max(60).meta(field({ label: "Auteur", placeholder: "Ex. Charles Spurgeon" })),
+});
+export type CitationProps = z.infer<typeof citationSchema>;
+
+export const evenementSchema = baseTemplateSchema.extend({
+  kicker: kicker("Événement"),
+  name: title("Nom de l'événement"),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date attendue")
+    .meta(field({ label: "Date", widget: "date" })),
+  time: z
+    .string()
+    .regex(/^(\d{2}:\d{2})?$/, "Heure au format HH:MM")
+    .meta(field({ label: "Heure (facultatif)", widget: "time" })),
+  place: z.string().trim().max(80).meta(field({ label: "Lieu (facultatif)", placeholder: "Ex. Église de la Grâce, Lyon" })),
+  description: z.string().trim().max(400).meta(field({ label: "Description (facultatif)", widget: "textarea" })),
+  callToAction,
+});
+export type EvenementProps = z.infer<typeof evenementSchema>;
 
 /** Props injectées à l'exécution, jamais enregistrées dans le projet. */
 export type RuntimeProps = {

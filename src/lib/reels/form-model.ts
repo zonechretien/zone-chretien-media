@@ -22,6 +22,8 @@ export type FieldDesc =
       optional: boolean;
       /** Référence biblique : nom du champ voisin qui reçoit le texte LSG 1910. */
       bibleTextField?: string;
+      /** Saisie de date ou d'heure (champ texte au format AAAA-MM-JJ / HH:MM). */
+      inputType?: "date" | "time";
     }
   | { kind: "boolean"; key: string; label: string; help?: string }
   | { kind: "number"; key: string; label: string; help?: string; min?: number; max?: number; step: number; nullable: boolean; slider: boolean }
@@ -104,6 +106,7 @@ function describeField(key: string, schema: AnySchema, context: { mediaKind?: Me
       multiline: meta.widget === "textarea",
       optional: !s.minLength,
       bibleTextField: meta.bible?.textField,
+      inputType: meta.widget === "date" || meta.widget === "time" ? meta.widget : undefined,
     };
   }
   if (t === "boolean") return { kind: "boolean", ...base };

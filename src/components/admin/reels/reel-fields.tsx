@@ -49,6 +49,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
           <FieldLabel htmlFor={id} required={!field.optional}>{field.label}</FieldLabel>
           <Input
             id={id}
+            type={field.multiline ? undefined : (field.inputType ?? "text")}
             className={field.multiline ? textareaClass : inputClass}
             rows={field.multiline ? 6 : undefined}
             value={text}

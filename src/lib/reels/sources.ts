@@ -1,49 +1,56 @@
 import type { ContentType } from "@prisma/client";
 import { BRAND } from "@reels/brand";
-import type { VersetProps } from "@reels/schemas";
-import type { TemplateId } from "@reels/template-meta";
+import type { CitationProps, DevotionProps, PriereProps, VersetProps } from "@reels/schemas";
+import type { AnyTemplateProps, TemplateId } from "@reels/template-meta";
 
 /**
  * « Transformer en Reel » : quel template utiliser pour chaque type de contenu
  * du CMS, et comment préremplir ses champs. Logique pure (testée).
  *
  * Un type absent de REEL_SOURCES affiche un bouton « Fonction en
- * développement » : son template (Prière, Citation…) arrive à l'étape 7.
+ * développement ».
  */
 
 export type ReelSourceType = Extract<ContentType, "VERSE" | "DEVOTION" | "PRAYER" | "INSPIRATION" | "TESTIMONY" | "ARTICLE">;
 
-export type ReelDraft = { title: string; templateId: TemplateId; props: VersetProps };
+export type ReelDraft = { title: string; templateId: TemplateId; props: AnyTemplateProps };
 
-/** Types de contenu déjà transformables, et le template utilisé. */
+/** Types de contenu transformables, et le template utilisé. */
 export const REEL_SOURCES: Partial<Record<ReelSourceType, { templateId: TemplateId; label: string }>> = {
   VERSE: { templateId: "Verset", label: "Verset du jour → template Verset" },
-  DEVOTION: { templateId: "Verset", label: "Verset principal de la dévotion → template Verset" },
+  DEVOTION: { templateId: "Devotion", label: "Dévotion → template Dévotion" },
+  PRAYER: { templateId: "Priere", label: "Prière → template Prière" },
+  INSPIRATION: { templateId: "Citation", label: "Inspiration → template Citation" },
+  TESTIMONY: { templateId: "Citation", label: "Témoignage → template Citation" },
 };
 
 /** Pourquoi un type n'est pas encore transformable (affiché à côté du bouton désactivé). */
 export const REEL_SOURCES_PENDING: Partial<Record<ReelSourceType, string>> = {
-  PRAYER: "Template Prière (en développement).",
-  INSPIRATION: "Template Citation (en développement).",
-  TESTIMONY: "Template Citation (en développement).",
   ARTICLE: "Pas de template adapté aux articles pour l'instant.",
 };
 
-function versetProps(reference: string, text: string, kicker: string, showVersion: boolean): VersetProps {
-  return {
-    format: "9:16",
-    background: { type: "gradient", from: BRAND.colors.navyLight, to: BRAND.colors.navyDeep },
-    durationSeconds: null,
-    kicker,
-    reference: reference.trim(),
-    text: text.trim(),
-    showVersion,
-    music: null,
-    voiceOver: null,
-  };
-}
+const common = () => ({
+  format: "9:16" as const,
+  background: { type: "gradient" as const, from: BRAND.colors.navyLight, to: BRAND.colors.navyDeep },
+  durationSeconds: null,
+  music: null,
+  voiceOver: null,
+});
 
 const clip = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);
+
+/**
+ * Raccourcit un texte trop long pour le template en coupant après la dernière
+ * phrase complète qui tient (sinon au dernier mot entier, avec « … »).
+ */
+export function clipToSentences(text: string, max: number): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const head = clean.slice(0, max);
+  const lastEnd = Math.max(head.lastIndexOf(". "), head.lastIndexOf("! "), head.lastIndexOf("? "), head.lastIndexOf("… "));
+  if (lastEnd > max * 0.4) return head.slice(0, lastEnd + 1).trim();
+  return `${head.slice(0, head.lastIndexOf(" ", max - 1)).trimEnd()}…`;
+}
 
 export function draftFromVerse(
   verse: { reference: string; text: string; date: Date },
@@ -51,23 +58,58 @@ export function draftFromVerse(
 ): ReelDraft {
   const day = verse.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   const reference = opts.formattedReference ?? verse.reference;
-  return {
-    title: clip(`Verset du jour — ${reference} (${day})`, 120),
-    templateId: "Verset",
-    props: versetProps(reference, verse.text, "Verset du jour", opts.isLsg1910),
+  const props: VersetProps = {
+    ...common(),
+    kicker: "Verset du jour",
+    reference: reference.trim(),
+    text: clipToSentences(verse.text, 1500),
+    showVersion: opts.isLsg1910,
   };
+  return { title: clip(`Verset du jour — ${reference} (${day})`, 120), templateId: "Verset", props };
 }
 
 export function draftFromDevotion(
-  devotion: { title: string; mainVerseRef: string; mainVerseText: string },
+  devotion: { title: string; mainVerseRef: string; mainVerseText: string; reflection: string },
   opts: { formattedReference: string | null; isLsg1910: boolean },
 ): ReelDraft {
-  const reference = opts.formattedReference ?? devotion.mainVerseRef;
-  return {
-    title: clip(`Dévotion — ${devotion.title}`, 120),
-    templateId: "Verset",
-    props: versetProps(reference, devotion.mainVerseText, "Dévotion du jour", opts.isLsg1910),
+  const props: DevotionProps = {
+    ...common(),
+    kicker: "Dévotion du jour",
+    title: clip(devotion.title.trim(), 80),
+    verseReference: (opts.formattedReference ?? devotion.mainVerseRef).trim(),
+    verseText: clipToSentences(devotion.mainVerseText, 600),
+    reflection: clipToSentences(devotion.reflection, 1200),
+    callToAction: "Lis la dévotion sur zone-chretien.org",
+    showVersion: opts.isLsg1910,
   };
+  return { title: clip(`Dévotion — ${devotion.title}`, 120), templateId: "Devotion", props };
+}
+
+export function draftFromPrayer(prayer: { title: string; content: string }): ReelDraft {
+  const props: PriereProps = {
+    ...common(),
+    kicker: "Prions ensemble",
+    title: clip(prayer.title.trim(), 80),
+    text: clipToSentences(prayer.content, 1500),
+    verseReference: "",
+    verseText: "",
+    showVersion: true,
+  };
+  return { title: clip(`Prière — ${prayer.title}`, 120), templateId: "Priere", props };
+}
+
+export function draftFromQuote(
+  kind: "INSPIRATION" | "TESTIMONY",
+  content: { title: string; text: string; author: string | null },
+): ReelDraft {
+  const label = kind === "INSPIRATION" ? "Inspiration" : "Témoignage";
+  const props: CitationProps = {
+    ...common(),
+    kicker: label,
+    quote: clipToSentences(content.text, 800),
+    author: clip((content.author ?? "").trim() || BRAND.name, 60),
+  };
+  return { title: clip(`${label} — ${content.title}`, 120), templateId: "Citation", props };
 }
 
 /**

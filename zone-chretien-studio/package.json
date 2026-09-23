@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "demarrer": "tsx src/server.ts",
     "preparer-disque": "tsx src/prepare-disk.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "apercus": "tsx src/render-stills.ts"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.527",

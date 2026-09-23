@@ -153,7 +153,14 @@ Depuis une invite de commandes dans ce dossier, après
 ```bat
 npm run rendu:exemple
 npm run rendu -- --template Verset --props exemples/verset-long-1-corinthiens-13.json --out out/verset-long.mp4
+npm run rendu -- --template Evenement --format 16:9 --out out/evenement.mp4
+npm run apercus
 ```
+
+Templates : `Verset`, `Priere`, `Devotion`, `Citation`, `Evenement` ; formats `9:16`, `1:1`, `16:9`.
+Sans `--props`, les valeurs d'exemple du template sont utilisées. `npm run apercus` produit des
+images fixes de tous les templates dans tous les formats (`out/apercus/`), pratique pour vérifier
+la mise en page après un changement de charte.
 
 Sortie : MP4 H.264, 1080×1920, 30 i/s, `yuv420p` / `bt709` (format attendu par Instagram,
 TikTok et YouTube). `Ctrl+C` annule proprement.

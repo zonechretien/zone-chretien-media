@@ -4,8 +4,7 @@ import dynamic from "next/dynamic";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FORMATS, FORMAT_IDS, type FormatId } from "@reels/formats";
-import type { VersetProps } from "@reels/schemas";
-import { TEMPLATE_METAS, type TemplateId } from "@reels/template-meta";
+import { templateMeta, type AnyTemplateProps, type TemplateId } from "@reels/template-meta";
 import { FieldLabel, FormRow, inputClass, selectClass } from "@/components/admin/form-fields";
 import { CancelLink } from "@/components/admin/submit-button";
 import { saveReel } from "@/lib/actions/reels";
@@ -34,7 +33,7 @@ export type EditableReel = {
 };
 
 export function ReelEditor({ reel }: { reel: EditableReel }) {
-  const meta = TEMPLATE_METAS[reel.templateId];
+  const meta = templateMeta(reel.templateId);
   const fields = useMemo(() => describeObject(meta.schema), [meta]);
   const { connection, refresh } = useStudioConnection();
 
@@ -54,7 +53,7 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
   const validation = useMemo(() => meta.schema.safeParse(data), [meta, data]);
   const errors = useMemo(() => errorsByPath(validation.error), [validation]);
   // L'aperçu garde la dernière version valide pendant la saisie.
-  const lastValid = useRef<VersetProps>(meta.defaultProps("9:16"));
+  const lastValid = useRef<AnyTemplateProps>(meta.defaultProps("9:16"));
   if (validation.success) lastValid.current = validation.data;
 
   const dirty = statusTouched || JSON.stringify({ title, data }) !== saved;

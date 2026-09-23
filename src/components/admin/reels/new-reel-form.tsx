@@ -8,14 +8,6 @@ import { CancelLink, SubmitButton } from "@/components/admin/submit-button";
 import { createReel } from "@/lib/actions/reels";
 import { cn } from "@/lib/utils";
 
-/** Les 4 autres templates arrivent à l'étape 7 : affichés, mais clairement indisponibles. */
-const UPCOMING = [
-  { label: "Prière", description: "Titre court, texte de prière, verset optionnel." },
-  { label: "Dévotion", description: "Titre, verset, réflexion courte et appel à l'action." },
-  { label: "Citation", description: "Une citation et son auteur." },
-  { label: "Annonce d'événement", description: "Nom, date, heure, lieu, visuel et appel à l'action." },
-];
-
 export function NewReelForm() {
   const templateIds = Object.keys(TEMPLATE_METAS) as TemplateId[];
   const [title, setTitle] = useState("");
@@ -61,13 +53,6 @@ export function NewReelForm() {
               <span className="mt-1 block text-sm text-foreground/70">{TEMPLATE_METAS[id].description}</span>
             </button>
           ))}
-          {UPCOMING.map((t) => (
-            <div key={t.label} aria-disabled className="rounded-xl border border-dashed border-border p-4 opacity-60">
-              <span className="block font-semibold text-foreground">{t.label}</span>
-              <span className="mt-1 block text-sm text-foreground/70">{t.description}</span>
-              <span className="mt-2 inline-block rounded-full bg-surface px-2 py-0.5 text-xs text-muted">Fonction en développement</span>
-            </div>
-          ))}
         </div>
       </fieldset>
 
@@ -90,7 +75,6 @@ export function NewReelForm() {
                 )}
               >
                 {FORMATS[id].label}
-                {!available && " — fonction en développement"}
               </button>
             );
           })}
