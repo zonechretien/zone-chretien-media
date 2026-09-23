@@ -4,12 +4,13 @@ import { TEMPLATES } from "./templates";
 /** Compositions utilisées par le rendu du studio local (une par template). */
 export function RemotionRoot() {
   const verset = TEMPLATES.Verset;
-  const initial = verset.metadata(verset.defaultProps);
+  const defaults = verset.defaultProps("9:16");
+  const initial = verset.metadata(defaults);
   return (
     <Composition
       id={verset.id}
       component={verset.component}
-      defaultProps={verset.defaultProps}
+      defaultProps={defaults}
       width={initial.width}
       height={initial.height}
       fps={initial.fps}

@@ -25,6 +25,7 @@ import {
   Flag,
   UserCircle,
   CalendarRange,
+  Clapperboard,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,10 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/admin/bibliotheque", label: "Bibliothèque", icon: Library },
       { href: "/admin/plans-lecture", label: "Plans de lecture", icon: CalendarRange },
     ],
+  },
+  {
+    title: "Création",
+    items: [{ href: "/admin/reels", label: "Reels", icon: Clapperboard }],
   },
   {
     title: "Organisation",
