@@ -34,3 +34,5 @@ déployé sur Vercel, et studio local de Reels dans `zone-chretien-studio/`).
 6. **Le PC n'a pas de droits administrateur** : aucune solution ne doit en nécessiter
    (pas d'installateur, de service Windows, de modification du registre ni de variable
    d'environnement système ; Node.js est utilisé en version portable, lancé par des `.bat`).
+
+7. **Toujours répondre en français à l'utilisateur.**
