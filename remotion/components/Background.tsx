@@ -1,4 +1,4 @@
-import { AbsoluteFill, Img, OffthreadVideo, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, Loop, OffthreadVideo, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { BRAND } from "../brand";
 import { mediaUrl } from "../media";
 import type { BackgroundProps } from "../schemas";
@@ -23,7 +23,7 @@ export function Background({ background, mediaBaseUrl }: { background: Backgroun
       background.type === "image" ? (
         <Img src={url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
-        <OffthreadVideo src={url} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        <LoopingVideo src={url} mediaDurationSeconds={background.mediaDurationSeconds} />
       );
     base = (
       <AbsoluteFill>
@@ -64,4 +64,13 @@ export function Background({ background, mediaBaseUrl }: { background: Backgroun
       <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.45) 100%)" }} />
     </AbsoluteFill>
   );
+}
+
+/** Vidéo de fond muette, rejouée en boucle si elle est plus courte que le Reel. */
+function LoopingVideo({ src, mediaDurationSeconds }: { src: string; mediaDurationSeconds: number | null }) {
+  const { fps, durationInFrames } = useVideoConfig();
+  const video = <OffthreadVideo src={src} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
+  const clipFrames = mediaDurationSeconds ? Math.floor(mediaDurationSeconds * fps) : null;
+  if (!clipFrames || clipFrames >= durationInFrames) return video;
+  return <Loop durationInFrames={clipFrames}>{video}</Loop>;
 }

@@ -40,6 +40,8 @@ export const backgroundSchema = z.discriminatedUnion("type", [
     type: z.literal("video"),
     path: mediaPathSchema,
     dim: z.number().min(0).max(0.9),
+    /** Durée de la vidéo (fournie par le studio local) : la vidéo boucle si elle est plus courte que le Reel. */
+    mediaDurationSeconds: z.number().positive().nullable(),
   }),
 ]);
 export type BackgroundProps = z.infer<typeof backgroundSchema>;

@@ -63,3 +63,4 @@ next-env.d.ts
 /zone-chretien-studio/out/
 /runtime/
 *.mp4
+/zone-chretien-studio/config.local.json

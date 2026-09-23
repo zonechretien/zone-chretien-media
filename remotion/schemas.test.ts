@@ -27,9 +27,18 @@ describe("versetSchema", () => {
     ["format inconnu", { format: "4:5" }],
     ["couleur invalide", { background: { type: "color", color: "bleu" } }],
     ["chemin absolu", { background: { type: "image", path: "E:/Fonds/ciel.jpg", dim: 0.4 } }],
-    ["traversée de chemin", { background: { type: "video", path: "../../secret.mp4", dim: 0.4 } }],
+    ["traversée de chemin", { background: { type: "video", path: "../../secret.mp4", dim: 0.4, mediaDurationSeconds: 4 } }],
     ["durée trop courte", { durationSeconds: 2 }],
   ])("refuse : %s", (_label, patch) => {
     expect(versetSchema.safeParse({ ...valid, ...patch }).success).toBe(false);
+  });
+});
+
+describe("fond vidéo", () => {
+  it("accepte une durée connue ou inconnue (null)", () => {
+    for (const d of [4.2, null]) {
+      const bg = { type: "video", path: "Fonds/nuages.mp4", dim: 0.3, mediaDurationSeconds: d };
+      expect(versetSchema.safeParse({ ...valid, background: bg }).success).toBe(true);
+    }
   });
 });

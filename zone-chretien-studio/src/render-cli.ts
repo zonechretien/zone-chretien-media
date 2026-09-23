@@ -44,7 +44,7 @@ async function main() {
     outputPath,
     cancelSignal,
     onProgress: ({ stage, percent }) => {
-      const line = `${stage === "bundle" ? "Préparation des templates" : "Rendu"} : ${percent} %`;
+      const line = `${stage === "preparation" ? "Préparation des templates" : "Rendu"} : ${percent} %`;
       if (line !== lastLine) {
         process.stdout.write(`\r${line}   `);
         lastLine = line;

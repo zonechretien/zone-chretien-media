@@ -1,0 +1,9 @@
+{
+  "port": 4317,
+  "originesAutorisees": [
+    "https://zone-chretien-media.vercel.app",
+    "https://zone-chretien.org",
+    "https://www.zone-chretien.org",
+    "http://localhost:3000"
+  ]
+}

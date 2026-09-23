@@ -11,7 +11,10 @@
     "navigateur": "tsx src/install-browser.ts",
     "rendu": "tsx src/render-cli.ts",
     "rendu:exemple": "tsx src/render-cli.ts --template Verset --props exemples/verset-psaume-34.json --out out/verset-psaume-34.mp4",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "demarrer": "tsx src/server.ts",
+    "preparer-disque": "tsx src/prepare-disk.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.527",
@@ -26,6 +29,7 @@
   "devDependencies": {
     "@types/node": "24.13.6",
     "@types/react": "19.2.18",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
   }
 }
