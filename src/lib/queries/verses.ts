@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { paginate, totalPages } from "./shared";
 import { getRandomBibleVerse } from "./bible";
 
@@ -46,7 +46,7 @@ export async function getVerseOfDay() {
         },
       });
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      if (isUniqueConstraintError(err)) {
         return prisma.verse.findFirst({
           where: { published: true, date: { gte: startOfDay(now), lte: endOfDay(now) } },
         });

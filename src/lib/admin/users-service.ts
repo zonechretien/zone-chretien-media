@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Prisma, type Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { requireSuperAdmin } from "@/lib/admin/session";
 import { assertNotProtectedSuperAdmin, ForbiddenError } from "@/lib/admin/permissions";
 import { createTeamMemberSchema, type CreateTeamMemberInput } from "@/lib/validations/users";
@@ -49,7 +50,7 @@ export async function createTeamMember(input: CreateTeamMemberInput) {
       select: TEAM_MEMBER_SELECT,
     });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    if (isUniqueConstraintError(err)) {
       throw new Error("Cette adresse email est déjà utilisée par un autre compte.");
     }
     throw err;

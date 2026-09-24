@@ -20,6 +20,8 @@ const eslintConfig = [
       "next-env.d.ts",
       "public/sw*",
       "public/swe-worker*",
+      // Studio local (rendu MP4 sur le PC) : projet Node séparé, jamais construit par Vercel.
+      "zone-chretien-studio/**",
     ],
   },
 ];

@@ -30,6 +30,16 @@ const nextConfig: NextConfig = {
   // sont serveur-only (Prisma/Turso) : on les laisse en require() natif.
   serverExternalPackages: ["@libsql/client", "@prisma/adapter-libsql"],
 
+  // Reels : le texte LSG 1910 est lu avec fs dans le fichier du dépôt
+  // (src/lib/bible/lsg1910.ts) par l'éditeur et par « Transformer en Reel » ;
+  // on l'inclut explicitement dans les fonctions Vercel de ces pages, le
+  // traçage automatique ne pouvant pas le deviner.
+  outputFileTracingIncludes: {
+    "/admin/reels/**/*": ["./prisma/bible-data/lsg1910.json"],
+    "/admin/versets/**/*": ["./prisma/bible-data/lsg1910.json"],
+    "/admin/devotions/**/*": ["./prisma/bible-data/lsg1910.json"],
+  },
+
   async headers() {
     return [
       {

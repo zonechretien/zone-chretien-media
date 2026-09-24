@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/admin/session";
 import { prisma } from "@/lib/db";
 import { InspirationForm } from "@/components/admin/forms/inspiration-form";
+import { TransformToReel } from "@/components/admin/reels/transform-to-reel";
 
 export const metadata: Metadata = { title: "Modifier l'inspiration" };
 
@@ -17,7 +18,10 @@ export default async function EditInspirationPage({ params }: { params: Promise<
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-foreground">Modifier « {inspiration.title} »</h1>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <h1 className="text-2xl font-bold text-foreground">Modifier « {inspiration.title} »</h1>
+        <TransformToReel sourceType="INSPIRATION" sourceId={id} />
+      </div>
       <InspirationForm inspiration={inspiration} categories={categories} />
     </div>
   );

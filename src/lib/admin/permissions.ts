@@ -28,6 +28,7 @@ export const EDITOR_ALLOWED_PATH_PREFIXES = [
   "/admin/temoignages",
   "/admin/bibliotheque",
   "/admin/plans-lecture",
+  "/admin/reels",
 ];
 
 export function isFullAccessRole(role: Role): boolean {

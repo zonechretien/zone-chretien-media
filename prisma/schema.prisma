@@ -777,6 +777,45 @@ model PushSubscription {
 }
 
 // ============================================================================
+// REELS STUDIO — projets de Reels (voir docs/SPEC-REELS-STUDIO.md)
+// ============================================================================
+
+// brouillon → prêt → exporté (le statut exporté est posé après un export MP4 réussi).
+enum ReelStatus {
+  DRAFT
+  READY
+  EXPORTED
+}
+
+model ReelProject {
+  id         String @id @default(cuid())
+  title      String
+  templateId String // identifiant du template Remotion (ex. "Verset")
+  format     String // "9:16", "1:1" ou "16:9" — validé par zod (remotion/formats.ts)
+  // Props du template, en JSON sérialisé : chaîne validée par le schéma zod du
+  // template (remotion/schemas.ts), cohérent avec le reste du schéma SQLite/Turso.
+  data       String
+
+  // Contenu du CMS d'origine (« Transformer en Reel »), sans relation Prisma :
+  // la source peut appartenir à plusieurs modèles (même principe que TakedownReport).
+  sourceType ContentType?
+  sourceId   String?
+
+  status ReelStatus @default(DRAFT)
+
+  // Chemin RELATIF à la racine du disque externe (ex. "Exports/2026-09-23_….mp4") — jamais absolu.
+  lastExportPath String?
+  lastExportAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+  @@index([sourceType, sourceId])
+  @@map("reel_projects")
+}
+
+// ============================================================================
 // PARAMÈTRES DU SITE (singleton)
 // ============================================================================
 
