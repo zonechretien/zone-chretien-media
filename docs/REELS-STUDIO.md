@@ -145,15 +145,42 @@ Les props de chaque projet sont une chaîne JSON validée par le schéma zod du 
 1. app.turso.tech → base `zone-chretien-media` → **Create Token** → jeton **en lecture seule**.
 2. À la racine du dépôt, fichier `.env.backup` (ignoré par Git grâce à la règle `.env*`) :
    `TURSO_BACKUP_URL="libsql://…turso.io"` et `TURSO_BACKUP_TOKEN="…"`.
-3. `npm run db:backup` → `Documents\Sauvegardes-Turso\<base>_<date>.sql` dans le profil
-   Windows (ou `--out <dossier>`). Le script refuse tout dossier situé dans le dépôt Git ou
-   dans la bibliothèque de médias du studio (`<lecteur>:\Zone-Chretien-Studio` sur n'importe
-   quelle lettre, ou sous un `zc-studio.json`, y compris via un lien ou une jonction ; le
-   reste du disque externe est accepté), vérifie la sauvegarde en la rechargeant, et doit
-   finir par « Sauvegarde vérifiée ». L'avertissement « verses_fts restauré vide » est normal :
-   index plein texte orphelin hérité de l'import Lepolo_Bible, inutilisé par le site.
-4. Restauration, toujours dans une nouvelle base :
-   `turso db create zone-chretien-media-restauree --from-dump <fichier.sql>`.
+3. **7-Zip en ligne de commande, sans installation** (une fois) : `outils\7zip\7za.exe`, dossier
+   ignoré par Git et par Vercel. Sur <https://www.7-zip.org/download.html>, prendre `7zr.exe` et
+   « 7-Zip Extra » (`7z<version>-extra.7z`), puis `7zr.exe e 7z<version>-extra.7z x64\7za.exe`
+   et ranger `7za.exe` (et `License.txt`) dans `outils\7zip\`. Installé le 24/09/2026 :
+   version 26.03, empreintes SHA-256 contrôlées avec celles de la publication GitHub officielle
+   (`ip7z/7zip`).
+4. **Dans PowerShell** (pas dans Git Bash : la saisie masquée demande un vrai terminal) :
+   `npm run db:backup` → `Documents\Sauvegardes-Turso\<base>_<date>.7z` dans le profil Windows
+   (ou `--out <dossier>`). Le script refuse tout dossier situé dans le dépôt Git ou dans la
+   bibliothèque de médias du studio (`<lecteur>:\Zone-Chretien-Studio` sur n'importe quelle
+   lettre, ou sous un `zc-studio.json`, y compris via un lien ou une jonction ; le reste du
+   disque externe est accepté), vérifie la sauvegarde en la rechargeant (« Sauvegarde
+   vérifiée »), puis la **chiffre** :
+   - mot de passe demandé **deux fois**, rien ne s'affiche pendant la saisie (12 caractères
+     minimum) ; il n'est jamais passé en argument de commande, écrit dans un fichier ni
+     affiché : il est transmis à 7-Zip par son entrée standard ;
+   - archive `.7z` en **AES-256** avec **noms de fichiers chiffrés** (`-mhe=on`) ;
+   - archive testée (test d'intégrité, puis déchiffrement complet comparé octet pour octet au
+     `.sql`) ; **seulement si le test réussit**, le `.sql` en clair est supprimé définitivement
+     (pas de corbeille). Sinon il est conservé et le script l'indique clairement ;
+   - `--copie <dossier>` (ex. `npm run db:backup -- --copie D:\Sauvegardes`) copie en plus
+     l'archive chiffrée et vérifie la copie. Mêmes refus : jamais dans `Zone-Chretien-Studio`
+     ni dans le dépôt. Rien n'est jamais écrasé.
+
+   ⚠ **Sans le mot de passe, la sauvegarde est irrécupérable.** Le noter dans un endroit sûr
+   (gestionnaire de mots de passe), jamais dans le dépôt. Un mot de passe accentué fonctionne
+   aussi dans la fenêtre de 7-Zip (7-Zip lit l'entrée en UTF-8).
+5. **Sauvegardes `.sql` déjà présentes** : `npm run db:chiffrer` chiffre tous les `.sql` de
+   `Documents\Sauvegardes-Turso` avec la même méthode (un seul mot de passe, demandé deux fois) ;
+   options `--dossier <dossier>` et `--copie <dossier>`. Un `.sql` dont le `.7z` existe déjà
+   est ignoré.
+6. Restauration, toujours dans une nouvelle base : déchiffrer dans un dossier sûr (hors dépôt
+   et hors `Zone-Chretien-Studio`) avec `outils\7zip\7za.exe e <archive.7z> -o<dossier>`
+   (mot de passe demandé), puis
+   `turso db create zone-chretien-media-restauree --from-dump <fichier.sql>`, et supprimer le
+   `.sql` déchiffré ensuite.
 
 **Base de prévisualisation** (déploiements Preview de la branche `reels-studio`) : base Turso
 séparée `zone-chretien-media-preview` (même organisation et même groupe que la production),
@@ -161,7 +188,8 @@ remplie depuis une sauvegarde vérifiée :
 
 1. Fichier `.env.preview-restore` (non versionné) : `TURSO_PREVIEW_URL` et `TURSO_PREVIEW_TOKEN`
    (jeton lecture/écriture de la base preview uniquement).
-2. `npm run db:restore-preview -- --fichier <sauvegarde.sql>` : recharge d'abord la sauvegarde
+2. `npm run db:restore-preview -- --fichier <sauvegarde.sql>` (déchiffrer d'abord l'archive
+   `.7z` comme pour une restauration, puis supprimer le `.sql`) : recharge d'abord la sauvegarde
    dans une base locale temporaire, puis la restaure et vérifie chaque table et la recherche
    biblique. Refuse l'URL de production, toute base qui ne s'appelle pas
    `zone-chretien-media-preview` et toute base non vide.

@@ -8,8 +8,14 @@
  *   2. Créer le fichier .env.backup à la racine du dépôt (jamais versionné) :
  *        TURSO_BACKUP_URL="libsql://zone-chretien-media-….turso.io"
  *        TURSO_BACKUP_TOKEN="<le jeton en lecture seule>"
- *   3. npm run db:backup     → Documents\Sauvegardes-Turso\<base>_<date>.sql (profil Windows)
+ *   3. npm run db:backup     → Documents\Sauvegardes-Turso\<base>_<date>.7z (profil Windows)
  *      npm run db:backup -- --out <dossier>   (autre dossier, par ex. une clé USB dédiée)
+ *      npm run db:backup -- --copie D:\Sauvegardes   (copie en plus l'archive chiffrée)
+ *
+ * Après « Sauvegarde vérifiée », le mot de passe est demandé deux fois dans le
+ * terminal (non affiché) ; le .sql est chiffré en .7z (AES-256, noms chiffrés),
+ * l'archive est testée, puis le .sql en clair est supprimé (voir backup-crypto.ts).
+ * Sauvegardes .sql plus anciennes : npm run db:chiffrer (turso-encrypt-existing.ts).
  *
  * Le script n'exécute que des lectures sur la base. Le fichier produit contient
  * toutes les données (comptes, empreintes de mots de passe, newsletter…) : il
@@ -19,10 +25,12 @@
  * endroit sûr.
  *
  * Restauration (dans une NOUVELLE base, jamais par-dessus la production) :
+ *   outils\7zip\7za.exe e <archive.7z> -o<dossier sûr>   (mot de passe demandé)
  *   turso db create zone-chretien-media-restauree --from-dump <fichier.sql>
  */
 import { createClient, type Client, type InValue } from "@libsql/client";
 import { spawnSync } from "node:child_process";
+import { askNewPassword, copyArchive, encryptAndRemove, sevenZipPath } from "./backup-crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -377,6 +385,9 @@ async function main() {
     console.error(`Refusé : ${outDir} — ${refusal}. Choisissez un dossier en dehors (la sauvegarde contient des données personnelles).`);
     process.exit(2);
   }
+  // Vérifié avant la lecture de la base : dossier de copie et 7-Zip présents.
+  const copyDir = copyDestination(arg("copie"));
+  sevenZipPath();
 
   const dbName = url.startsWith("file:") ? path.parse(url.slice(5)).name : new URL(url).hostname.split(".")[0];
   const now = new Date();
@@ -405,6 +416,55 @@ async function main() {
   }
   console.log("Sauvegarde vérifiée : toutes les tables ont le bon nombre de lignes" + (fts ? ", recherche biblique fonctionnelle." : "."));
   for (const [t, n] of Object.entries(counts)) console.log(`  ${t.padEnd(28)} ${n}`);
+
+  await encryptBackups([file], copyDir);
+}
+
+/**
+ * Dossier de copie des archives chiffrées (--copie), ou null. Mêmes refus que
+ * pour la sauvegarde elle-même : ni le dépôt Git, ni la bibliothèque du studio.
+ */
+export function copyDestination(value: string | undefined, requested = process.argv.includes("--copie")): string | null {
+  if (!requested) return null;
+  if (value === undefined) value = "";
+  if (!value || value.startsWith("--")) throw new Error("--copie attend un dossier, par exemple : --copie D:\\Sauvegardes");
+  const dir = path.resolve(value);
+  const refusal = unsafeOutDirReason(dir);
+  if (refusal) throw new Error(`copie refusée vers ${dir} — ${refusal}.`);
+  if (!fs.existsSync(path.parse(dir).root)) throw new Error(`copie impossible : le lecteur ${path.parse(dir).root} est absent.`);
+  return dir;
+}
+
+/**
+ * Demande le mot de passe (deux fois, masqué), chiffre chaque .sql en .7z,
+ * teste l'archive, supprime le .sql seulement si le test réussit, puis copie
+ * l'archive dans copyDir si demandé. Sortie en erreur si un fichier échoue.
+ */
+export async function encryptBackups(files: string[], copyDir: string | null): Promise<void> {
+  let password: string;
+  try {
+    password = await askNewPassword();
+  } catch (err) {
+    console.error(`Chiffrement non effectué : ${err instanceof Error ? err.message : String(err)}`);
+    for (const file of files) console.error(`  Conservé EN CLAIR : ${file}`);
+    console.error("  À chiffrer dès que possible depuis PowerShell : npm run db:chiffrer");
+    process.exit(1);
+  }
+  let failures = 0;
+  for (const file of files) {
+    try {
+      const archive = encryptAndRemove(file, password);
+      console.log(`Archive chiffrée et testée : ${archive} — fichier .sql en clair supprimé.`);
+      if (copyDir) console.log(`Copie vérifiée : ${copyArchive(archive, copyDir)}`);
+    } catch (err) {
+      failures++;
+      console.error(`ÉCHEC pour ${path.basename(file)} : ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  if (failures > 0) {
+    console.error(`${failures} fichier(s) non chiffré(s) : les .sql concernés sont conservés en clair, à traiter avant de les ranger.`);
+    process.exit(1);
+  }
 }
 
 if (require.main === module && process.argv.includes("--verificateur")) {

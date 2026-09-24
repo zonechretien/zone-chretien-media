@@ -25,6 +25,7 @@
     "lance_app": "lance_app.bat",
     "test": "vitest run",
     "db:backup": "tsx --env-file-if-exists=.env.backup scripts/turso-backup.ts",
+    "db:chiffrer": "tsx scripts/turso-encrypt-existing.ts",
     "db:restore-preview": "tsx --env-file-if-exists=.env.preview-restore scripts/turso-restore-preview.ts"
   },
   "dependencies": {

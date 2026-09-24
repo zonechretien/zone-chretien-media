@@ -3,3 +3,6 @@
 # vivent dans son propre package.json.
 zone-chretien-studio/
 runtime/
+
+# Outils locaux (7-Zip) : jamais déployés.
+outils/

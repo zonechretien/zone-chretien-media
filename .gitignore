@@ -64,3 +64,6 @@ next-env.d.ts
 /runtime/
 *.mp4
 /zone-chretien-studio/config.local.json
+
+# Outils locaux sans installation (7-Zip en ligne de commande pour chiffrer les sauvegardes).
+/outils/
