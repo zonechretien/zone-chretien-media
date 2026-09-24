@@ -151,7 +151,7 @@ export function ExportPanel({
 
       {done && (
         <p className="mt-3 text-xs text-foreground/80">
-          Dernier export : <code className="break-all">{drive ? `${drive.lettre}\\${done.path.replaceAll("/", "\\")}` : done.path}</code>
+          Dernier export : <code className="break-all">{drive ? `${drive.dossier ?? drive.lettre}\\${done.path.replaceAll("/", "\\")}` : done.path}</code>
           <br />
           <span className="text-muted">le {new Date(done.at).toLocaleString("fr-FR")} — sur le disque Zone-Chrétien</span>
         </p>

@@ -17,7 +17,8 @@ export type StudioStatus = {
   application: string;
   version: string;
   developpePar: string;
-  disque: { detecte: true; lettre: string; nom: string } | { detecte: false; message: string };
+  /** `dossier` : chemin du dossier de la bibliothèque (ex. D:\Zone-Chretien-Studio) ; absent avec un studio plus ancien. */
+  disque: { detecte: true; lettre: string; dossier?: string; nom: string } | { detecte: false; message: string };
   navigateurRendu: { etat: "verification" | "pret" | "absent"; message: string | null };
   rendusEnCours: number;
 };

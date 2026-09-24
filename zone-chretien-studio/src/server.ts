@@ -122,7 +122,7 @@ function readBody(req: Req, limit: number): Promise<Buffer> {
 function driveState() {
   const lib = currentLibrary();
   return lib
-    ? { detecte: true as const, lettre: path.parse(lib.root).root.replace(/\\$/, ""), nom: lib.marker.nom }
+    ? { detecte: true as const, lettre: path.parse(lib.root).root.replace(/\\$/, ""), dossier: lib.root, nom: lib.marker.nom }
     : { detecte: false as const, message: DRIVE_NOT_FOUND_MESSAGE };
 }
 

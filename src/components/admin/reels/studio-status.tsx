@@ -31,11 +31,11 @@ export function StudioStatus({
       detail = disque.message;
     } else if (navigateurRendu.etat === "absent") {
       tone = "warn";
-      title = `Studio local connecté — ${disque.nom} (${disque.lettre})`;
+      title = `Studio local connecté — ${disque.nom} (${disque.dossier ?? disque.lettre})`;
       detail = navigateurRendu.message;
     } else {
       tone = "ok";
-      title = `Studio local connecté — ${disque.nom} (${disque.lettre})`;
+      title = `Studio local connecté — ${disque.nom} (${disque.dossier ?? disque.lettre})`;
       if (navigateurRendu.etat === "verification") detail = "Vérification du navigateur de rendu…";
     }
   }

@@ -3,7 +3,7 @@
 type Status = {
   version: string;
   application: string;
-  disque: { detecte: true; lettre: string; nom: string } | { detecte: false; message: string };
+  disque: { detecte: true; lettre: string; dossier: string; nom: string } | { detecte: false; message: string };
   navigateurRendu: { etat: string; message: string | null };
   rendusEnCours: number;
 };
@@ -12,7 +12,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 export function aboutPage(s: Status, origins: string[]): string {
   const disque = s.disque.detecte
-    ? `<span class="ok">Branché</span> — ${esc(s.disque.nom)} (${esc(s.disque.lettre)})`
+    ? `<span class="ok">Branché</span> — ${esc(s.disque.nom)} (${esc(s.disque.dossier)})`
     : `<span class="ko">${esc(s.disque.message)}</span>`;
   const navigateur =
     s.navigateurRendu.etat === "pret"
