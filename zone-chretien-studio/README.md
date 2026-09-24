@@ -115,16 +115,32 @@ L'éditeur (site HTTPS sur Vercel) appelle le studio sur `http://127.0.0.1:4317`
 - **Firefox** : non testé à ce jour (le comportement sera vérifié avec l'éditeur, étape 3).
 - **Safari** : non pris en charge (le studio est prévu pour un PC Windows).
 
-Sites autorisés : `config.json` → `originesAutorisees`. Pour ajouter l'adresse **exacte** d'un
-déploiement de prévisualisation Vercel sans modifier le dépôt, créer
-`config.local.json` (non versionné) :
+Sites autorisés : `config.json` → `originesAutorisees`, qui ne contient **que les sites HTTPS
+du CMS** (production Vercel et zone-chretien.org ; vérifié par un test). Pour ajouter d'autres
+adresses **exactes** sans modifier le dépôt, créer `config.local.json` (non versionné, à côté
+de `config.json`) ; ses origines s'ajoutent à celles de `config.json` :
+
+- un déploiement de prévisualisation Vercel ;
+- le serveur de développement local du CMS (`npm run dev`), **uniquement sur un PC de
+  développement** : sans cette ligne, l'éditeur ouvert sur `http://localhost:3000` ne peut
+  pas joindre le studio.
 
 ```json
-{ "originesAutorisees": ["https://zone-chretien-media-git-reels-studio-xxxx.vercel.app"] }
+{
+  "originesAutorisees": [
+    "https://zone-chretien-media-git-reels-studio-xxxx.vercel.app",
+    "http://localhost:3000"
+  ]
+}
 ```
 
+Relancer `LANCER-STUDIO.bat` après toute modification : la page <http://127.0.0.1:4317>
+affiche la liste des sites autorisés effectivement prise en compte.
+
 Pas de caractères génériques (`*`) : n'importe qui pouvant créer un projet Vercel au nom
-proche, seules des adresses exactes sont acceptées.
+proche, seules des adresses exactes sont acceptées. `http://localhost:3000` n'est pas dans
+`config.json` : toute application lancée sur ce port du PC (un autre projet, par exemple)
+pourrait sinon piloter le studio.
 
 ## 5. Sécurité
 

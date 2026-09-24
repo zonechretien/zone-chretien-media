@@ -108,7 +108,7 @@ Les compositions dans `remotion/` sont **la seule source de vérité** : le mêm
 
 ### Serveur local
 - Écoute **uniquement sur 127.0.0.1**, jamais sur 0.0.0.0 (pas de pare-feu, pas d'exposition réseau).
-- CORS limité aux origines autorisées : le domaine Vercel du CMS, le futur domaine zone-chretien.org et `http://localhost:3000` pour le développement. Liste configurable.
+- CORS limité aux origines autorisées : le domaine Vercel du CMS, le futur domaine zone-chretien.org ; `http://localhost:3000` pour le développement uniquement dans `config.local.json` (non versionné). Liste configurable.
 - Vérifie et gère le comportement actuel des navigateurs pour les requêtes d'un site HTTPS public vers 127.0.0.1 (Private Network Access / Local Network Access, en-têtes et autorisation éventuelle de l'utilisateur). Documente ce que je dois accepter dans le navigateur.
 - **Protection contre la traversée de chemins** : impossible de lire un fichier en dehors de la bibliothèque (`../`, chemins absolus, liens symboliques).
 - Support des requêtes HTTP Range pour la lecture des vidéos et des musiques dans l'aperçu.

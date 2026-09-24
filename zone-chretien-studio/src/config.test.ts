@@ -46,4 +46,18 @@ describe("loadConfig", () => {
   it("refuse un dossier qui n'est pas un simple nom", () => {
     expect(() => loadConfig(studioDir(BASE, { dossierBibliotheque: "..\\Windows" }))).toThrow();
   });
+
+  it("config.local.json peut autoriser le serveur de développement local", () => {
+    const c = loadConfig(studioDir(BASE, { originesAutorisees: ["http://localhost:3000"] }));
+    expect(c.originesAutorisees).toEqual(["https://zone-chretien.org", "http://localhost:3000"]);
+  });
+});
+
+describe("config.json versionné", () => {
+  // Les origines de développement (http://localhost:…) vont dans config.local.json, jamais ici.
+  it("n'autorise que les sites HTTPS du CMS", () => {
+    const shipped = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "config.json"), "utf8")) as { originesAutorisees: string[] };
+    expect(shipped.originesAutorisees.length).toBeGreaterThan(0);
+    for (const origin of shipped.originesAutorisees) expect(new URL(origin).protocol, origin).toBe("https:");
+  });
 });
