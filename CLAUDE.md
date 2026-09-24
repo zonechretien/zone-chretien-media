@@ -30,7 +30,9 @@ déployé sur Vercel, et studio local de Reels dans `zone-chretien-studio/`).
    qui écrit par défaut dans `Documents\Sauvegardes-Turso` et refuse ces emplacements.
    **Les sauvegardes ne restent jamais en clair** : après « Sauvegarde vérifiée », elles sont
    chiffrées en `.7z` AES-256 (noms chiffrés) avec `outils\7zip\7za.exe`, archive testée,
-   puis `.sql` supprimé ; `npm run db:chiffrer` pour les anciens `.sql` ; `--copie <dossier>`
+   puis `.sql` supprimé ; si la vérification échoue, chiffrées quand même en
+   `…_NON-VERIFIEE.7z` (ou `.sql` supprimé si le chiffrement est impossible) ;
+   `npm run db:chiffrer` pour les anciens `.sql` ; `--copie <dossier>`
    pour une copie (mêmes refus). Le mot de passe est saisi par l'utilisateur dans son
    terminal : ne jamais le demander, l'écrire, le passer en argument de commande ni le
    journaliser.

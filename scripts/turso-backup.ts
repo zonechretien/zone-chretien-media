@@ -15,6 +15,9 @@
  * Après « Sauvegarde vérifiée », le mot de passe est demandé deux fois dans le
  * terminal (non affiché) ; le .sql est chiffré en .7z (AES-256, noms chiffrés),
  * l'archive est testée, puis le .sql en clair est supprimé (voir backup-crypto.ts).
+ * Si la vérification échoue, la sauvegarde est quand même chiffrée, sous le nom
+ * <base>_<date>_NON-VERIFIEE.7z (jamais copiée avec --copie) ; si ce chiffrement
+ * est impossible, le .sql est supprimé. Aucun .sql ne reste en clair.
  * Sauvegardes .sql plus anciennes : npm run db:chiffrer (turso-encrypt-existing.ts).
  *
  * Le script n'exécute que des lectures sur la base. Le fichier produit contient
@@ -30,7 +33,7 @@
  */
 import { createClient, type Client, type InValue } from "@libsql/client";
 import { spawnSync } from "node:child_process";
-import { askNewPassword, copyArchive, encryptAndRemove, sevenZipPath } from "./backup-crypto";
+import { archivePathFor, askNewPassword, copyArchive, encryptAndRemove, sevenZipPath } from "./backup-crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -408,10 +411,17 @@ async function main() {
   console.log("Vérification : restauration dans une base temporaire…");
   const fts = /CREATE VIRTUAL TABLE "?bible_verses_fts"?/i.test(sql) ? "bible_verses_fts" : null;
   for (const w of warnings) console.warn(`Avertissement : ${w}`);
-  const problems = verifyDump(file, counts, fts);
+  let problems: string[];
+  try {
+    problems = verifyDump(file, counts, fts);
+  } catch (err) {
+    problems = [`vérification impossible : ${err instanceof Error ? err.message : String(err)}`];
+  }
   if (problems.length > 0) {
     console.error("Sauvegarde INCOMPLÈTE :");
     for (const p of problems) console.error(`  - ${p}`);
+    // Même non vérifiée, la sauvegarde contient toutes les données lues : jamais laissée en clair.
+    await secureUnverifiedBackup(file);
     process.exit(1);
   }
   console.log("Sauvegarde vérifiée : toutes les tables ont le bon nombre de lignes" + (fts ? ", recherche biblique fonctionnelle." : "."));
@@ -464,6 +474,51 @@ export async function encryptBackups(files: string[], copyDir: string | null): P
   if (failures > 0) {
     console.error(`${failures} fichier(s) non chiffré(s) : les .sql concernés sont conservés en clair, à traiter avant de les ranger.`);
     process.exit(1);
+  }
+}
+
+/** Marque ajoutée au nom d'une sauvegarde dont la vérification a échoué. */
+export const UNVERIFIED_SUFFIX = "_NON-VERIFIEE";
+
+/** Nom libre (ni .sql ni .7z existant) pour la sauvegarde non vérifiée : base_…_NON-VERIFIEE[-2].sql. */
+export function unverifiedName(sqlFile: string): string {
+  const base = sqlFile.replace(/\.sql$/i, "") + UNVERIFIED_SUFFIX;
+  for (let n = 1; ; n++) {
+    const candidate = `${base}${n === 1 ? "" : `-${n}`}.sql`;
+    if (!fs.existsSync(candidate) && !fs.existsSync(archivePathFor(candidate))) return candidate;
+  }
+}
+
+/**
+ * Sauvegarde dont la vérification a échoué : renommée …_NON-VERIFIEE, chiffrée
+ * comme les autres (même test de l'archive), jamais copiée avec --copie. Si le
+ * chiffrement est impossible (mot de passe non saisi, 7-Zip en échec…), le .sql
+ * est supprimé : une sauvegarde non vérifiée ne reste jamais en clair, il suffit
+ * de relancer npm run db:backup. Renvoie l'archive, ou null si le .sql a été supprimé.
+ */
+export async function secureUnverifiedBackup(sqlFile: string, getPassword: () => Promise<string> = askNewPassword): Promise<string | null> {
+  let file = sqlFile;
+  try {
+    file = unverifiedName(sqlFile);
+    fs.renameSync(sqlFile, file);
+    console.error(`La sauvegarde non vérifiée est chiffrée quand même, sous un nom qui le signale : ${path.basename(archivePathFor(file))}`);
+    console.error("À ne pas utiliser pour une restauration sans l'avoir examinée ; relancez npm run db:backup.");
+    const archive = encryptAndRemove(file, await getPassword());
+    console.error(`Archive NON VÉRIFIÉE chiffrée et testée : ${archive} — fichier .sql en clair supprimé.`);
+    return archive;
+  } catch (err) {
+    console.error(`Chiffrement impossible (${err instanceof Error ? err.message : String(err)}).`);
+    let removed = true;
+    for (const f of new Set([file, sqlFile])) {
+      try {
+        fs.rmSync(f, { force: true });
+      } catch {
+        removed = false;
+        console.error(`ATTENTION : suppression impossible (fichier ouvert par un autre programme ?), à supprimer à la main : ${f}`);
+      }
+    }
+    if (removed) console.error("La sauvegarde non vérifiée a été SUPPRIMÉE (jamais laissée en clair) : relancez npm run db:backup.");
+    return null;
   }
 }
 

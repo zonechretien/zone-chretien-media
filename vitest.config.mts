@@ -11,7 +11,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["remotion/**/*.test.ts", "src/**/*.test.ts"],
+    include: ["remotion/**/*.test.ts", "src/**/*.test.ts", "scripts/**/*.test.ts"],
     environment: "node",
   },
 });

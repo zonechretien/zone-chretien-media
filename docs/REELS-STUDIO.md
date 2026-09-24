@@ -168,6 +168,12 @@ Les props de chaque projet sont une chaîne JSON validée par le schéma zod du 
    - `--copie <dossier>` (ex. `npm run db:backup -- --copie D:\Sauvegardes`) copie en plus
      l'archive chiffrée et vérifie la copie. Mêmes refus : jamais dans `Zone-Chretien-Studio`
      ni dans le dépôt. Rien n'est jamais écrasé.
+   - **Vérification en échec** (« Sauvegarde INCOMPLÈTE ») : la sauvegarde est quand même
+     chiffrée de la même façon, sous le nom `<base>_<date>_NON-VERIFIEE.7z`, et n'est pas
+     copiée avec `--copie`. Si ce chiffrement est impossible (mot de passe non saisi, 7-Zip en
+     échec), le `.sql` est **supprimé** : une sauvegarde non vérifiée ne reste jamais en clair.
+     Dans les deux cas, corriger le problème affiché et relancer `npm run db:backup` ; une
+     archive `…_NON-VERIFIEE.7z` ne sert qu'à examiner le problème, jamais à restaurer.
 
    ⚠ **Sans le mot de passe, la sauvegarde est irrécupérable.** Le noter dans un endroit sûr
    (gestionnaire de mots de passe), jamais dans le dépôt. Un mot de passe accentué fonctionne
