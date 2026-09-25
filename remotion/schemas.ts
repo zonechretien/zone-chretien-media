@@ -134,6 +134,21 @@ export const voiceOverSchema = z.object({
     .max(1)
     .meta(field({ label: "Musique pendant la voix", widget: "slider", defaultValue: 0.25, help: "La musique baisse automatiquement à ce niveau pendant la voix off." })),
   fitDuration: z.boolean().meta(field({ label: "Caler la durée de la vidéo sur la voix off", defaultValue: true })),
+  /** Voix plus grave, sans changer son rythme (la synchronisation reste valable) : appliqué au MP4. */
+  pitchSemitones: z
+    .number()
+    .int()
+    .min(-5)
+    .max(0)
+    .default(0)
+    .meta(
+      field({
+        label: "Voix plus grave (demi-tons)",
+        step: 1,
+        defaultValue: 0,
+        help: "0 = voix naturelle ; -2 = nettement plus grave. Le rythme ne change pas. Appliqué dans le MP4 exporté (l'aperçu garde la voix naturelle).",
+      }),
+    ),
   // Facultatifs, avec valeur par défaut : les projets enregistrés avant la synchronisation restent valides.
   /** Affichage du texte synchronisé : phrase par phrase, ou mot par mot avec surbrillance. */
   textStyle: z.enum(TEXT_STYLES).default("phrase").meta(field({ label: "Affichage du texte", widget: "hidden", defaultValue: "phrase" })),

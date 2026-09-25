@@ -20,6 +20,7 @@ const voice = (over: Partial<VoiceOverProps> = {}): VoiceOverProps => ({
   mediaDurationSeconds: 8,
   musicDuckVolume: 0.25,
   fitDuration: true,
+  pitchSemitones: 0,
   textStyle: "phrase",
   sync: { source: "auto", audioPath: "VoixOff/v.m4a", scriptHash: script.hash, trimStartSeconds: 1.5, words, confidence: 0.9, model: "small", weakSentences: [] },
   ...over,

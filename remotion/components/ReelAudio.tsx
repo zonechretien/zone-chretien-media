@@ -61,6 +61,9 @@ export function ReelAudio({
                 : (f) => voiceOver.volume * Math.min(1, Math.max(0, (voiceEndFrame - Math.round(voiceOver.startSeconds * fps) + VOICE_HOLD_FRAMES + VOICE_FADE_FRAMES - f) / VOICE_FADE_FRAMES))
             }
             trimBefore={trimStartSeconds > 0 ? Math.round(trimStartSeconds * fps) : undefined}
+            // Voix plus grave : hauteur baissée par ffmpeg au rendu, durée inchangée
+            // (asetrate + atempo) ; sans effet dans l'aperçu du navigateur.
+            toneFrequency={voiceOver.pitchSemitones ? 2 ** (voiceOver.pitchSemitones / 12) : undefined}
           />
         </Sequence>
       ) : null}
