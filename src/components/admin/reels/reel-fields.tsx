@@ -195,7 +195,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
     case "group": {
       const enabled = value !== null && value !== undefined;
       return (
-        <fieldset className="mb-5 rounded-xl border border-border p-4">
+        <fieldset className="mb-5 min-w-0 rounded-xl border border-border p-4">
           <legend className="px-1 text-sm font-medium text-foreground">{field.label}</legend>
           {field.nullable && (
             <label className="mb-3 flex items-center gap-2 text-sm text-foreground">
@@ -231,7 +231,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
       const current = (value ?? {}) as Record<string, unknown>;
       const selected = field.options.find((o) => o.value === current[field.discriminator]) ?? field.options[0];
       return (
-        <fieldset className="mb-5 rounded-xl border border-border p-4">
+        <fieldset className="mb-5 min-w-0 rounded-xl border border-border p-4">
           <legend className="px-1 text-sm font-medium text-foreground">{field.label}</legend>
           <div className="mb-4 flex flex-wrap gap-2" role="radiogroup" aria-label={field.label}>
             {field.options.map((o) => (

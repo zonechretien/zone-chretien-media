@@ -121,7 +121,7 @@ export function VoiceSyncPanel({
             ))}
           </select>
         </label>
-        <fieldset className="text-xs text-foreground/70">
+        <fieldset className="min-w-0 text-xs text-foreground/70">
           <legend>Affichage du texte</legend>
           <div className="mt-1 flex flex-wrap gap-2" role="radiogroup">
             {(
