@@ -1,15 +1,15 @@
 import { AbsoluteFill, Img, Loop, OffthreadVideo, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { BRAND } from "../brand";
+import { BRAND, withAlpha } from "../brand";
 import { mediaUrl } from "../media";
 import type { BackgroundProps } from "../schemas";
 
 /**
- * Fond animé dès la première image (léger zoom lent + halo doré qui dérive),
- * pour que la vidéo « vive » tout de suite, sans effet tape-à-l'œil.
+ * Fond animé dès la première image (léger zoom lent, dégradé qui pivote
+ * doucement), pour que la vidéo « vive » tout de suite, sans effet tape-à-l'œil.
  */
 export function Background({ background, mediaBaseUrl }: { background: BackgroundProps; mediaBaseUrl?: string }) {
   const frame = useCurrentFrame();
-  const { durationInFrames, width, height } = useVideoConfig();
+  const { durationInFrames } = useVideoConfig();
   const progress = frame / Math.max(1, durationInFrames);
   const zoom = interpolate(progress, [0, 1], [1.12, 1.0]);
 
@@ -25,12 +25,16 @@ export function Background({ background, mediaBaseUrl }: { background: Backgroun
       ) : (
         <LoopingVideo src={url} mediaDurationSeconds={background.mediaDurationSeconds} />
       );
+    // Voile jamais plus léger que le minimal de la charte, y compris en haut
+    // (en-tête de marque) : le texte reste lisible même sur une photo claire.
+    const dim = Math.max(background.dim, BRAND.readability.minPhotoDim);
+    const veil = (alpha: number) => withAlpha(BRAND.colors.navyDeep, alpha);
     base = (
       <AbsoluteFill>
         <AbsoluteFill style={{ transform: `scale(${zoom})` }}>{media}</AbsoluteFill>
         <AbsoluteFill
           style={{
-            background: `linear-gradient(180deg, rgba(5,14,31,${background.dim * 0.8}) 0%, rgba(5,14,31,${background.dim}) 55%, rgba(5,14,31,${Math.min(0.95, background.dim + 0.15)}) 100%)`,
+            background: `linear-gradient(180deg, ${veil(dim)} 0%, ${veil(dim)} 55%, ${veil(Math.min(0.95, dim + 0.15))} 100%)`,
           }}
         />
       </AbsoluteFill>
@@ -47,21 +51,12 @@ export function Background({ background, mediaBaseUrl }: { background: Backgroun
     );
   }
 
-  // Halo doré très doux qui dérive lentement.
-  const glowX = interpolate(progress, [0, 1], [0.3, 0.7]) * width;
-  const glowY = interpolate(progress, [0, 1], [0.28, 0.4]) * height;
-  const glowSize = Math.max(width, height) * 0.75;
-
+  // Pas de halo : un dégradé net, sans zone terne au centre.
   return (
     <AbsoluteFill style={{ backgroundColor: BRAND.colors.navyDeep, overflow: "hidden" }}>
       {base}
-      <AbsoluteFill
-        style={{
-          background: `radial-gradient(circle ${glowSize / 2}px at ${glowX}px ${glowY}px, rgba(212,175,55,0.16), rgba(212,175,55,0) 70%)`,
-        }}
-      />
       {/* Vignettage : concentre le regard au centre et améliore la lisibilité. */}
-      <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.45) 100%)" }} />
+      <AbsoluteFill style={{ background: `radial-gradient(ellipse at center, ${withAlpha(BRAND.colors.navyDeep, 0)} 45%, ${withAlpha(BRAND.colors.navyDeep, 0.5)} 100%)` }} />
     </AbsoluteFill>
   );
 }

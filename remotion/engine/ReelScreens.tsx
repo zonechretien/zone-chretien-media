@@ -1,14 +1,14 @@
 import { AbsoluteFill, Easing, Sequence, interpolate, useCurrentFrame } from "remotion";
-import { BRAND } from "../brand";
+import { BRAND, withAlpha } from "../brand";
 import { Background } from "../components/Background";
-import { BrandMark } from "../components/BrandMark";
+import { BrandMark, Wordmark } from "../components/BrandMark";
 import { EndCard } from "../components/EndCard";
 import { ReelAudio } from "../components/ReelAudio";
 import { SafeZoneOverlay } from "../components/SafeZoneOverlay";
 import { WordReveal } from "../components/WordReveal";
 import { ensureBrandFonts } from "../fonts";
 import type { BackgroundProps, MusicProps, RuntimeProps, VoiceOverProps } from "../schemas";
-import { CTA_LINE_HEIGHT, CTA_PADDING, DETAIL_ROW, HEADING_LINE_HEIGHT, KICKER_TRACKING, LINE_HEIGHT, revealFramesFor, type LaidBlock, type LaidScreen, type ReelLayout } from "./layout";
+import { CTA_LINE_HEIGHT, CTA_PADDING, DETAIL_ROW, HEADING_LINE_HEIGHT, KICKER_TRACKING, LINE_HEIGHT, blockGap, headerMarkSize, referenceMargin, revealFramesFor, type LaidBlock, type LaidScreen, type ReelLayout } from "./layout";
 import type { DetailIcon } from "./types";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
@@ -43,6 +43,9 @@ export function ReelScreens({
   const footerAt = timing.segments[0].from + firstRevealFrames(screens[0], timing.segments[0].duration);
   const footerIn = interpolate(frame, [footerAt - 6, footerAt + 12], [0, 1], { ...clamp, easing: easeOut });
   const contentOut = interpolate(frame, [endFrom - 12, endFrom], [1, 0], clamp);
+  const markSize = headerMarkSize(layout.format);
+  // Sur une photo ou une vidéo, une ombre détache le texte d'un fond chargé (héritée par tout le contenu).
+  const onMedia = background.type === "image" || background.type === "video";
 
   return (
     <AbsoluteFill>
@@ -51,33 +54,33 @@ export function ReelScreens({
 
       <div
         style={{
+          textShadow: onMedia ? BRAND.readability.photoTextShadow : undefined,
           position: "absolute",
           left: box.x,
-          top: box.y,
+          top: layout.group.top,
           width: box.width,
-          height: box.height,
+          height: layout.group.height,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
           textAlign: "center",
           opacity: contentOut,
         }}
       >
         <div style={{ opacity: headerIn, transform: `translateY(${(1 - headerIn) * 24}px)`, display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ ...label, display: "flex", alignItems: "center", gap: sizes.brand * 0.45, fontSize: sizes.brand, letterSpacing: "0.18em", color: BRAND.colors.textMuted }}>
-            <BrandMark size={sizes.brand * 1.3} />
-            <span>{BRAND.name.toUpperCase()}</span>
+          <div style={{ display: "flex", alignItems: "center", height: markSize, gap: markSize * 0.28 }}>
+            <BrandMark height={markSize} />
+            <Wordmark fontSize={markSize * BRAND.logo.headerWordmark} />
           </div>
           {layout.kicker ? (
-            <div style={{ ...label, marginTop: sizes.gapSm, fontSize: layout.kicker.fontSize, letterSpacing: `${KICKER_TRACKING}em`, color: BRAND.colors.gold, whiteSpace: "nowrap" }}>
+            <div style={{ ...label, marginTop: sizes.gapSm, fontSize: layout.kicker.fontSize, letterSpacing: `${KICKER_TRACKING}em`, color: layout.accent, whiteSpace: "nowrap" }}>
               {layout.kicker.text}
             </div>
           ) : null}
         </div>
-        <div style={{ marginTop: sizes.gapSm, width: sizes.bodyMax * 1.6 * lineIn, height: 3, background: BRAND.colors.gold }} />
+        <div style={{ marginTop: sizes.gapSm, width: sizes.bodyMax * 1.6 * lineIn, height: 3, background: layout.accent }} />
 
-        <div style={{ position: "relative", width: layout.textWidth, height: layout.stageHeight, marginTop: sizes.gapLg, marginBottom: sizes.gapLg }}>
+        <div style={{ position: "relative", flexShrink: 0, width: layout.textWidth, height: layout.stageUsed, marginTop: sizes.gapLg }}>
           {timing.segments.map((seg, i) => {
             const isLast = i === timing.segments.length - 1;
             return (
@@ -89,7 +92,18 @@ export function ReelScreens({
         </div>
 
         {layout.persistentFooter ? (
-          <div style={{ ...label, fontSize: layout.persistentFooter.fontSize, color: BRAND.colors.gold, letterSpacing: "0.04em", whiteSpace: "nowrap", opacity: footerIn, transform: `translateY(${(1 - footerIn) * 16}px)` }}>
+          <div
+            style={{
+              ...label,
+              marginTop: referenceMargin(layout, screens.at(-1)?.blocks.at(-1), layout.persistentFooter.fontSize),
+              fontSize: layout.persistentFooter.fontSize,
+              color: layout.accent,
+              letterSpacing: "0.04em",
+              whiteSpace: "nowrap",
+              opacity: footerIn,
+              transform: `translateY(${(1 - footerIn) * 16}px)`,
+            }}
+          >
             {layout.persistentFooter.text}
           </div>
         ) : null}
@@ -113,7 +127,6 @@ function firstRevealFrames(screen: LaidScreen, segmentFrames: number): number {
 function Screen({ screen, layout, segmentFrames, fadeOutFrom }: { screen: LaidScreen; layout: ReelLayout; segmentFrames: number; fadeOutFrom: number | null }) {
   const frame = useCurrentFrame();
   const out = fadeOutFrom === null ? 1 : interpolate(frame, [fadeOutFrom, fadeOutFrom + 10], [1, 0], clamp);
-  const gap = layout.sizes.gapLg * 0.6;
 
   // Enchaînement : chaque bloc commence quand le précédent est lisible.
   let cursor = 0;
@@ -124,12 +137,23 @@ function Screen({ screen, layout, segmentFrames, fadeOutFrom }: { screen: LaidSc
   });
   const footerStart = cursor;
 
+  // Avec une référence / un auteur persistant sous la scène, les écrans sont
+  // calés en bas : l'écart avec le texte reste le même sur tous les écrans.
   return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap, opacity: out }}>
-      {screen.blocks.map((block, i) => (
-        <Block key={i} block={block} start={starts[i]} segmentFrames={segmentFrames} />
-      ))}
-      {screen.footer ? <Rise start={footerStart} style={{ ...label, fontSize: screen.footer.fontSize, color: BRAND.colors.gold, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>{screen.footer.text}</Rise> : null}
+    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: layout.persistentFooter ? "flex-end" : "center", opacity: out }}>
+      <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: blockGap(layout.sizes) }}>
+        {screen.blocks.map((block, i) => (
+          <Block key={i} block={block} start={starts[i]} segmentFrames={segmentFrames} accent={layout.accent} />
+        ))}
+      </div>
+      {screen.footer ? (
+        <Rise
+          start={footerStart}
+          style={{ ...label, marginTop: referenceMargin(layout, screen.blocks.at(-1), screen.footer.fontSize), fontSize: screen.footer.fontSize, color: layout.accent, letterSpacing: "0.04em", whiteSpace: "nowrap" }}
+        >
+          {screen.footer.text}
+        </Rise>
+      ) : null}
     </div>
   );
 }
@@ -141,7 +165,7 @@ function Rise({ start, children, style }: { start: number; children: React.React
   return <div style={{ ...style, opacity: t, transform: `translateY(${(1 - t) * 18}px)` }}>{children}</div>;
 }
 
-function Block({ block, start, segmentFrames }: { block: LaidBlock; start: number; segmentFrames: number }) {
+function Block({ block, start, segmentFrames, accent }: { block: LaidBlock; start: number; segmentFrames: number; accent: string }) {
   const frame = useCurrentFrame();
   switch (block.type) {
     case "heading":
@@ -164,7 +188,7 @@ function Block({ block, start, segmentFrames }: { block: LaidBlock; start: numbe
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           {block.items.map((item, i) => (
             <Rise key={i} start={start + i * 8} style={{ ...label, display: "flex", alignItems: "center", gap: block.fontSize * 0.45, height: block.fontSize * DETAIL_ROW, fontSize: block.fontSize, color: BRAND.colors.text, whiteSpace: "nowrap" }}>
-              <DetailGlyph icon={item.icon} size={block.fontSize * 1.05} />
+              <DetailGlyph icon={item.icon} size={block.fontSize * 1.05} color={accent} />
               <span>{item.text}</span>
             </Rise>
           ))}
@@ -184,9 +208,10 @@ function Block({ block, start, segmentFrames }: { block: LaidBlock; start: numbe
             padding: `${block.fontSize * CTA_PADDING}px ${block.fontSize}px`,
             borderRadius: block.fontSize * 1.1,
             background: BRAND.colors.gold,
-            color: BRAND.colors.navyDeep,
+            color: BRAND.colors.onGold,
+            textShadow: "none",
             textWrap: "balance",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+            boxShadow: `0 12px 40px ${withAlpha(BRAND.colors.navyDeep, 0.45)}`,
           }}
         >
           {block.text}
@@ -196,9 +221,9 @@ function Block({ block, start, segmentFrames }: { block: LaidBlock; start: numbe
   }
 }
 
-/** Pictogrammes simples (SVG), dans la couleur de la marque. */
-function DetailGlyph({ icon, size }: { icon: DetailIcon; size: number }) {
-  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: BRAND.colors.gold, strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+/** Pictogrammes simples (SVG), dans la couleur d'accent du template. */
+function DetailGlyph({ icon, size, color }: { icon: DetailIcon; size: number; color: string }) {
+  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   if (icon === "date") {
     return (
       <svg {...common}>

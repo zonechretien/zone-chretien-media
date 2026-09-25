@@ -1,0 +1,39 @@
+{
+  "Verset": {
+    "kicker": "Parole du jour",
+    "reference": "Ésaïe 41:10",
+    "text": "Ne crains rien, car je suis avec toi; Ne promène pas des regards inquiets, car je suis ton Dieu; Je te fortifie, je viens à ton secours, Je te soutiens de ma droite triomphante.",
+    "showVersion": true
+  },
+  "Priere": {
+    "kicker": "Prions ensemble",
+    "title": "Prière du matin",
+    "text": "Seigneur, au début de cette journée, je remets entre tes mains mes projets, mes inquiétudes et ceux que j'aime. Guide mes paroles et rends-moi attentif à ceux que tu places sur ma route. Amen.",
+    "verseReference": "Psaume 143:8",
+    "verseText": "Fais-moi dès le matin entendre ta bonté! Car je me confie en toi. Fais-moi connaître le chemin où je dois marcher! Car j'élève à toi mon âme.",
+    "showVersion": true
+  },
+  "Devotion": {
+    "kicker": "Dévotion du jour",
+    "title": "Chaque matin, une grâce neuve",
+    "verseReference": "Lamentations 3:22-23",
+    "verseText": "Les bontés de l'Éternel ne sont pas épuisées, Ses compassions ne sont pas à leur terme; Elles se renouvellent chaque matin. Oh! que ta fidélité est grande!",
+    "reflection": "Même après une nuit difficile, Dieu ne t'accueille pas avec des reproches, mais avec une grâce neuve. Commence ta journée en le remerciant pour une chose précise.",
+    "callToAction": "Lis la dévotion sur zone-chretien.org",
+    "showVersion": true
+  },
+  "Citation": {
+    "kicker": "Citation",
+    "quote": "Tu nous as faits pour toi, Seigneur, et notre cœur est sans repos tant qu'il ne repose en toi.",
+    "author": "Saint Augustin, Confessions"
+  },
+  "Evenement": {
+    "kicker": "Événement",
+    "name": "Soirée de louange et de prière",
+    "date": "2026-10-17",
+    "time": "19:30",
+    "place": "Église de la Grâce, Lyon",
+    "description": "Une soirée pour adorer ensemble, prier les uns pour les autres et partager un moment fraternel.",
+    "callToAction": "Entrée libre — viens avec tes amis !"
+  }
+}

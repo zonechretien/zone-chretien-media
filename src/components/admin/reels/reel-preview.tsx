@@ -2,6 +2,7 @@
 
 import { Player } from "@remotion/player";
 import { useMemo } from "react";
+import { BRAND } from "@reels/brand";
 import { TEMPLATES, type TemplateId } from "@reels/templates";
 import type { AnyTemplateProps } from "@reels/template-meta";
 
@@ -39,7 +40,7 @@ export default function ReelPreview({
       // À l'arrêt, l'aperçu montre le verset déjà apparu (vers 3 s) plutôt que la
       // toute première image, encore vide au début de l'animation d'entrée.
       initialFrame={Math.min(3 * meta.fps, meta.durationInFrames - 1)}
-      style={{ width: "100%", aspectRatio: `${meta.width} / ${meta.height}`, borderRadius: 12, overflow: "hidden", background: "#050E1F" }}
+      style={{ width: "100%", aspectRatio: `${meta.width} / ${meta.height}`, borderRadius: 12, overflow: "hidden", background: BRAND.colors.navyDeep }}
     />
   );
 }

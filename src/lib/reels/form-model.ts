@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { BRAND } from "@reels/brand";
 import type { FieldMeta } from "@reels/schemas";
 
 /**
@@ -156,7 +157,7 @@ export function defaultsFor(schema: z.ZodType): Record<string, unknown> {
     if (meta?.defaultValue !== undefined) out[key] = meta.defaultValue;
     else if (nullable) out[key] = null;
     else if (t === "literal") out[key] = (inner as unknown as { value: unknown }).value;
-    else if (meta?.widget === "color") out[key] = "#0B1E3D";
+    else if (meta?.widget === "color") out[key] = BRAND.colors.navy;
     else if (t === "string") out[key] = "";
     else if (t === "boolean") out[key] = false;
     else if (t === "number") {

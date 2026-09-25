@@ -1,7 +1,7 @@
 import type { z } from "zod";
 import { BRAND } from "./brand";
 import { layoutReel, type ReelLayout } from "./engine/layout";
-import type { ReelSpec } from "./engine/types";
+import type { ReelSpec, ThemeId } from "./engine/types";
 import { FORMAT_IDS, type FormatId } from "./formats";
 import {
   citationSchema,
@@ -40,9 +40,12 @@ export type TemplateMeta<P> = {
   metadata: (props: P) => { width: number; height: number; durationInFrames: number; fps: number };
 };
 
-const common = (format: FormatId) => ({
+/** Fond par défaut d'un nouveau projet : dégradé du thème du template vers le bleu nuit profond. */
+export const defaultBackground = (theme: ThemeId) => ({ type: "gradient" as const, from: BRAND.themes[theme].from, to: BRAND.colors.navyDeep });
+
+const common = (format: FormatId, theme: ThemeId) => ({
   format,
-  background: { type: "gradient" as const, from: BRAND.colors.navyLight, to: BRAND.colors.navyDeep },
+  background: defaultBackground(theme),
   durationSeconds: null,
   music: null,
   voiceOver: null,
@@ -71,7 +74,7 @@ const verset = define<VersetProps>({
   schema: versetSchema,
   spec: versetSpec,
   defaultProps: (format) => ({
-    ...common(format),
+    ...common(format, "Verset"),
     kicker: "Parole du jour",
     reference: "Psaume 34:8",
     text: "Sentez et voyez combien l'Éternel est bon! Heureux l'homme qui cherche en lui son refuge!",
@@ -86,7 +89,7 @@ const priere = define<PriereProps>({
   schema: priereSchema,
   spec: priereSpec,
   defaultProps: (format) => ({
-    ...common(format),
+    ...common(format, "Priere"),
     kicker: "Prions ensemble",
     title: "Prière du matin",
     text: "Seigneur, merci pour ce nouveau jour que tu m'accordes. Guide mes pas, éclaire mes décisions et remplis mon cœur de ta paix. Amen.",
@@ -104,7 +107,7 @@ const devotion = define<DevotionProps>({
   schema: devotionSchema,
   spec: devotionSpec,
   defaultProps: (format) => ({
-    ...common(format),
+    ...common(format, "Devotion"),
     kicker: "Dévotion du jour",
     title: "Ma grâce te suffit",
     verseReference: "2 Corinthiens 12:9",
@@ -124,7 +127,7 @@ const citation = define<CitationProps>({
   schema: citationSchema,
   spec: citationSpec,
   defaultProps: (format) => ({
-    ...common(format),
+    ...common(format, "Citation"),
     kicker: "Citation",
     quote: "Tu nous as faits pour toi, Seigneur, et notre cœur est sans repos tant qu'il ne repose en toi.",
     author: "Saint Augustin",
@@ -138,7 +141,7 @@ const evenement = define<EvenementProps>({
   schema: evenementSchema,
   spec: evenementSpec,
   defaultProps: (format) => ({
-    ...common(format),
+    ...common(format, "Evenement"),
     kicker: "Événement",
     name: "Soirée de louange",
     date: "2026-10-17",

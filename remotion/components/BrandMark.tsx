@@ -1,36 +1,29 @@
-import { BRAND } from "../brand";
+import { Img } from "remotion";
+import { BRAND, wordmarkText } from "../brand";
+import { brandAsset } from "../media";
 
 /**
- * ⚠️ LOGO PROVISOIRE — monogramme « ZC » dessiné en CSS, en attendant le logo
- * officiel (qui sera un fichier de Logos/ sur le disque, ou public/reels/).
+ * Monogramme officiel « ZC » (public/reels/logo/monogramme.svg), sans fond.
+ * Img bloque le rendu tant que le fichier n'est pas chargé : jamais d'image
+ * sans logo dans le MP4.
  */
-export function BrandMark({ size }: { size: number }) {
+export function BrandMark({ height }: { height: number }) {
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        border: `${Math.max(2, size * 0.035)}px solid ${BRAND.colors.gold}`,
-        background: BRAND.colors.navy,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: `0 0 ${size * 0.4}px rgba(212,175,55,0.25)`,
-      }}
-    >
-      <span
-        style={{
-          fontFamily: BRAND.fonts.serif,
-          fontWeight: 700,
-          fontSize: size * 0.4,
-          color: BRAND.colors.gold,
-          letterSpacing: "-0.02em",
-          lineHeight: 1,
-        }}
-      >
-        ZC
-      </span>
-    </div>
+    <Img
+      src={brandAsset(BRAND.logo.monogram)}
+      alt={BRAND.name}
+      style={{ height, width: height * BRAND.logo.monogramRatio, display: "block" }}
+    />
+  );
+}
+
+/** Logotype « ZONE-CHRÉTIEN » en Bebas Neue : « ZONE- » blanc cassé, « CHRÉTIEN » or, comme le logo officiel. */
+export function Wordmark({ fontSize }: { fontSize: number }) {
+  const [first, ...rest] = wordmarkText().split("-");
+  return (
+    <span style={{ fontFamily: BRAND.fonts.display, fontSize, lineHeight: 1, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+      <span style={{ color: BRAND.colors.text }}>{first}-</span>
+      <span style={{ color: BRAND.colors.gold }}>{rest.join("-")}</span>
+    </span>
   );
 }

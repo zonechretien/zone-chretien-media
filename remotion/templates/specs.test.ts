@@ -30,10 +30,11 @@ describe("écrans de chaque template", () => {
     expect(citationSpec(d.Citation.defaultProps("1:1")).persistentFooter).toBe("— Saint Augustin");
   });
 
-  it("Événement : les écrans vides sont omis", () => {
+  it("Événement : le nom au-dessus des détails, les écrans vides sont omis", () => {
     const p = d.Evenement.defaultProps("16:9");
-    expect(evenementSpec(p).screens.map((s) => s.blocks[0].type)).toEqual(["heading", "details", "body", "cta"]);
-    const details = evenementSpec(p).screens[1].blocks[0];
+    const types = (spec: ReturnType<typeof evenementSpec>) => spec.screens.map((s) => s.blocks.map((b) => b.type).join("+"));
+    expect(types(evenementSpec(p))).toEqual(["heading+details", "body", "cta"]);
+    const details = evenementSpec(p).screens[0].blocks[1];
     expect(details).toEqual({
       type: "details",
       items: [
@@ -43,7 +44,7 @@ describe("écrans de chaque template", () => {
       ],
     });
     const minimal = evenementSpec({ ...p, time: "", place: "", description: "", callToAction: "" });
-    expect(minimal.screens.map((s) => s.blocks[0].type)).toEqual(["heading", "details"]);
+    expect(types(minimal)).toEqual(["heading+details"]);
   });
 });
 
