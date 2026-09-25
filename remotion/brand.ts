@@ -87,7 +87,7 @@ export const BRAND = {
 
   /**
    * Logo : monogramme en SVG plat d'après le logo officiel
-   * (public/reels/logo/source/monogramme.png) : Z et C géométriques ajustés
+   * (design/logo/source/monogramme.png) : Z et C géométriques ajustés
    * sur l'original, silhouette décalquée. Tailles en part du plus petit côté
    * de la vidéo (1080 px dans les 3 formats).
    */

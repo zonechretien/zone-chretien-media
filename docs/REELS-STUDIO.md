@@ -57,6 +57,8 @@ remotion/                        templates partagés (aperçu du CMS ET rendu du
   Root.tsx, index.ts             point d'entrée du rendu
 public/reels/fonts/              polices locales (OFL) — rendu hors ligne
 public/reels/logo/monogramme.svg monogramme « ZC » vectoriel, sans fond (en-tête et écran de fin)
+design/logo/source/              images de référence du logo officiel (versionnées, jamais
+                                 servies par le site ni envoyées à Vercel : .vercelignore)
 src/app/admin/reels/             pages : liste, nouveau, éditeur
 src/components/admin/reels/      éditeur, champs générés, médias, voix off, aperçu, export
 src/lib/reels/                   client du studio, générateur de formulaire, « Transformer en Reel »
