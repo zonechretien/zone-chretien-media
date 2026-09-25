@@ -24,13 +24,13 @@ export async function createReel(input: NewReelInput): Promise<{ error?: string 
   const parsed = newReelSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
 
-  const { title, templateId, format } = parsed.data;
+  const { title, templateId, format, language } = parsed.data;
   if (!isTemplateId(templateId)) return { error: "Template inconnu." };
   const meta = TEMPLATE_METAS[templateId];
   if (!meta.formats.includes(format)) return { error: "Ce format n'est pas encore disponible pour ce template." };
 
   const reel = await prisma.reelProject.create({
-    data: { title, templateId, format, data: JSON.stringify(meta.defaultProps(format)) },
+    data: { title, templateId, format, data: JSON.stringify(meta.defaultProps(format, language)) },
   });
 
   revalidatePath("/admin/reels");

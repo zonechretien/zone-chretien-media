@@ -2,6 +2,7 @@ import type { ContentType } from "@prisma/client";
 import { BRAND } from "@reels/brand";
 import type { ThemeId } from "@reels/engine/types";
 import type { CitationProps, DevotionProps, PriereProps, VersetProps } from "@reels/schemas";
+import { label } from "@reels/lib/i18n";
 import { defaultBackground, type AnyTemplateProps, type TemplateId } from "@reels/template-meta";
 
 /**
@@ -36,6 +37,7 @@ const common = (theme: ThemeId) => ({
   durationSeconds: null,
   music: null,
   voiceOver: null,
+  language: "fr" as const,
 });
 
 const clip = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);
@@ -61,7 +63,7 @@ export function draftFromVerse(
   const reference = opts.formattedReference ?? verse.reference;
   const props: VersetProps = {
     ...common("Verset"),
-    kicker: "Verset du jour",
+    kicker: label("fr", "kickerVersetDuJour"),
     reference: reference.trim(),
     text: clipToSentences(verse.text, 1500),
     showVersion: opts.isLsg1910,
@@ -75,12 +77,12 @@ export function draftFromDevotion(
 ): ReelDraft {
   const props: DevotionProps = {
     ...common("Devotion"),
-    kicker: "Dévotion du jour",
+    kicker: label("fr", "kickerDevotion"),
     title: clip(devotion.title.trim(), 80),
     verseReference: (opts.formattedReference ?? devotion.mainVerseRef).trim(),
     verseText: clipToSentences(devotion.mainVerseText, 600),
     reflection: clipToSentences(devotion.reflection, 1200),
-    callToAction: "Lis la dévotion sur zone-chretien.org",
+    callToAction: label("fr", "ctaDevotion"),
     showVersion: opts.isLsg1910,
   };
   return { title: clip(`Dévotion — ${devotion.title}`, 120), templateId: "Devotion", props };
@@ -89,7 +91,7 @@ export function draftFromDevotion(
 export function draftFromPrayer(prayer: { title: string; content: string }): ReelDraft {
   const props: PriereProps = {
     ...common("Priere"),
-    kicker: "Prions ensemble",
+    kicker: label("fr", "kickerPriere"),
     title: clip(prayer.title.trim(), 80),
     text: clipToSentences(prayer.content, 1500),
     verseReference: "",
@@ -103,14 +105,14 @@ export function draftFromQuote(
   kind: "INSPIRATION" | "TESTIMONY",
   content: { title: string; text: string; author: string | null },
 ): ReelDraft {
-  const label = kind === "INSPIRATION" ? "Inspiration" : "Témoignage";
+  const kicker = label("fr", kind === "INSPIRATION" ? "kickerInspiration" : "kickerTemoignage");
   const props: CitationProps = {
     ...common("Citation"),
-    kicker: label,
+    kicker,
     quote: clipToSentences(content.text, 800),
     author: clip((content.author ?? "").trim() || BRAND.name, 60),
   };
-  return { title: clip(`${label} — ${content.title}`, 120), templateId: "Citation", props };
+  return { title: clip(`${kicker} — ${content.title}`, 120), templateId: "Citation", props };
 }
 
 /**

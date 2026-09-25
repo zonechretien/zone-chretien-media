@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { FieldLabel, FormRow, checkboxClass, inputClass, selectClass, textareaClass } from "@/components/admin/form-fields";
 import type { FieldDesc } from "@/lib/reels/form-model";
 import { studio } from "@/lib/reels/studio-client";
@@ -14,6 +15,10 @@ export type FieldsContext = {
   set: (path: Path, value: unknown) => void;
   errors: Record<string, string>;
   studioOnline: boolean;
+  /** Langue du Reel : en créole, pas d'insertion automatique de versets ni de mention « LSG 1910 ». */
+  language: "fr" | "ht";
+  /** Contenu ajouté à la fin d'une section (ex. synchronisation sous la voix off). */
+  groupExtra?: (key: string, path: Path) => ReactNode;
 };
 
 /** Formulaire généré depuis la description du schéma zod du template. */
@@ -63,7 +68,13 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
           )}
           <Help text={field.help} />
           <Error ctx={ctx} path={path} />
-          {field.bibleTextField && (
+          {field.bibleTextField && ctx.language === "ht" && (
+            <p className="mt-2 rounded-lg bg-gold/10 px-3 py-2 text-xs text-foreground/80">
+              Reel en créole haïtien : l&apos;insertion automatique de versets n&apos;est pas proposée. Tapez vous-même le texte du verset
+              et sa référence (la mention « LSG 1910 » n&apos;est pas affichée).
+            </p>
+          )}
+          {field.bibleTextField && ctx.language === "fr" && (
             <BibleInsert
               reference={text}
               maxTextLength={(() => {
@@ -81,6 +92,8 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
     }
 
     case "boolean":
+      // « Afficher LSG 1910 » : sans objet en créole (texte saisi à la main).
+      if (path.at(-1) === "showVersion" && ctx.language === "ht") return null;
       return (
         <FormRow>
           <label className="flex items-center gap-2 text-sm text-foreground">
@@ -161,6 +174,8 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
             online={ctx.studioOnline}
             onChange={(chemin) => {
               ctx.set(path, chemin);
+              // Nouvelle voix off : l'ancienne synchronisation ne vaut plus.
+              if (field.recordable) ctx.set([...path.slice(0, -1), "sync"], null);
               if (tracksDuration) {
                 ctx.set(durationPath, null);
                 studio
@@ -176,6 +191,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
               studioOnline={ctx.studioOnline}
               onSaved={(chemin, seconds) => {
                 ctx.set(path, chemin);
+                ctx.set([...path.slice(0, -1), "sync"], null);
                 ctx.set(durationPath, seconds);
               }}
             />
@@ -189,7 +205,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
     case "group": {
       const enabled = value !== null && value !== undefined;
       return (
-        <fieldset className="mb-5 rounded-xl border border-border p-4">
+        <fieldset className="mb-5 min-w-0 rounded-xl border border-border p-4">
           <legend className="px-1 text-sm font-medium text-foreground">{field.label}</legend>
           {field.nullable && (
             <label className="mb-3 flex items-center gap-2 text-sm text-foreground">
@@ -204,6 +220,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
           )}
           <Help text={field.help} />
           {enabled && <ReelFields fields={field.fields} ctx={ctx} prefix={path} />}
+          {enabled && ctx.groupExtra?.(field.key, path)}
         </fieldset>
       );
     }
@@ -224,7 +241,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
       const current = (value ?? {}) as Record<string, unknown>;
       const selected = field.options.find((o) => o.value === current[field.discriminator]) ?? field.options[0];
       return (
-        <fieldset className="mb-5 rounded-xl border border-border p-4">
+        <fieldset className="mb-5 min-w-0 rounded-xl border border-border p-4">
           <legend className="px-1 text-sm font-medium text-foreground">{field.label}</legend>
           <div className="mb-4 flex flex-wrap gap-2" role="radiogroup" aria-label={field.label}>
             {field.options.map((o) => (

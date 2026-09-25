@@ -2,6 +2,9 @@ import { BRAND } from "../brand";
 import { FORMATS, contentBox, type FormatId } from "../formats";
 import { fitText, paginateText, wordCount, wrapLines } from "../lib/text-fit";
 import { computeSequenceTiming, type SequenceTiming } from "../lib/timing";
+import { narrationScript, type NarrationScript } from "../lib/sync/script";
+import { activeSync, computeSyncedTiming, type WordFrames } from "../lib/sync/timing";
+import type { TextStyle, VoiceOverProps } from "../schemas";
 import { frenchQuote, frenchTypography } from "../lib/typography";
 import type { DetailIcon, ReelSpec, ScreenBlock } from "./types";
 
@@ -73,6 +76,10 @@ export type ReelLayout = {
   group: { top: number; height: number };
   screens: LaidScreen[];
   timing: SequenceTiming;
+  /** Texte lu par la voix off (mots dans l'ordre des écrans, phrases). */
+  script: NarrationScript;
+  /** Synchronisation sur la voix off, si elle est valable pour ce texte et cette voix. */
+  sync: { style: TextStyle; words: WordFrames[] } | null;
 };
 
 /** Interlignage au-dessus et au-dessous d'un bloc (la moitié de l'interligne en trop). */
@@ -120,7 +127,7 @@ export function screenSeconds(words: number, hasBody: boolean): number {
 
 const typo = (s: string) => frenchTypography(s.replace(/\s+/g, " ").trim());
 
-export function layoutReel(spec: ReelSpec, format: FormatId, durationSeconds: number | null): ReelLayout {
+export function layoutReel(spec: ReelSpec, format: FormatId, durationSeconds: number | null, voice: VoiceOverProps | null = null): ReelLayout {
   const f = FORMATS[format];
   const box = contentBox(format);
   const s = SIZES[format];
@@ -225,14 +232,23 @@ export function layoutReel(spec: ReelSpec, format: FormatId, durationSeconds: nu
     });
   }
 
-  const timing = computeSequenceTiming({
-    fps: BRAND.fps,
-    segmentSeconds: screens.map((sc) => screenSeconds(sc.words, sc.blocks.some((bl) => bl.type === "body"))),
-    introSeconds: 0.3,
-    endCardSeconds: BRAND.endCardSeconds,
-    durationSeconds,
-    minSegmentSeconds: 2.5,
-  });
+  // Minutage : calé mot à mot sur la voix off si elle est synchronisée, sinon selon la longueur du texte.
+  const script = narrationScript(screens);
+  const sync = voice ? activeSync(voice, script) : null;
+  const synced =
+    voice && sync
+      ? computeSyncedTiming({ voice, sync, script, screenCount: screens.length, fps: BRAND.fps, introSeconds: 0.3, endCardSeconds: BRAND.endCardSeconds })
+      : null;
+  const timing =
+    synced?.timing ??
+    computeSequenceTiming({
+      fps: BRAND.fps,
+      segmentSeconds: screens.map((sc) => screenSeconds(sc.words, sc.blocks.some((bl) => bl.type === "body"))),
+      introSeconds: 0.3,
+      endCardSeconds: BRAND.endCardSeconds,
+      durationSeconds,
+      minSegmentSeconds: 2.5,
+    });
 
   // Placement vertical : bloc compact (hauteur du plus haut écran), centré sur
   // l'image pour un équilibre visuel, mais toujours entièrement dans la zone sûre.
@@ -261,6 +277,8 @@ export function layoutReel(spec: ReelSpec, format: FormatId, durationSeconds: nu
     group: { top, height: groupHeight },
     screens,
     timing,
+    script,
+    sync: synced ? { style: synced.style, words: synced.words } : null,
   };
 }
 

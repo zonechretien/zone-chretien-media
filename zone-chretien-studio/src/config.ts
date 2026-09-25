@@ -21,6 +21,8 @@ const configSchema = z.object({
   originesAutorisees: z.array(z.string().url()),
   /** Dossier de la bibliothèque, cherché à la racine de chaque lecteur (X:\<dossier>\zc-studio.json). */
   dossierBibliotheque: z.string().refine(isValidFolderName, 'nom de dossier invalide (un seul dossier, sans \\ / : * ? " < > |)'),
+  /** Modèle Whisper à utiliser s'il est installé (sinon le meilleur présent dans .whisper/modeles). */
+  modeleWhisper: z.enum(["tiny", "small", "medium", "large-v3-turbo"]).optional(),
 });
 export type StudioConfig = z.infer<typeof configSchema>;
 
@@ -39,5 +41,6 @@ export function loadConfig(dir = STUDIO_DIR): StudioConfig {
     port: local.port ?? base.port,
     originesAutorisees: [...new Set([...base.originesAutorisees, ...(local.originesAutorisees ?? [])])],
     dossierBibliotheque: local.dossierBibliotheque ?? base.dossierBibliotheque,
+    modeleWhisper: local.modeleWhisper ?? base.modeleWhisper,
   };
 }

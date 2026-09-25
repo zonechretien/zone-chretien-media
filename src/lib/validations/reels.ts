@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FORMAT_IDS } from "@reels/formats";
+import { REEL_LANGUAGES } from "@reels/schemas";
 import { isSafeRelativeMediaPath } from "@reels/media-path";
 
 export const REEL_STATUS_LABELS = {
@@ -12,6 +13,7 @@ export const newReelSchema = z.object({
   title: z.string().trim().min(1, "Le titre est obligatoire.").max(120, "120 caractères maximum."),
   templateId: z.string().min(1, "Choisissez un template."),
   format: z.enum(FORMAT_IDS, "Choisissez un format."),
+  language: z.enum(REEL_LANGUAGES).default("fr"),
 });
 export type NewReelInput = z.infer<typeof newReelSchema>;
 

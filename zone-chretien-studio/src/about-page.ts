@@ -6,6 +6,7 @@ type Status = {
   disque: { detecte: true; lettre: string; dossier: string; nom: string } | { detecte: false; message: string };
   navigateurRendu: { etat: string; message: string | null };
   rendusEnCours: number;
+  synchronisation: { etat: "pret"; modele: string } | { etat: "absent"; message: string };
 };
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -20,6 +21,10 @@ export function aboutPage(s: Status, origins: string[]): string {
       : s.navigateurRendu.etat === "verification"
         ? "Vérification en cours…"
         : `<span class="ko">${esc(s.navigateurRendu.message ?? "Absent")}</span>`;
+  const synchro =
+    s.synchronisation.etat === "pret"
+      ? `<span class="ok">Prête</span> — Whisper, modèle ${esc(s.synchronisation.modele)}`
+      : `<span class="ko">${esc(s.synchronisation.message)}</span>`;
 
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><title>Zone-Chrétien Reels Studio</title>
@@ -43,6 +48,7 @@ export function aboutPage(s: Status, origins: string[]): string {
   <dl>
     <dt>Disque</dt><dd>${disque}</dd>
     <dt>Navigateur de rendu</dt><dd>${navigateur}</dd>
+    <dt>Synchronisation</dt><dd>${synchro}</dd>
     <dt>Rendus en cours</dt><dd>${s.rendusEnCours}</dd>
     <dt>Identifiant</dt><dd><code>${esc(s.application)}</code></dd>
     <dt>Sites autorisés</dt><dd>${origins.map((o) => `<code>${esc(o)}</code>`).join("<br>")}</dd>

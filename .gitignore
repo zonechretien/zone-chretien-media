@@ -61,6 +61,7 @@ next-env.d.ts
 /zone-chretien-studio/node_modules/
 /zone-chretien-studio/.cache/
 /zone-chretien-studio/out/
+/zone-chretien-studio/.whisper/
 /runtime/
 *.mp4
 /zone-chretien-studio/config.local.json

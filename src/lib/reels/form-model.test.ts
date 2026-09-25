@@ -84,8 +84,9 @@ describe("groupes audio (étape 6)", () => {
   it("voix off : enregistrable au micro, durée masquée, durée calée par défaut", () => {
     const voice = byKey("voiceOver");
     if (voice.kind !== "group") throw new Error("groupe attendu");
-    expect(voice.fields.map((f) => f.key)).toEqual(["path", "volume", "startSeconds", "musicDuckVolume", "fitDuration"]);
+    expect(voice.fields.map((f) => f.key)).toEqual(["path", "volume", "startSeconds", "musicDuckVolume", "fitDuration", "pitchSemitones"]);
+    expect(voice.fields[5]).toMatchObject({ kind: "number", min: -5, max: 0, step: 1 });
     expect(voice.fields[0]).toMatchObject({ kind: "media", mediaKind: "audio", folders: ["VoixOff"], recordable: true });
-    expect(voice.defaults).toMatchObject({ mediaDurationSeconds: null, musicDuckVolume: 0.25, fitDuration: true, startSeconds: 0.5 });
+    expect(voice.defaults).toMatchObject({ mediaDurationSeconds: null, musicDuckVolume: 0.25, fitDuration: true, startSeconds: 0.5, pitchSemitones: 0, textStyle: "phrase", sync: null });
   });
 });

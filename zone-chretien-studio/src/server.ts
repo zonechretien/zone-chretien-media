@@ -32,6 +32,8 @@ import { STUDIO_DIR } from "./paths";
 import { explainRenderError, getServeUrl, useStudioWorkingDir } from "./render";
 import { MediaNotFoundError, UnsafePathError, resolveLibraryFile, toRelative } from "./safe-path";
 import { aboutPage } from "./about-page";
+import { SyncQueue } from "./sync-jobs";
+import { synchronize, whisperState } from "./whisper";
 
 useStudioWorkingDir();
 const config = loadConfig();
@@ -78,6 +80,22 @@ async function checkBrowser() {
 }
 
 const queue = new RenderQueue(() => currentLibrary()?.root ?? null, `http://127.0.0.1:${PORT}/media/`);
+
+// Synchronisation du texte sur la voix off (Whisper, hors ligne).
+const whisper = () => whisperState(config.modeleWhisper);
+const syncQueue = new SyncQueue(
+  async ({ chemin, ...rest }) => {
+    const lib = currentLibrary();
+    if (!lib) throw new Error(DRIVE_NOT_FOUND_MESSAGE);
+    return synchronize({ file: resolveLibraryFile(lib.root, chemin), ...rest });
+  },
+  () => {
+    const w = whisper();
+    return w.etat === "pret" ? w.modele : null;
+  },
+);
+/** Nombre maximal de mots d'un texte à synchroniser (le plus long des templates en compte moins de 400). */
+const MAX_SYNC_WORDS = 2000;
 
 // ---------------------------------------------------------------------------
 // Réponses
@@ -134,6 +152,7 @@ function status() {
     developpePar: "Lepolo",
     disque: driveState(),
     navigateurRendu: browser,
+    synchronisation: whisper(),
     rendusEnCours: queue.list().filter((j) => ["en-attente", "preparation", "rendu"].includes(j.statut)).length,
   };
 }
@@ -333,6 +352,42 @@ async function handle(req: Req, res: Res): Promise<void> {
       const job = queue.cancel(id);
       return job ? json(req, res, 200, job) : fail(req, res, 404, "Rendu introuvable.");
     }
+  }
+
+  if (route === "POST /api/synchronisations") {
+    let body: { chemin?: unknown; mots?: unknown; langue?: unknown };
+    try {
+      body = JSON.parse((await readBody(req, MAX_JSON_BYTES)).toString("utf8"));
+    } catch {
+      return fail(req, res, 400, "Demande de synchronisation invalide.");
+    }
+    const lib = currentLibrary();
+    if (!lib) return fail(req, res, 503, DRIVE_NOT_FOUND_MESSAGE);
+    if (typeof body.chemin !== "string" || !body.chemin.startsWith("VoixOff/")) return fail(req, res, 400, "Voix off attendue dans le dossier VoixOff.");
+    try {
+      const file = resolveLibraryFile(lib.root, body.chemin);
+      if (mediaType(file, "VoixOff")?.kind !== "audio") return fail(req, res, 415, "Format audio non supporté.");
+    } catch (e) {
+      if (e instanceof UnsafePathError) return fail(req, res, 400, e.message);
+      if (e instanceof MediaNotFoundError) return fail(req, res, 404, e.message);
+      throw e;
+    }
+    const mots = body.mots;
+    if (!Array.isArray(mots) || mots.length === 0 || mots.length > MAX_SYNC_WORDS || !mots.every((m) => typeof m === "string" && m.length > 0 && m.length <= 100)) {
+      return fail(req, res, 400, "Texte à synchroniser invalide.");
+    }
+    if (body.langue !== "fr" && body.langue !== "ht") return fail(req, res, 400, "Langue inconnue (fr ou ht).");
+    const w = whisper();
+    if (w.etat !== "pret") return fail(req, res, 503, w.message);
+    return json(req, res, 202, syncQueue.add(body.chemin, mots as string[], body.langue));
+  }
+
+  const syncMatch = /^\/api\/synchronisations\/([0-9a-f-]{36})(\/annuler)?$/.exec(url.pathname);
+  if (syncMatch) {
+    const [, id, annuler] = syncMatch;
+    const job = method === "GET" && !annuler ? syncQueue.get(id) : method === "POST" && annuler ? syncQueue.cancel(id) : undefined;
+    if (job === undefined) return fail(req, res, 405, "Méthode non autorisée.");
+    return job ? json(req, res, 200, job) : fail(req, res, 404, "Synchronisation introuvable.");
   }
 
   if (route === "POST /api/voix-off") {

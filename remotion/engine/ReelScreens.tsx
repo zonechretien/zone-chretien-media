@@ -5,9 +5,11 @@ import { BrandMark, Wordmark } from "../components/BrandMark";
 import { EndCard } from "../components/EndCard";
 import { ReelAudio } from "../components/ReelAudio";
 import { SafeZoneOverlay } from "../components/SafeZoneOverlay";
+import { SyncedWords } from "../components/SyncedWords";
 import { WordReveal } from "../components/WordReveal";
 import { ensureBrandFonts } from "../fonts";
-import type { BackgroundProps, MusicProps, RuntimeProps, VoiceOverProps } from "../schemas";
+import type { WordFrames } from "../lib/sync/timing";
+import type { BackgroundProps, MusicProps, RuntimeProps, TextStyle, VoiceOverProps } from "../schemas";
 import { CTA_LINE_HEIGHT, CTA_PADDING, DETAIL_ROW, HEADING_LINE_HEIGHT, KICKER_TRACKING, LINE_HEIGHT, blockGap, headerMarkSize, referenceMargin, revealFramesFor, type LaidBlock, type LaidScreen, type ReelLayout } from "./layout";
 import type { DetailIcon } from "./types";
 
@@ -40,7 +42,9 @@ export function ReelScreens({
 
   const headerIn = interpolate(frame, [0, 14], [0, 1], { ...clamp, easing: easeOut });
   const lineIn = interpolate(frame, [4, 24], [0, 1], { ...clamp, easing: easeOut });
-  const footerAt = timing.segments[0].from + firstRevealFrames(screens[0], timing.segments[0].duration);
+  const footerAt = timing.segments[0].from + (layout.sync ? 20 : firstRevealFrames(screens[0], timing.segments[0].duration));
+  // Voix synchronisée : images de chaque mot, par écran et par bloc, relatives au début de l'écran.
+  const syncWords = layout.sync ? wordsByBlock(layout) : null;
   const footerIn = interpolate(frame, [footerAt - 6, footerAt + 12], [0, 1], { ...clamp, easing: easeOut });
   const contentOut = interpolate(frame, [endFrom - 12, endFrom], [1, 0], clamp);
   const markSize = headerMarkSize(layout.format);
@@ -50,7 +54,10 @@ export function ReelScreens({
   return (
     <AbsoluteFill>
       <Background background={background} mediaBaseUrl={mediaBaseUrl} />
-      <ReelAudio music={music} voiceOver={voiceOver} mediaBaseUrl={mediaBaseUrl} />
+      <ReelAudio music={music} voiceOver={voiceOver} trimStartSeconds={layout.sync && voiceOver?.sync ? voiceOver.sync.trimStartSeconds : 0}
+        voiceEndFrame={layout.sync ? Math.max(...layout.sync.words.map((w) => w.end)) : null}
+        mediaBaseUrl={mediaBaseUrl}
+      />
 
       <div
         style={{
@@ -85,7 +92,13 @@ export function ReelScreens({
             const isLast = i === timing.segments.length - 1;
             return (
               <Sequence key={i} from={seg.from} durationInFrames={isLast ? endFrom - seg.from : seg.duration} layout="none">
-                <Screen screen={screens[i]} layout={layout} segmentFrames={seg.duration} fadeOutFrom={isLast ? null : seg.duration - 10} />
+                <Screen
+                  screen={screens[i]}
+                  layout={layout}
+                  segmentFrames={seg.duration}
+                  fadeOutFrom={isLast ? null : seg.duration - 10}
+                  sync={syncWords && layout.sync ? { style: layout.sync.style, blocks: syncWords[i] } : null}
+                />
               </Sequence>
             );
           })}
@@ -124,18 +137,46 @@ function firstRevealFrames(screen: LaidScreen, segmentFrames: number): number {
   return body ? revealFramesFor(body.text, segmentFrames) : 20;
 }
 
-function Screen({ screen, layout, segmentFrames, fadeOutFrom }: { screen: LaidScreen; layout: ReelLayout; segmentFrames: number; fadeOutFrom: number | null }) {
+/** Images des mots synchronisés, rangées par écran puis par bloc, relatives au début de chaque écran. */
+function wordsByBlock(layout: ReelLayout): WordFrames[][][] {
+  const out = layout.screens.map((sc) => sc.blocks.map(() => [] as WordFrames[]));
+  layout.script.words.forEach((w, i) => {
+    const from = layout.timing.segments[w.screen].from;
+    const f = layout.sync!.words[i];
+    out[w.screen][w.block][w.index] = { reveal: f.reveal - from, start: f.start - from, end: f.end - from };
+  });
+  return out;
+}
+
+type ScreenSync = { style: TextStyle; blocks: WordFrames[][] };
+
+function Screen({
+  screen,
+  layout,
+  segmentFrames,
+  fadeOutFrom,
+  sync,
+}: {
+  screen: LaidScreen;
+  layout: ReelLayout;
+  segmentFrames: number;
+  fadeOutFrom: number | null;
+  sync: ScreenSync | null;
+}) {
   const frame = useCurrentFrame();
   const out = fadeOutFrom === null ? 1 : interpolate(frame, [fadeOutFrom, fadeOutFrom + 10], [1, 0], clamp);
 
-  // Enchaînement : chaque bloc commence quand le précédent est lisible.
+  // Enchaînement : chaque bloc commence quand le précédent est lisible — ou,
+  // avec une voix synchronisée, quand son premier mot est prononcé.
   let cursor = 0;
-  const starts = screen.blocks.map((b) => {
+  const starts = screen.blocks.map((b, i) => {
+    if (sync) return sync.blocks[i][0]?.reveal ?? 0;
     const start = cursor;
     cursor += b.type === "body" ? revealFramesFor(b.text, segmentFrames) : b.type === "details" ? 10 + b.items.length * 8 : 14;
     return start;
   });
-  const footerStart = cursor;
+  // Référence d'un verset : quand le dernier mot de l'écran est prononcé.
+  const footerStart = sync ? Math.max(0, (sync.blocks.flat().at(-1)?.start ?? 0) - 4) : cursor;
 
   // Avec une référence / un auteur persistant sous la scène, les écrans sont
   // calés en bas : l'écart avec le texte reste le même sur tous les écrans.
@@ -143,7 +184,7 @@ function Screen({ screen, layout, segmentFrames, fadeOutFrom }: { screen: LaidSc
     <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: layout.persistentFooter ? "flex-end" : "center", opacity: out }}>
       <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: blockGap(layout.sizes) }}>
         {screen.blocks.map((block, i) => (
-          <Block key={i} block={block} start={starts[i]} segmentFrames={segmentFrames} accent={layout.accent} />
+          <Block key={i} block={block} start={starts[i]} segmentFrames={segmentFrames} accent={layout.accent} sync={sync ? { style: sync.style, words: sync.blocks[i] } : null} />
         ))}
       </div>
       {screen.footer ? (
@@ -165,16 +206,48 @@ function Rise({ start, children, style }: { start: number; children: React.React
   return <div style={{ ...style, opacity: t, transform: `translateY(${(1 - t) * 18}px)` }}>{children}</div>;
 }
 
-function Block({ block, start, segmentFrames, accent }: { block: LaidBlock; start: number; segmentFrames: number; accent: string }) {
+function Block({
+  block,
+  start,
+  segmentFrames,
+  accent,
+  sync,
+}: {
+  block: LaidBlock;
+  start: number;
+  segmentFrames: number;
+  accent: string;
+  sync: { style: TextStyle; words: WordFrames[] } | null;
+}) {
   const frame = useCurrentFrame();
   switch (block.type) {
     case "heading":
+      if (sync) {
+        return (
+          <SyncedWords
+            text={block.text}
+            words={sync.words}
+            style={sync.style}
+            css={{ fontFamily: BRAND.fonts.serif, fontWeight: 700, fontSize: block.fontSize, lineHeight: HEADING_LINE_HEIGHT, color: BRAND.colors.text, width: "100%", textWrap: "balance" }}
+          />
+        );
+      }
       return (
         <Rise start={start} style={{ fontFamily: BRAND.fonts.serif, fontWeight: 700, fontSize: block.fontSize, lineHeight: HEADING_LINE_HEIGHT, color: BRAND.colors.text, width: "100%", textWrap: "balance" }}>
           {block.text}
         </Rise>
       );
     case "body":
+      if (sync) {
+        return (
+          <SyncedWords
+            text={block.text}
+            words={sync.words}
+            style={sync.style}
+            css={{ width: "100%", fontFamily: BRAND.fonts.serif, fontWeight: 500, fontSize: block.fontSize, lineHeight: LINE_HEIGHT, color: BRAND.colors.text, textWrap: "balance" }}
+          />
+        );
+      }
       return (
         <WordReveal
           text={block.text}
@@ -187,7 +260,7 @@ function Block({ block, start, segmentFrames, accent }: { block: LaidBlock; star
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           {block.items.map((item, i) => (
-            <Rise key={i} start={start + i * 8} style={{ ...label, display: "flex", alignItems: "center", gap: block.fontSize * 0.45, height: block.fontSize * DETAIL_ROW, fontSize: block.fontSize, color: BRAND.colors.text, whiteSpace: "nowrap" }}>
+            <Rise key={i} start={sync ? itemStart(block.items, i, sync.words, start) : start + i * 8} style={{ ...label, display: "flex", alignItems: "center", gap: block.fontSize * 0.45, height: block.fontSize * DETAIL_ROW, fontSize: block.fontSize, color: BRAND.colors.text, whiteSpace: "nowrap" }}>
               <DetailGlyph icon={item.icon} size={block.fontSize * 1.05} color={accent} />
               <span>{item.text}</span>
             </Rise>
@@ -219,6 +292,12 @@ function Block({ block, start, segmentFrames, accent }: { block: LaidBlock; star
       );
     }
   }
+}
+
+/** Voix synchronisée : une ligne de détails apparaît quand son premier mot est prononcé. */
+function itemStart(items: { text: string }[], i: number, words: WordFrames[], fallback: number): number {
+  const index = items.slice(0, i).reduce((n, it) => n + it.text.split(" ").filter(Boolean).length, 0);
+  return words[index]?.reveal ?? fallback;
 }
 
 /** Pictogrammes simples (SVG), dans la couleur d'accent du template. */
