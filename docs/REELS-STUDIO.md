@@ -148,7 +148,9 @@ compositions.
   autorisée) : Playfair Display (titres, textes bibliques), DM Sans (libellés, texte courant),
   Bebas Neue (logotype « ZONE-CHRÉTIEN », toujours avec l'accent).
 - **Logo** : `public/reels/logo/monogramme.svg`, plat et sans fond. Z et C géométriques
-  mesurés sur le logo officiel, silhouette au micro décalquée (potrace), liseré or fin. En-tête :
+  mesurés sur le logo officiel, silhouette au micro décalquée (potrace), liseré or fin. Logo
+  officiel créé par Lepolo avec ChatGPT (OpenAI) pour Zone-Chrétien ; le monogramme vectoriel
+  en est une reproduction. En-tête :
   6,2 % de la largeur ; écran de fin : 24 %, avec la devise « Inspiré par la foi, animé par la
   Parole ».
 - **Mise en page** : bloc (en-tête, texte, référence) centré sur l'image sans jamais sortir de
