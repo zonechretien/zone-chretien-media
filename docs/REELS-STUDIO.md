@@ -44,7 +44,8 @@ Spécification d'origine : [`SPEC-REELS-STUDIO.md`](SPEC-REELS-STUDIO.md).
 
 ```
 remotion/                        templates partagés (aperçu du CMS ET rendu du studio)
-  brand.ts                       ⚠ charte PROVISOIRE (couleurs, polices, nom, site)
+  brand.ts                       charte : couleurs, thèmes par template, polices, logo, lisibilité
+  brand.test.ts                  contrastes (WCAG), polices OFL présentes, monogramme valide
   formats.ts                     9:16, 1:1, 16:9 et zones sûres
   schemas.ts                     schémas zod des 5 templates (+ libellés du formulaire)
   template-meta.ts               registre des templates (sans React : utilisable côté serveur)
@@ -55,6 +56,9 @@ remotion/                        templates partagés (aperçu du CMS ET rendu du
   lib/                           ajustement du texte, minutage, typographie, audio, dates
   Root.tsx, index.ts             point d'entrée du rendu
 public/reels/fonts/              polices locales (OFL) — rendu hors ligne
+public/reels/logo/monogramme.svg monogramme « ZC » vectoriel, sans fond (en-tête et écran de fin)
+design/logo/source/              images de référence du logo officiel (versionnées, jamais
+                                 servies par le site ni envoyées à Vercel : .vercelignore)
 src/app/admin/reels/             pages : liste, nouveau, éditeur
 src/components/admin/reels/      éditeur, champs générés, médias, voix off, aperçu, export
 src/lib/reels/                   client du studio, générateur de formulaire, « Transformer en Reel »
@@ -126,13 +130,38 @@ les plus longs de la Bible et sur tous les champs à longueur maximale).
 Aperçus fixes de tous les templates : `npm run apercus` dans `zone-chretien-studio`
 (images dans `out/apercus/`).
 
-## 6. Remplacer la charte provisoire
+## 6. Charte des Reels
 
-- `remotion/brand.ts` : couleurs, noms des polices, nom affiché, site.
-- `public/reels/fonts/` : fichiers de polices (licences à fournir avec).
-- `remotion/components/BrandMark.tsx` : logo « ZC » dessiné en attendant le vrai logo.
+Alignée sur la charte du site public (tokens `--brand-*` de `src/app/globals.css`) et sur le
+logo officiel. Tout passe par `remotion/brand.ts` : aucune couleur ni police en dur dans les
+compositions.
 
-Puis `npm run apercus` pour vérifier tous les templates d'un coup, et relancer le studio.
+- **Couleurs** : fonds bleu nuit `#0A1628` / `#132238` / `#1A3055`, or `#E8A020` (accroche,
+  référence, filets, pictogrammes, bouton), or clair `#F5C842`, texte `#F5F7FA`, texte
+  secondaire `#C3CCDA`. Le bleu `#2D7DD2` et l'argent ne servent qu'au décor.
+- **Thème par template** (dégradé par défaut des nouveaux projets + couleur d'accent), pour
+  reconnaître le type de contenu dans un fil : Verset bleu nuit / or, Prière indigo / or clair,
+  Dévotion bleu pétrole / or, Citation ardoise / argent, Événement bleu roi / or.
+- **Lisibilité sur téléphone** : contrastes vérifiés par `brand.test.ts` (texte principal ≥ 7:1,
+  tout autre texte ≥ 4,5:1, sur chaque dégradé). Sur une photo ou une vidéo du disque, voile
+  bleu nuit d'au moins 0,65 et légère ombre sous le texte, quel que soit le réglage
+  « Assombrissement ».
+- **Polices** (fichiers locaux, SIL Open Font License 1.1, intégration dans des vidéos
+  autorisée) : Playfair Display (titres, textes bibliques), DM Sans (libellés, texte courant),
+  Bebas Neue (logotype « ZONE-CHRÉTIEN », toujours avec l'accent).
+- **Logo** : `public/reels/logo/monogramme.svg`, plat et sans fond. Z et C géométriques
+  mesurés sur le logo officiel, silhouette au micro décalquée (potrace), liseré or fin. Logo
+  officiel créé par Lepolo avec ChatGPT (OpenAI) pour Zone-Chrétien ; le monogramme vectoriel
+  en est une reproduction. En-tête :
+  6,2 % de la largeur ; écran de fin : 24 %, avec la devise « Inspiré par la foi, animé par la
+  Parole ».
+- **Mise en page** : bloc (en-tête, texte, référence) centré sur l'image sans jamais sortir de
+  la zone sûre ; écart constant entre un texte et sa référence ou son auteur.
+
+Après une modification : `npm test`, puis `npm run apercus` dans `zone-chretien-studio` pour
+vérifier tous les templates d'un coup (ou `npm run apercus -- --plan <plan.json> --sortie
+<dossier>` pour des images précises, par exemple avec les textes de
+`exemples/apercus-charte.json`), et relancer le studio.
 
 ## 7. Base de données
 
@@ -246,10 +275,9 @@ lanceurs sans droits administrateur.
 
 **Hors périmètre V1 / à développer** : IA (textes Ollama, sous-titres Whisper, voix de
 synthèse), timeline libre, Remotion Lambda, application mobile, publication automatique sur
-les réseaux sociaux, template pour les articles, charte et logo définitifs.
+les réseaux sociaux, template pour les articles.
 
 **Limites connues**
-- Charte, polices et logo provisoires.
 - Ajustement du texte par estimation (pas de mesure dans le navigateur) : volontairement
   prudent, identique à l'aperçu et au rendu.
 - Pas de normalisation du volume des voix off (réglage du volume à la main).

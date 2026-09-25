@@ -12,7 +12,6 @@ import type { DetailIcon, ReelSpec, ScreenBlock } from "./types";
  */
 
 type Sizes = {
-  brand: number;
   kicker: number;
   footer: number;
   headingMax: number;
@@ -30,9 +29,9 @@ type Sizes = {
 };
 
 export const SIZES: Record<FormatId, Sizes> = {
-  "9:16": { brand: 30, kicker: 34, footer: 44, headingMax: 100, headingMin: 56, bodyMax: 88, bodyReadable: 58, bodyMin: 50, details: 56, cta: 60, gapSm: 26, gapLg: 56, maxWords: 26, textWidthRatio: 1 },
-  "1:1": { brand: 24, kicker: 28, footer: 36, headingMax: 84, headingMin: 46, bodyMax: 70, bodyReadable: 46, bodyMin: 40, details: 44, cta: 46, gapSm: 18, gapLg: 36, maxWords: 22, textWidthRatio: 1 },
-  "16:9": { brand: 24, kicker: 28, footer: 38, headingMax: 92, headingMin: 50, bodyMax: 76, bodyReadable: 50, bodyMin: 42, details: 48, cta: 50, gapSm: 18, gapLg: 36, maxWords: 30, textWidthRatio: 0.82 },
+  "9:16": { kicker: 38, footer: 44, headingMax: 100, headingMin: 56, bodyMax: 88, bodyReadable: 58, bodyMin: 50, details: 56, cta: 60, gapSm: 26, gapLg: 56, maxWords: 26, textWidthRatio: 1 },
+  "1:1": { kicker: 32, footer: 36, headingMax: 84, headingMin: 46, bodyMax: 70, bodyReadable: 46, bodyMin: 40, details: 44, cta: 46, gapSm: 18, gapLg: 36, maxWords: 22, textWidthRatio: 1 },
+  "16:9": { kicker: 32, footer: 38, headingMax: 92, headingMin: 50, bodyMax: 76, bodyReadable: 50, bodyMin: 42, details: 48, cta: 50, gapSm: 18, gapLg: 36, maxWords: 30, textWidthRatio: 0.82 },
 };
 
 export const LINE_HEIGHT = 1.34;
@@ -62,11 +61,42 @@ export type ReelLayout = {
   textWidth: number;
   kicker: { text: string; fontSize: number } | null;
   persistentFooter: { text: string; fontSize: number } | null;
-  /** Hauteur disponible pour le contenu des écrans. */
+  /** Couleur d'accent du template (charte : BRAND.themes). */
+  accent: string;
+  /** Hauteur disponible pour le contenu des écrans (budget de la mise en page). */
   stageHeight: number;
+  /** Hauteur réellement occupée par les écrans (le plus haut d'entre eux). */
+  stageUsed: number;
+  /** Écart visuel constant entre un texte et sa référence ou son auteur. */
+  referenceGap: number;
+  /** Bloc complet (en-tête, écrans, pied) : centré sur l'image, sans jamais sortir de la zone sûre. */
+  group: { top: number; height: number };
   screens: LaidScreen[];
   timing: SequenceTiming;
 };
+
+/** Interlignage au-dessus et au-dessous d'un bloc (la moitié de l'interligne en trop). */
+export function halfLeading(block: LaidBlock | undefined): number {
+  if (!block) return 0;
+  if (block.type === "body") return ((LINE_HEIGHT - 1) / 2) * block.fontSize;
+  if (block.type === "heading") return ((HEADING_LINE_HEIGHT - 1) / 2) * block.fontSize;
+  return 0;
+}
+
+/**
+ * Marge au-dessus d'une référence / d'un auteur, qui compense l'interlignage
+ * du texte et du libellé : l'espace VISIBLE entre les lettres reste égal à
+ * referenceGap quelle que soit la taille du texte (donc sa longueur).
+ */
+export function referenceMargin(layout: Pick<ReelLayout, "referenceGap">, lastBlock: LaidBlock | undefined, footerFontSize: number): number {
+  return layout.referenceGap - halfLeading(lastBlock) - ((LABEL_LINE_HEIGHT - 1) / 2) * footerFontSize;
+}
+
+/** Taille du monogramme de l'en-tête (charte : BRAND.logo.headerSize). */
+export function headerMarkSize(format: FormatId): number {
+  const f = FORMATS[format];
+  return Math.round(Math.min(f.width, f.height) * BRAND.logo.headerSize);
+}
 
 /** Taille d'un libellé d'une seule ligne, réduite si nécessaire pour tenir en largeur. */
 function singleLineSize(text: string, maxSize: number, maxWidth: number, extraEmPerChar = 0): number {
@@ -101,22 +131,24 @@ export function layoutReel(spec: ReelSpec, format: FormatId, durationSeconds: nu
   const footerLine = (text: string) => ({ text: typo(text), fontSize: singleLineSize(typo(text), s.footer, textWidth) });
   const persistentFooter = spec.persistentFooter ? footerLine(spec.persistentFooter) : null;
 
-  // En-tête : marque + libellé + trait doré. Pied : ligne persistante.
-  const header = s.brand * LABEL_LINE_HEIGHT + (kicker ? s.gapSm + kicker.fontSize * LABEL_LINE_HEIGHT : 0) + s.gapSm + 3;
-  const footer = persistentFooter ? persistentFooter.fontSize * LABEL_LINE_HEIGHT : 0;
+  // En-tête : monogramme + logotype, accroche, trait doré. Pied : ligne persistante.
+  const referenceGap = Math.round(s.gapLg * 0.6);
+  const header = headerMarkSize(format) + (kicker ? s.gapSm + kicker.fontSize * LABEL_LINE_HEIGHT : 0) + s.gapSm + 3;
+  const footer = persistentFooter ? referenceGap + persistentFooter.fontSize * LABEL_LINE_HEIGHT : 0;
   const stageHeight = Math.floor((box.height - header - footer - 2 * s.gapLg) * 0.97);
 
   const screens: LaidScreen[] = [];
   for (const screen of spec.screens) {
     const screenFooter = screen.footer ? footerLine(screen.footer) : null;
-    const footerHeight = screenFooter ? screenFooter.fontSize * LABEL_LINE_HEIGHT + s.gapSm : 0;
+    const footerHeight = screenFooter ? screenFooter.fontSize * LABEL_LINE_HEIGHT + referenceGap : 0;
 
     // Blocs fixes (hors texte principal) : hauteur réservée, texte principal dans le reste.
     const fixed: LaidBlock[] = [];
     let fixedHeight = 0;
     let body: Extract<ScreenBlock, { type: "body" }> | null = null;
     let bodyIndex = -1;
-    const headingBudget = screen.blocks.some((b) => b.type === "body") ? stageHeight * 0.34 : stageHeight * 0.8;
+    // Titre : place réduite s'il partage l'écran avec le texte principal ou des détails (nom d'un événement).
+    const headingBudget = screen.blocks.some((b) => b.type === "body") ? stageHeight * 0.34 : screen.blocks.some((b) => b.type === "details") ? stageHeight * 0.45 : stageHeight * 0.8;
 
     screen.blocks.forEach((block, i) => {
       if (block.type === "body") {
@@ -202,14 +234,42 @@ export function layoutReel(spec: ReelSpec, format: FormatId, durationSeconds: nu
     minSegmentSeconds: 2.5,
   });
 
-  return { format, width: f.width, height: f.height, box, sizes: s, textWidth, kicker, persistentFooter, stageHeight, screens, timing };
+  // Placement vertical : bloc compact (hauteur du plus haut écran), centré sur
+  // l'image pour un équilibre visuel, mais toujours entièrement dans la zone sûre.
+  const partial = { sizes: s, textWidth, referenceGap };
+  const stageUsed = Math.min(stageHeight, Math.ceil(Math.max(...screens.map((sc) => screenHeight(sc, partial)))));
+  const footerUsed = persistentFooter
+    ? referenceMargin(partial, screens.at(-1)?.blocks.at(-1), persistentFooter.fontSize) + persistentFooter.fontSize * LABEL_LINE_HEIGHT
+    : 0;
+  const groupHeight = Math.ceil(header + s.gapLg + stageUsed + footerUsed);
+  const centered = (f.height - groupHeight) / 2;
+  const top = Math.round(Math.min(Math.max(centered, box.y), box.y + box.height - groupHeight));
+
+  return {
+    format,
+    width: f.width,
+    height: f.height,
+    box,
+    sizes: s,
+    textWidth,
+    kicker,
+    persistentFooter,
+    accent: BRAND.themes[spec.theme].accent,
+    stageHeight,
+    stageUsed,
+    referenceGap,
+    group: { top, height: groupHeight },
+    screens,
+    timing,
+  };
 }
 
 /** Hauteur occupée par un écran (pour vérifier qu'il tient dans la scène). */
-export function screenHeight(screen: LaidScreen, layout: Pick<ReelLayout, "sizes" | "textWidth">): number {
+export function screenHeight(screen: LaidScreen, layout: Pick<ReelLayout, "sizes" | "textWidth" | "referenceGap">): number {
   const s = layout.sizes;
   let h = 0;
-  for (const b of screen.blocks) {
+  screen.blocks.forEach((b, i) => {
+    if (i > 0) h += blockGap(s);
     if (b.type === "heading") h += b.lines * b.fontSize * HEADING_LINE_HEIGHT;
     else if (b.type === "details") h += b.items.length * b.fontSize * DETAIL_ROW;
     else if (b.type === "cta") h += ctaHeight(b.fontSize, b.lines);
@@ -217,10 +277,14 @@ export function screenHeight(screen: LaidScreen, layout: Pick<ReelLayout, "sizes
       const lines = fitText(b.text, { maxWidth: layout.textWidth, maxHeight: Infinity, maxFontSize: b.fontSize, minFontSize: b.fontSize, lineHeight: LINE_HEIGHT })?.lines.length ?? Infinity;
       h += lines * b.fontSize * LINE_HEIGHT;
     }
-    h += s.gapLg * 0.6;
-  }
-  if (screen.footer) h += screen.footer.fontSize * LABEL_LINE_HEIGHT + s.gapSm;
-  return h - s.gapLg * 0.6;
+  });
+  if (screen.footer) h += referenceMargin(layout, screen.blocks.at(-1), screen.footer.fontSize) + screen.footer.fontSize * LABEL_LINE_HEIGHT;
+  return h;
+}
+
+/** Espace entre deux blocs d'un même écran. */
+export function blockGap(s: Pick<Sizes, "gapLg">): number {
+  return s.gapLg * 0.6;
 }
 
 export function ctaHeight(fontSize: number, lines: number): number {

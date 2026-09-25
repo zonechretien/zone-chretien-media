@@ -6,3 +6,6 @@ runtime/
 
 # Outils locaux (7-Zip) : jamais déployés.
 outils/
+
+# Sources de design (images de référence du logo…) : versionnées, jamais déployées.
+design/

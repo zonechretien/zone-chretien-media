@@ -18,6 +18,7 @@ export function effectiveDuration(p: { durationSeconds: number | null; voiceOver
 
 export function versetSpec(p: VersetProps): ReelSpec {
   return {
+    theme: "Verset",
     kicker: p.kicker,
     persistentFooter: withVersion(p.reference, p.showVersion),
     screens: [{ blocks: [{ type: "body", text: p.text, quote: true }] }],
@@ -33,9 +34,10 @@ export function priereSpec(p: PriereProps): ReelSpec {
   if (p.verseReference && p.verseText) {
     screens.push({ blocks: [{ type: "body", text: p.verseText, quote: true }], footer: withVersion(p.verseReference, p.showVersion) });
   }
-  return { kicker: p.kicker, persistentFooter: null, screens };
+  return { theme: "Priere", kicker: p.kicker, persistentFooter: null, screens };
 }
 
+/** Titre → verset et sa référence → réflexion → appel à l'action, toujours en tout dernier écran. */
 export function devotionSpec(p: DevotionProps): ReelSpec {
   const screens: ScreenSpec[] = [
     { blocks: [{ type: "heading", text: p.title }] },
@@ -43,11 +45,12 @@ export function devotionSpec(p: DevotionProps): ReelSpec {
     { blocks: [{ type: "body", text: p.reflection }] },
   ];
   if (p.callToAction.trim()) screens.push({ blocks: [{ type: "cta", text: p.callToAction }] });
-  return { kicker: p.kicker, persistentFooter: null, screens };
+  return { theme: "Devotion", kicker: p.kicker, persistentFooter: null, screens };
 }
 
 export function citationSpec(p: CitationProps): ReelSpec {
   return {
+    theme: "Citation",
     kicker: p.kicker,
     persistentFooter: `— ${p.author}`,
     screens: [{ blocks: [{ type: "body", text: p.quote, quote: true }] }],
@@ -61,9 +64,9 @@ export function evenementSpec(p: EvenementProps): ReelSpec {
     { icon: "place" as const, text: p.place },
   ].filter((d) => d.text.trim());
 
-  const screens: ScreenSpec[] = [{ blocks: [{ type: "heading", text: p.name }] }];
-  if (details.length > 0) screens.push({ blocks: [{ type: "details", items: details }] });
+  // Le nom, élément le plus visible, au-dessus de la date, de l'heure et du lieu.
+  const screens: ScreenSpec[] = [{ blocks: [{ type: "heading", text: p.name }, ...(details.length > 0 ? [{ type: "details" as const, items: details }] : [])] }];
   if (p.description.trim()) screens.push({ blocks: [{ type: "body", text: p.description }] });
   if (p.callToAction.trim()) screens.push({ blocks: [{ type: "cta", text: p.callToAction }] });
-  return { kicker: p.kicker, persistentFooter: null, screens };
+  return { theme: "Evenement", kicker: p.kicker, persistentFooter: null, screens };
 }

@@ -5,6 +5,10 @@
  * animations, identiques pour tous les templates.
  */
 
+import type { BRAND } from "../brand";
+
+export type ThemeId = keyof typeof BRAND.themes;
+
 export type DetailIcon = "date" | "time" | "place";
 
 export type ScreenBlock =
@@ -24,6 +28,8 @@ export type ScreenSpec = {
 };
 
 export type ReelSpec = {
+  /** Variation de la charte propre au template (couleur d'accent, fond par défaut). */
+  theme: ThemeId;
   /** Petit libellé d'accroche en capitales, en haut, pendant toute la vidéo (facultatif). */
   kicker: string;
   /** Ligne dorée affichée en bas pendant toute la vidéo (référence, auteur…), facultative. */
