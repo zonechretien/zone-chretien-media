@@ -15,7 +15,7 @@ import { REEL_STATUS_LABELS } from "@/lib/validations/reels";
 import { ExportPanel } from "./export-panel";
 import { ReelFields, type FieldsContext } from "./reel-fields";
 import { StudioStatus } from "./studio-status";
-import { syncState, VoiceSyncPanel } from "./voice-sync-panel";
+import { LANGUAGE_LABELS, syncState, VoiceSyncPanel } from "./voice-sync-panel";
 
 const ReelPreview = dynamic(() => import("./reel-preview"), {
   ssr: false,
@@ -135,7 +135,7 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
             <input id="reel-title" className={inputClass} value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
             {titleError && <p className="mt-1 text-sm text-red-500">{titleError}</p>}
           </FormRow>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-3">
             <FormRow className="mb-0">
               <FieldLabel htmlFor="reel-format">Format</FieldLabel>
               <select id="reel-format" className={selectClass} value={format} onChange={(e) => set(["format"], e.target.value)}>
@@ -164,6 +164,14 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
                   {REEL_STATUS_LABELS.EXPORTED}
                   {status === "EXPORTED" ? "" : " (après un export)"}
                 </option>
+              </select>
+            </FormRow>
+            <FormRow className="mb-0">
+              <FieldLabel htmlFor="reel-language">Langue du Reel</FieldLabel>
+              <select id="reel-language" className={selectClass} value={language} onChange={(e) => set(["language"], e.target.value)}>
+                {(Object.keys(LANGUAGE_LABELS) as ReelLanguage[]).map((l) => (
+                  <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>
+                ))}
               </select>
             </FormRow>
           </div>
