@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseSilences } from "./ffmpeg";
 import { SyncQueue } from "./sync-jobs";
-import { MODEL_PREFERENCE, MODELS, promptFor, speechBounds, trimStart, wordsFromWhisperJson } from "./whisper";
+import { hasRepetitionLoop, MODEL_PREFERENCE, MODELS, promptFor, soundRegions, speechBounds, speechStart, trimStart, wordsFromWhisperJson } from "./whisper";
 
 describe("résultat de whisper-cli", () => {
   it("jetons DTW → mots, retard du modèle retiré, jetons collés réunis", () => {
@@ -52,10 +52,40 @@ describe("silences", () => {
     expect(speechBounds([], 30)).toEqual({ start: 0, end: 30 });
   });
 
+  it("un clic avant la parole (bouton d'enregistrement) n'est pas pris pour le début", () => {
+    // Enregistrement réel : clic de 0,31 à 1,13 s, silence, parole à partir de 3,7 s.
+    const silences = [
+      { start: 0, end: 0.31 },
+      { start: 1.13, end: 3.7 },
+      { start: 75, end: 78.4 },
+    ];
+    const regions = soundRegions(silences, 78.4);
+    expect(regions[0]).toEqual({ start: 0.31, end: 1.13 });
+    expect(speechStart(regions, [4.11, 5.07])).toBe(3.7);
+    expect(trimStart(speechStart(regions, [4.11]), 4.11)).toBe(3.45);
+  });
+
+  it("un titre court effectivement reconnu n'est jamais coupé", () => {
+    const regions = soundRegions([{ start: 0, end: 1 }, { start: 1.6, end: 3 }], 60);
+    // « Prière » (0,6 s) entendu à 1,1 s, puis silence, puis le texte à 3 s.
+    expect(speechStart(regions, [1.1, 3.2])).toBe(1);
+  });
+
   it("silence retiré : 0,25 s gardés, jamais au-delà du premier mot", () => {
     expect(trimStart(1.52, 1.6)).toBe(1.27);
     expect(trimStart(3, 1.2)).toBe(0.95);
     expect(trimStart(0.1, null)).toBe(0);
+  });
+});
+
+describe("boucles de Whisper", () => {
+  it("repère une phrase répétée en boucle (voix réelle, modèle medium)", () => {
+    const loop = "C'est ce que nous devons faire, c'est ce que nous devons faire, c'est ce que nous devons faire, c'est ce que".split(" ");
+    expect(hasRepetitionLoop(loop)).toBe(true);
+  });
+  it("un texte ordinaire, même avec des mots répétés, n'est pas une boucle", () => {
+    const text = "Pa kite laperèz vòlè lapè ou. Pa kite reta fè ou panse Bondye bliye ou. Pa kite difikilte fè ou abandone.".split(" ");
+    expect(hasRepetitionLoop(text)).toBe(false);
   });
 });
 

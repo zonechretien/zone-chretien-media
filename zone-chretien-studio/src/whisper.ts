@@ -13,6 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { alignScript, type Alignment, type RecognizedWord } from "../../remotion/lib/sync/align";
 import type { SyncLanguage } from "../../remotion/lib/sync/numbers";
+import { SYNC_CONFIDENCE_OK } from "../../remotion/lib/sync/quality";
 import { convertToWav16k, detectSilences, probeDuration, type Silence } from "./ffmpeg";
 import { STUDIO_DIR } from "./paths";
 
@@ -91,11 +92,40 @@ export function wordsFromWhisperJson(json: WhisperJson, offsetSeconds: number): 
   return words;
 }
 
-/** Début et fin de la parole d'après les silences (tout le fichier si aucun silence au bord). */
+/** Un son plus court (clic du bouton, souffle) ne compte pas comme le début de la parole. */
+const MIN_SPEECH_SECONDS = 0.5;
+
+/**
+ * Début et fin de la parole d'après les silences : premier et dernier passage
+ * sonore d'au moins MIN_SPEECH_SECONDS (tout le fichier si rien n'est trouvé).
+ */
 export function speechBounds(silences: Silence[], durationSeconds: number): { start: number; end: number } {
-  const lead = silences.find((s) => s.start <= 0.05);
-  const tail = silences.find((s) => s.end >= durationSeconds - 0.05 && s.start > (lead?.end ?? 0));
-  return { start: lead?.end ?? 0, end: tail?.start ?? durationSeconds };
+  const speech = soundRegions(silences, durationSeconds).filter((x) => x.end - x.start >= MIN_SPEECH_SECONDS);
+  if (speech.length === 0) return { start: 0, end: durationSeconds };
+  return { start: speech[0].start, end: speech[speech.length - 1].end };
+}
+
+/** Passages sonores (entre les silences), dans l'ordre. */
+export function soundRegions(silences: Silence[], durationSeconds: number): { start: number; end: number }[] {
+  const sorted = [...silences].sort((a, b) => a.start - b.start);
+  const sounds: { start: number; end: number }[] = [];
+  let cursor = 0;
+  for (const s of sorted) {
+    if (s.start > cursor) sounds.push({ start: cursor, end: s.start });
+    cursor = Math.max(cursor, s.end);
+  }
+  if (cursor < durationSeconds) sounds.push({ start: cursor, end: durationSeconds });
+  return sounds;
+}
+
+/**
+ * Début réel de la parole : premier passage sonore qui dure au moins 1 s ou
+ * qui contient un mot reconnu. Un clic isolé (bouton d'enregistrement) avant
+ * un long silence est ainsi écarté, sans jamais couper un mot entendu.
+ */
+export function speechStart(regions: { start: number; end: number }[], anchors: number[]): number {
+  const r = regions.find((x) => x.end - x.start >= 1 || anchors.some((t) => t >= x.start - 0.1 && t <= x.end + 0.1));
+  return r?.start ?? 0;
 }
 
 /** Silence retiré au début : on garde 0,25 s avant la parole, et jamais au-delà du premier mot reconnu. */
@@ -113,6 +143,30 @@ export function promptFor(script: string[]): string {
 // ---------------------------------------------------------------------------
 // Exécution
 // ---------------------------------------------------------------------------
+
+/**
+ * Réglages de décodage de Whisper. `noContext` (-mc 0) : chaque passage est
+ * décodé sans le texte du précédent, ce qui évite les boucles (« hallucinations »
+ * répétant la même phrase) ; `suppressNonSpeech` : pas de jetons de bruit.
+ */
+export type Tuning = { prompt: boolean; noContext: boolean; suppressNonSpeech: boolean };
+export const DEFAULT_TUNING: Tuning = { prompt: true, noContext: false, suppressNonSpeech: false };
+
+/** En dessous (seuil d'application de l'éditeur), second passage sans contexte. */
+const RETRY_BELOW = SYNC_CONFIDENCE_OK;
+
+/** Whisper « tourne en boucle » : une même suite de 5 mots revient au moins 3 fois. */
+export function hasRepetitionLoop(words: string[]): boolean {
+  const norm = words.map((w) => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "")).filter(Boolean);
+  const seen = new Map<string, number>();
+  for (let i = 0; i + 5 <= norm.length; i++) {
+    const key = norm.slice(i, i + 5).join(" ");
+    const n = (seen.get(key) ?? 0) + 1;
+    if (n >= 3) return true;
+    seen.set(key, n);
+  }
+  return false;
+}
 
 export type SyncResult = Alignment & { trimStartSeconds: number; model: ModelId; recognizedText: string; seconds: number };
 
@@ -146,6 +200,8 @@ export async function synchronize(o: {
   model: ModelId;
   onProgress: (p: number) => void;
   signal: AbortSignal;
+  /** Réglages de décodage (essais) ; par défaut ceux de DEFAULT_TUNING. */
+  tuning?: Partial<Tuning>;
 }): Promise<SyncResult> {
   const t0 = Date.now();
   // Fichiers intermédiaires dans le dossier temporaire de Windows : jamais dans le dépôt ni la bibliothèque.
@@ -154,25 +210,40 @@ export async function synchronize(o: {
     const wav = path.join(tmp, "voix.wav");
     await convertToWav16k(o.file, wav);
     const duration = (await probeDuration(wav)) ?? 0;
-    const speech = speechBounds(await detectSilences(wav, duration), duration);
+    // -35 dB : au-dessus du bruit de fond d'un micro de PC portable (mesuré vers -38 dB).
+    const silences = await detectSilences(wav, duration, -35);
+    const speech = speechBounds(silences, duration);
 
     const m = MODELS[o.model];
     const threads = String(Math.max(2, Math.min(8, os.cpus().length - 2)));
-    const outBase = path.join(tmp, "resultat");
-    const args = ["-m", modelFile(o.model), "-f", wav, "-l", o.language, "-ojf", "-of", outBase, "-t", threads, "-pp", "-nfa", "--dtw", m.dtw];
-    const prompt = promptFor(o.script);
-    if (prompt) args.push("--prompt", prompt);
-    await runWhisper(args, o.onProgress, o.signal);
+    const tuning = { ...DEFAULT_TUNING, ...o.tuning };
 
-    const json = JSON.parse(fs.readFileSync(`${outBase}.json`, "utf8")) as WhisperJson;
-    const recognized = wordsFromWhisperJson(json, m.offsetSeconds);
-    const alignment = alignScript(o.script, recognized, { language: o.language, speech });
-    const firstAnchor = alignment.words.find((w) => w.match > 0)?.start ?? null;
+    const pass = async (t: Tuning, progress: (p: number) => void) => {
+      const outBase = path.join(tmp, t.noContext ? "resultat-sans-contexte" : "resultat");
+      const args = ["-m", modelFile(o.model), "-f", wav, "-l", o.language, "-ojf", "-of", outBase, "-t", threads, "-pp", "-nfa", "--dtw", m.dtw];
+      const prompt = t.prompt ? promptFor(o.script) : "";
+      if (prompt) args.push("--prompt", prompt);
+      if (t.noContext) args.push("-mc", "0");
+      if (t.suppressNonSpeech) args.push("-sns");
+      await runWhisper(args, progress, o.signal);
+      const recognized = wordsFromWhisperJson(JSON.parse(fs.readFileSync(`${outBase}.json`, "utf8")) as WhisperJson, m.offsetSeconds);
+      return { recognized, alignment: alignScript(o.script, recognized, { language: o.language, speech }) };
+    };
+
+    let best = await pass(tuning, o.onProgress);
+    // Boucle de Whisper (même phrase répétée) ou résultat faible : second passage
+    // sans contexte entre les passages (-mc 0), on garde le meilleur des deux.
+    if (!tuning.noContext && (best.alignment.confidence < RETRY_BELOW || hasRepetitionLoop(best.recognized.map((w) => w.text)))) {
+      const retry = await pass({ ...tuning, noContext: true }, (p) => o.onProgress(0.5 + p / 2));
+      if (retry.alignment.confidence > best.alignment.confidence) best = retry;
+    }
+
+    const anchors = best.alignment.words.filter((w) => w.match > 0).map((w) => w.start);
     return {
-      ...alignment,
-      trimStartSeconds: trimStart(speech.start, firstAnchor),
+      ...best.alignment,
+      trimStartSeconds: trimStart(speechStart(soundRegions(silences, duration), anchors), anchors[0] ?? null),
       model: o.model,
-      recognizedText: recognized.map((w) => w.text).join(" "),
+      recognizedText: best.recognized.map((w) => w.text).join(" "),
       seconds: Math.round((Date.now() - t0) / 100) / 10,
     };
   } finally {
