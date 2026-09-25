@@ -1,15 +1,17 @@
 import { BRAND } from "../brand";
 import type { ReelSpec, ScreenSpec } from "../engine/types";
 import { durationFittedToVoice } from "../lib/audio";
-import { formatEventDate, formatEventTime } from "../lib/dates";
-import type { CitationProps, DevotionProps, EvenementProps, PriereProps, VersetProps, VoiceOverProps } from "../schemas";
+import { formatEventDate, formatEventTime } from "../lib/i18n";
+import type { CitationProps, DevotionProps, EvenementProps, PriereProps, ReelLanguage, VersetProps, VoiceOverProps } from "../schemas";
 
 /**
  * Chaque template = une fonction pure props → écrans. Le moteur commun
  * (engine/) s'occupe de la mise en page, du minutage et des animations.
  */
 
-const withVersion = (reference: string, showVersion: boolean) => (showVersion ? `${reference} · LSG 1910` : reference);
+/** « LSG 1910 » : seulement en français (en créole, le texte est saisi à la main, aucune version n'est citée). */
+const withVersion = (reference: string, showVersion: boolean, language: ReelLanguage) =>
+  showVersion && language === "fr" ? `${reference} · LSG 1910` : reference;
 
 /** Durée effective : calée sur la voix off si demandé, sinon imposée ou automatique (null). */
 export function effectiveDuration(p: { durationSeconds: number | null; voiceOver: VoiceOverProps | null }): number | null {
@@ -20,7 +22,7 @@ export function versetSpec(p: VersetProps): ReelSpec {
   return {
     theme: "Verset",
     kicker: p.kicker,
-    persistentFooter: withVersion(p.reference, p.showVersion),
+    persistentFooter: withVersion(p.reference, p.showVersion, p.language),
     screens: [{ blocks: [{ type: "body", text: p.text, quote: true }] }],
   };
 }
@@ -32,7 +34,7 @@ export function priereSpec(p: PriereProps): ReelSpec {
     { blocks: [{ type: "body", text: p.text }] },
   ];
   if (p.verseReference && p.verseText) {
-    screens.push({ blocks: [{ type: "body", text: p.verseText, quote: true }], footer: withVersion(p.verseReference, p.showVersion) });
+    screens.push({ blocks: [{ type: "body", text: p.verseText, quote: true }], footer: withVersion(p.verseReference, p.showVersion, p.language) });
   }
   return { theme: "Priere", kicker: p.kicker, persistentFooter: null, screens };
 }
@@ -41,7 +43,7 @@ export function priereSpec(p: PriereProps): ReelSpec {
 export function devotionSpec(p: DevotionProps): ReelSpec {
   const screens: ScreenSpec[] = [
     { blocks: [{ type: "heading", text: p.title }] },
-    { blocks: [{ type: "body", text: p.verseText, quote: true }], footer: withVersion(p.verseReference, p.showVersion) },
+    { blocks: [{ type: "body", text: p.verseText, quote: true }], footer: withVersion(p.verseReference, p.showVersion, p.language) },
     { blocks: [{ type: "body", text: p.reflection }] },
   ];
   if (p.callToAction.trim()) screens.push({ blocks: [{ type: "cta", text: p.callToAction }] });
@@ -59,8 +61,8 @@ export function citationSpec(p: CitationProps): ReelSpec {
 
 export function evenementSpec(p: EvenementProps): ReelSpec {
   const details = [
-    { icon: "date" as const, text: formatEventDate(p.date) },
-    { icon: "time" as const, text: formatEventTime(p.time) },
+    { icon: "date" as const, text: formatEventDate(p.date, p.language) },
+    { icon: "time" as const, text: formatEventTime(p.time, p.language) },
     { icon: "place" as const, text: p.place },
   ].filter((d) => d.text.trim());
 

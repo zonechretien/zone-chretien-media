@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { FORMATS, FORMAT_IDS, type FormatId } from "@reels/formats";
 import { layoutFor, templateMeta, type AnyTemplateProps, type TemplateId } from "@reels/template-meta";
 import type { ReelLanguage, VoiceOverProps } from "@reels/schemas";
+import { translateDefaultLabels } from "@reels/lib/i18n";
 import { FieldLabel, FormRow, inputClass, selectClass } from "@/components/admin/form-fields";
 import { CancelLink } from "@/components/admin/submit-button";
 import { saveReel } from "@/lib/actions/reels";
@@ -73,11 +74,18 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
   const script = useMemo(() => layoutFor(meta, lastValid.current).script, [meta, validation]); // eslint-disable-line react-hooks/exhaustive-deps
   const voice = (validation.success ? (validation.data as AnyTemplateProps).voiceOver : null) as VoiceOverProps | null;
   const language = ((data.language as ReelLanguage | undefined) ?? "fr") as ReelLanguage;
+  // Changement de langue : accroche et appel à l'action traduits s'ils sont encore les libellés par défaut.
+  const changeLanguage = useCallback(
+    (to: ReelLanguage) =>
+      setData((prev) => ({ ...translateDefaultLabels(prev, ((prev.language as ReelLanguage | undefined) ?? "fr") as ReelLanguage, to), language: to })),
+    [],
+  );
   const ctx: FieldsContext = {
     get: (path) => getIn(dataRef.current, path),
     set,
     errors,
     studioOnline,
+    language,
     groupExtra: (key, path) =>
       key === "voiceOver" && voice?.path ? (
         <VoiceSyncPanel
@@ -89,7 +97,7 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
           onChange={(patch) => {
             for (const [k, v] of Object.entries(patch)) set([...path, k], v);
           }}
-          onLanguage={(l) => set(["language"], l)}
+          onLanguage={changeLanguage}
         />
       ) : null,
   };
@@ -168,7 +176,7 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
             </FormRow>
             <FormRow className="mb-0">
               <FieldLabel htmlFor="reel-language">Langue du Reel</FieldLabel>
-              <select id="reel-language" className={selectClass} value={language} onChange={(e) => set(["language"], e.target.value)}>
+              <select id="reel-language" className={selectClass} value={language} onChange={(e) => changeLanguage(e.target.value as ReelLanguage)}>
                 {(Object.keys(LANGUAGE_LABELS) as ReelLanguage[]).map((l) => (
                   <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>
                 ))}

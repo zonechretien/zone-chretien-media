@@ -15,6 +15,8 @@ export type FieldsContext = {
   set: (path: Path, value: unknown) => void;
   errors: Record<string, string>;
   studioOnline: boolean;
+  /** Langue du Reel : en créole, pas d'insertion automatique de versets ni de mention « LSG 1910 ». */
+  language: "fr" | "ht";
   /** Contenu ajouté à la fin d'une section (ex. synchronisation sous la voix off). */
   groupExtra?: (key: string, path: Path) => ReactNode;
 };
@@ -66,7 +68,13 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
           )}
           <Help text={field.help} />
           <Error ctx={ctx} path={path} />
-          {field.bibleTextField && (
+          {field.bibleTextField && ctx.language === "ht" && (
+            <p className="mt-2 rounded-lg bg-gold/10 px-3 py-2 text-xs text-foreground/80">
+              Reel en créole haïtien : l&apos;insertion automatique de versets n&apos;est pas proposée. Tapez vous-même le texte du verset
+              et sa référence (la mention « LSG 1910 » n&apos;est pas affichée).
+            </p>
+          )}
+          {field.bibleTextField && ctx.language === "fr" && (
             <BibleInsert
               reference={text}
               maxTextLength={(() => {
@@ -84,6 +92,8 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
     }
 
     case "boolean":
+      // « Afficher LSG 1910 » : sans objet en créole (texte saisi à la main).
+      if (path.at(-1) === "showVersion" && ctx.language === "ht") return null;
       return (
         <FormRow>
           <label className="flex items-center gap-2 text-sm text-foreground">
