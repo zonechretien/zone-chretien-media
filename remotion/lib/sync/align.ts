@@ -82,7 +82,9 @@ function alignTokens(S: Token[], R: Token[]): { start: number; end: number; sim:
       const c = cost[i * W + j];
       if (c === Infinity) continue;
       if (i < n) relax(i + 1, j, c + GAP_SCRIPT, "skipScript");
-      if (j < m) relax(i, j + 1, c + GAP_SPOKEN, "skipSpoken");
+      // Départage à coût égal : mieux vaut ignorer un mot entendu tard qu'un mot entendu tôt,
+      // pour que le texte prenne la PREMIÈRE occurrence (bavardage répétant la fin après l'enregistrement).
+      if (j < m) relax(i, j + 1, c + GAP_SPOKEN + (m - j) * 1e-6, "skipSpoken");
       if (i < n && j < m) {
         const sim = similarity(S[i].text, R[j].text);
         relax(i + 1, j + 1, c + (sim >= MIN_SIMILARITY ? 1 - sim : SUBSTITUTION), "match");

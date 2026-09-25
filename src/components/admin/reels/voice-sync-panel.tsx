@@ -170,7 +170,7 @@ export function VoiceSyncPanel({
           {quality === "bonne" ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
           <span>
             {sync.source === "manuel" ? "Calé à la main." : `Synchronisé automatiquement (modèle ${sync.model}) — confiance ${pct(sync.confidence)}.`}
-            {sync.trimStartSeconds > 0 ? ` Silence du début retiré : ${sync.trimStartSeconds.toFixed(1)} s.` : ""}
+            {sync.trimStartSeconds > 0 ? ` Silence du début retiré : ${sync.trimStartSeconds.toFixed(1).replace(".", ",")} s.` : ""}
             {quality !== "bonne" && sync.weakSentences.length > 0 && (
               <>
                 {" "}À vérifier dans l&apos;aperçu : {sync.weakSentences.length} phrase{sync.weakSentences.length > 1 ? "s" : ""} mal reconnue{sync.weakSentences.length > 1 ? "s" : ""} (
@@ -215,7 +215,7 @@ export function VoiceSyncPanel({
             </button>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-border">
-            <div className="h-full bg-gold transition-all" style={{ width: pct(job.progression) }} />
+            <div className="h-full bg-gold transition-all" style={{ width: `${Math.round(job.progression * 100)}%` }} />
           </div>
         </div>
       )}

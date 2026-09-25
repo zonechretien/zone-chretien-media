@@ -96,6 +96,12 @@ describe("alignement sur le texte exact", () => {
     expect(a.words[4].start).toBe(2.6);
   });
 
+  it("fin répétée après le texte (« …zone-chretien.org. Zone Chrétienne, c'est bon ») : première occurrence", () => {
+    const script = "Rejoins-nous sur zone-chretien.org".split(" ");
+    const a = alignScript(script, spoken("Rejoins-nous sur zone chrétienne zone chrétienne c'est bon"), { language: "fr", speech });
+    expect(a.words[2].end).toBeLessThan(1 + 5 * 0.4);
+  });
+
   it("mot non lu : placé entre ses voisins, sans faire baisser les autres", () => {
     const script = "Le Seigneur est mon berger".split(" ");
     const a = alignScript(script, spoken("Le Seigneur mon berger"), { language: "fr", speech });

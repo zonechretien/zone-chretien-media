@@ -54,7 +54,10 @@ export function ReelScreens({
   return (
     <AbsoluteFill>
       <Background background={background} mediaBaseUrl={mediaBaseUrl} />
-      <ReelAudio music={music} voiceOver={voiceOver} trimStartSeconds={layout.sync && voiceOver?.sync ? voiceOver.sync.trimStartSeconds : 0} mediaBaseUrl={mediaBaseUrl} />
+      <ReelAudio music={music} voiceOver={voiceOver} trimStartSeconds={layout.sync && voiceOver?.sync ? voiceOver.sync.trimStartSeconds : 0}
+        voiceEndFrame={layout.sync ? Math.max(...layout.sync.words.map((w) => w.end)) : null}
+        mediaBaseUrl={mediaBaseUrl}
+      />
 
       <div
         style={{
