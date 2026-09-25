@@ -36,6 +36,7 @@ const common = (theme: ThemeId) => ({
   durationSeconds: null,
   music: null,
   voiceOver: null,
+  language: "fr" as const,
 });
 
 const clip = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);

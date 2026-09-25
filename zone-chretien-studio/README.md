@@ -161,7 +161,7 @@ pourrait sinon piloter le studio.
 
 | Méthode | Adresse | Rôle |
 |---|---|---|
-| GET | `/api/etat` | Version, disque détecté, navigateur de rendu, rendus en cours |
+| GET | `/api/etat` | Version, disque détecté, navigateur de rendu, synchronisation (Whisper), rendus en cours |
 | POST | `/api/disque/detecter` | « Réessayer » la détection du disque |
 | GET | `/api/bibliotheque` | Médias par dossier (`Fonds`, `Musiques`, …) |
 | GET | `/api/miniature?chemin=…` | Miniature JPEG (images et vidéos), mise en cache |
@@ -171,6 +171,9 @@ pourrait sinon piloter le studio.
 | GET | `/api/rendus`, `/api/rendus/<id>` | Progression des exports |
 | POST | `/api/rendus/<id>/annuler` | Annuler un export |
 | POST | `/api/voix-off` | Déposer une voix off (corps = audio, `Content-Type: audio/webm`…) ; les enregistrements du navigateur (.webm, .ogg) sont convertis en .m4a (AAC) pour une durée fiable |
+| POST | `/api/synchronisations` | Synchroniser le texte sur une voix off `{ chemin: "VoixOff/…", mots: [...], langue: "fr" \| "ht" }` (voir §11) |
+| GET | `/api/synchronisations/<id>` | Progression et résultat (minutage de chaque mot, confiance, silence retiré) |
+| POST | `/api/synchronisations/<id>/annuler` | Annuler une synchronisation |
 
 Les requêtes POST doivent porter l'en-tête `X-ZC-Studio: 1`. Les erreurs sont renvoyées en
 JSON `{ "erreur": "message en français" }`.
@@ -206,6 +209,8 @@ TikTok et YouTube). `Ctrl+C` annule proprement.
 | Navigateur de rendu absent… | Se connecter une fois à Internet et relancer le studio |
 | Le port 4317 est déjà utilisé… | Le studio est déjà ouvert dans une autre fenêtre |
 | Rendu annulé. | Annulation demandée ; aucun fichier incomplet n'est laissé |
+| Synchronisation automatique non installée… | Lancer `INSTALLER-WHISPER.bat` une fois (connexion Internet requise), puis relancer le studio |
+| Windows bloque l'exécution de whisper.cpp… | Règle de sécurité du PC : utiliser le calage manuel de l'éditeur |
 
 ## 9. Licence Remotion
 
@@ -223,3 +228,58 @@ pouvez le déclarer en définissant `REMOTION_LICENSE_KEY=free-license` avant le
 - Vidéos de fond : elles bouclent si l'éditeur fournit leur durée (`mediaDurationSeconds`,
   donnée par `/api/media-info`) ; sinon elles ne sont pas rejouées une fois terminées.
 - ffmpeg livré avec Remotion (miniatures, durées) : version allégée, suffisante pour ces usages.
+- Synchronisation automatique : voir les limites au §11.
+
+## 11. Synchronisation du texte sur la voix off (Whisper)
+
+L'éditeur peut caler le texte affiché sur la voix off, **mot par mot**, de deux façons :
+
+- **automatiquement** : le studio analyse la voix avec [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
+  (reconnaissance vocale hors ligne, sur ce PC). Whisper ne sert **qu'au minutage** : le texte
+  affiché reste toujours celui de l'éditeur, les erreurs de reconnaissance n'apparaissent jamais
+  à l'écran. Les mots entendus sont alignés sur le texte exact (`remotion/lib/sync/align.ts`) :
+  mots ajoutés à l'oral (« Amen ») ou non lus tolérés, nombres lus en toutes lettres reconnus
+  en français et en créole (« Jean 3:16 » ≈ « Jean trois seize » ≈ « Jan twa sèz ») ;
+- **à la main** : on écoute la voix et on appuie sur Espace au début de chaque phrase ; ce mode
+  corrige aussi un résultat automatique.
+
+Le silence du début de l'enregistrement est retiré automatiquement (on garde 0,25 s avant la
+parole). Chaque synchronisation reçoit un **indice de confiance** (part du texte retrouvée dans
+la voix) : sous 60 %, l'éditeur ne l'applique pas sans votre accord et propose le calage manuel.
+
+### Installation (une seule fois, sans droits administrateur)
+
+Double-cliquer `INSTALLER-WHISPER.bat` (ou `INSTALLER-WHISPER.bat small` pour un autre
+modèle), puis relancer `LANCER-STUDIO.bat`. Le script télécharge whisper.cpp **1.9.4**
+(exécutables Windows officiels, ~5 Mo) et le modèle, vérifie leur empreinte **SHA-256** et
+range tout dans `zone-chretien-studio\.whisper\` (non versionné, jamais envoyé à Vercel). Rien
+n'est installé dans Windows. L'exécutable n'est pas signé : s'il est bloqué par une règle de
+sécurité du PC, le calage manuel reste disponible.
+
+Pour forcer un modèle quand plusieurs sont installés : `"modeleWhisper": "small"` dans
+`config.local.json`. Sinon le studio prend le meilleur présent (large-v3-turbo, medium, small, tiny).
+
+### Modèles mesurés sur ce PC (Intel Core Ultra 7 155U, processeur seul)
+
+Voix de référence de 71 s dont l'instant de chaque mot est connu (synthèse vocale Windows) :
+
+| Modèle | Taille | Temps pour 71 s | ≈ pour 60 s | Écart moyen par mot* |
+|---|---|---|---|---|
+| tiny | 78 Mo | 7 s | 6 s | 0,09 s |
+| small | 488 Mo | 32 à 50 s | 30 à 40 s | 0,08 s |
+| medium | 1,5 Go | 155 s | 130 s | 0,10 s |
+| large-v3-turbo | 1,6 Go | 128 à 174 s | 110 à 150 s | 0,09 s |
+
+\* après correction du retard propre à chaque modèle (`offsetSeconds` dans `src/whisper.ts`).
+Le temps total comprend la conversion de la voix et l'alignement (quelques secondes).
+Les gros modèles ne sont pas plus précis pour le minutage : ils **reconnaissent mieux** les
+mots (utile pour le créole haïtien et les voix difficiles), ce qui donne plus de repères sûrs.
+
+### Limites
+
+- Créole haïtien : Whisper a été entraîné sur très peu de créole ; la reconnaissance est
+  nettement moins bonne qu'en français. Le texte affiché reste juste, mais le minutage peut
+  être moins précis : vérifier l'aperçu et corriger au besoin avec le calage manuel.
+- Le texte lu doit être le texte affiché : les passages improvisés sont ignorés ; un texte
+  affiché mais non lu (un titre, par exemple) reçoit un minutage estimé et est signalé.
+- Un seul calcul à la fois ; le processeur est très sollicité pendant l'analyse.

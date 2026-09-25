@@ -11,6 +11,7 @@ const valid: VersetProps = {
   showVersion: true,
   music: null,
   voiceOver: null,
+  language: "fr",
 };
 
 describe("versetSchema", () => {

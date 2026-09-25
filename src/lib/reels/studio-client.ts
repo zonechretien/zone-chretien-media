@@ -21,6 +21,18 @@ export type StudioStatus = {
   disque: { detecte: true; lettre: string; dossier?: string; nom: string } | { detecte: false; message: string };
   navigateurRendu: { etat: "verification" | "pret" | "absent"; message: string | null };
   rendusEnCours: number;
+  /** Synchronisation automatique (Whisper) ; absent avec un studio plus ancien. */
+  synchronisation?: { etat: "pret"; modele: string } | { etat: "absent"; message: string };
+};
+
+export type SyncWord = { start: number; end: number; match: number };
+
+export type SyncJob = {
+  id: string;
+  statut: "en-attente" | "analyse" | "termine" | "echec" | "annule";
+  progression: number;
+  message: string | null;
+  resultat: { words: SyncWord[]; confidence: number; trimStartSeconds: number; model: string; recognizedText: string; seconds: number } | null;
 };
 
 export type LibraryItem = {
@@ -79,6 +91,15 @@ export const studio = {
     }),
   render: (id: string) => call<RenderJob>(`/api/rendus/${id}`),
   cancelRender: (id: string) => call<RenderJob>(`/api/rendus/${id}/annuler`, { method: "POST" }),
+  /** Lance la synchronisation du texte exact (mots affichés) sur une voix off du disque. */
+  startSync: (chemin: string, mots: string[], langue: "fr" | "ht") =>
+    call<SyncJob>("/api/synchronisations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chemin, mots, langue }),
+    }),
+  sync: (id: string) => call<SyncJob>(`/api/synchronisations/${id}`),
+  cancelSync: (id: string) => call<SyncJob>(`/api/synchronisations/${id}/annuler`, { method: "POST" }),
   /** Dépose une voix off enregistrée au micro dans le dossier VoixOff/ du disque. */
   uploadVoiceOver: (audio: Blob) =>
     call<{ chemin: string; dureeSecondes: number | null }>("/api/voix-off", {

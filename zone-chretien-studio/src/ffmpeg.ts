@@ -12,6 +12,11 @@ function binDir(): string {
 }
 
 function run(exe: "ffmpeg" | "ffprobe", args: string[], timeoutMs: number): Promise<string> {
+  return runBoth(exe, args, timeoutMs).then((r) => r.out);
+}
+
+/** Comme run(), mais renvoie aussi la sortie d'erreur (journal des filtres de ffmpeg). */
+function runBoth(exe: "ffmpeg" | "ffprobe", args: string[], timeoutMs: number): Promise<{ out: string; err: string }> {
   return new Promise((resolve, reject) => {
     const dir = binDir();
     const child = spawn(path.join(dir, `${exe}.exe`), args, { cwd: dir, windowsHide: true });
@@ -26,7 +31,7 @@ function run(exe: "ffmpeg" | "ffprobe", args: string[], timeoutMs: number): Prom
     });
     child.on("close", (code) => {
       clearTimeout(timer);
-      if (code === 0) resolve(out);
+      if (code === 0) resolve({ out, err });
       else reject(new Error(`${exe} a échoué (code ${code}) : ${err.trim().split("\n").pop() ?? ""}`));
     });
   });
@@ -69,4 +74,35 @@ export async function convertToM4a(input: string, output: string): Promise<void>
     ["-v", "error", "-y", "-i", input, "-vn", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "-f", "mp4", output],
     120_000,
   );
+}
+
+/** Convertit une voix off en WAV 16 kHz mono (format attendu par Whisper). */
+export async function convertToWav16k(input: string, output: string): Promise<void> {
+  await run("ffmpeg", ["-v", "error", "-y", "-i", input, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-f", "wav", output], 120_000);
+}
+
+export type Silence = { start: number; end: number };
+
+/** Lit le journal du filtre silencedetect de ffmpeg (logique pure, testée). */
+export function parseSilences(log: string, durationSeconds: number): Silence[] {
+  const out: Silence[] = [];
+  let open: number | null = null;
+  for (const line of log.split(/\r?\n/)) {
+    const s = /silence_start:\s*(-?[\d.]+)/.exec(line);
+    if (s) open = Math.max(0, Number.parseFloat(s[1]));
+    const e = /silence_end:\s*([\d.]+)/.exec(line);
+    if (e && open !== null) {
+      out.push({ start: open, end: Number.parseFloat(e[1]) });
+      open = null;
+    }
+  }
+  // Silence qui dure jusqu'à la fin du fichier : pas de « silence_end ».
+  if (open !== null) out.push({ start: open, end: durationSeconds });
+  return out;
+}
+
+/** Silences d'au moins `minSeconds` sous `noiseDb` (dB), en secondes. */
+export async function detectSilences(file: string, durationSeconds: number, noiseDb = -40, minSeconds = 0.3): Promise<Silence[]> {
+  const { err } = await runBoth("ffmpeg", ["-hide_banner", "-nostats", "-i", file, "-af", `silencedetect=noise=${noiseDb}dB:d=${minSeconds}`, "-f", "null", "-"], 120_000);
+  return parseSilences(err, durationSeconds);
 }

@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FORMATS, FORMAT_IDS, type FormatId } from "@reels/formats";
-import { templateMeta, type AnyTemplateProps, type TemplateId } from "@reels/template-meta";
+import { layoutFor, templateMeta, type AnyTemplateProps, type TemplateId } from "@reels/template-meta";
+import type { ReelLanguage, VoiceOverProps } from "@reels/schemas";
 import { FieldLabel, FormRow, inputClass, selectClass } from "@/components/admin/form-fields";
 import { CancelLink } from "@/components/admin/submit-button";
 import { saveReel } from "@/lib/actions/reels";
@@ -14,6 +15,7 @@ import { REEL_STATUS_LABELS } from "@/lib/validations/reels";
 import { ExportPanel } from "./export-panel";
 import { ReelFields, type FieldsContext } from "./reel-fields";
 import { StudioStatus } from "./studio-status";
+import { syncState, VoiceSyncPanel } from "./voice-sync-panel";
 
 const ReelPreview = dynamic(() => import("./reel-preview"), {
   ssr: false,
@@ -66,12 +68,32 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
   }, [dirty]);
 
   const set = useCallback((path: string[], value: unknown) => setData((prev) => setIn(prev, path, value)), []);
+  const studioOnline = connection.state === "online" && connection.status.disque.detecte;
+  // Texte lu par la voix off (mots affichés, dans l'ordre) : ce que la synchronisation aligne.
+  const script = useMemo(() => layoutFor(meta, lastValid.current).script, [meta, validation]); // eslint-disable-line react-hooks/exhaustive-deps
+  const voice = (validation.success ? (validation.data as AnyTemplateProps).voiceOver : null) as VoiceOverProps | null;
+  const language = ((data.language as ReelLanguage | undefined) ?? "fr") as ReelLanguage;
   const ctx: FieldsContext = {
     get: (path) => getIn(dataRef.current, path),
     set,
     errors,
-    studioOnline: connection.state === "online" && connection.status.disque.detecte,
+    studioOnline,
+    groupExtra: (key, path) =>
+      key === "voiceOver" && voice?.path ? (
+        <VoiceSyncPanel
+          voice={voice}
+          script={script}
+          language={language}
+          studioOnline={studioOnline}
+          whisper={connection.state === "online" ? connection.status.synchronisation : undefined}
+          onChange={(patch) => {
+            for (const [k, v] of Object.entries(patch)) set([...path, k], v);
+          }}
+          onLanguage={(l) => set(["language"], l)}
+        />
+      ) : null,
   };
+  const voiceSync = syncState(voice, script);
 
   const save = useCallback(async (): Promise<boolean> => {
     setMessage(null);
@@ -194,6 +216,14 @@ export function ReelEditor({ reel }: { reel: EditableReel }) {
           )}
           {!validation.success && (
             <p className="mt-2 text-xs text-amber-600">Aperçu figé sur la dernière version valide : corrigez les champs signalés.</p>
+          )}
+          {voiceSync === "perimee" && (
+            <p className="mt-2 text-xs text-amber-600">
+              Synchronisation périmée (texte ou voix modifiés) : le texte ne suit plus la voix. Relancez-la dans la section Voix off.
+            </p>
+          )}
+          {voiceSync === "valide" && voice?.sync && voice.sync.source === "auto" && voice.sync.confidence < 0.6 && (
+            <p className="mt-2 text-xs text-red-500">Synchronisation peu fiable ({Math.round(voice.sync.confidence * 100)} %) : vérifiez l&apos;aperçu ou calez à la main.</p>
           )}
 
           <div className="mt-4">

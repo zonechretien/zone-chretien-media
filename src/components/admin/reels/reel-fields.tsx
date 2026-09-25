@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { FieldLabel, FormRow, checkboxClass, inputClass, selectClass, textareaClass } from "@/components/admin/form-fields";
 import type { FieldDesc } from "@/lib/reels/form-model";
 import { studio } from "@/lib/reels/studio-client";
@@ -14,6 +15,8 @@ export type FieldsContext = {
   set: (path: Path, value: unknown) => void;
   errors: Record<string, string>;
   studioOnline: boolean;
+  /** Contenu ajouté à la fin d'une section (ex. synchronisation sous la voix off). */
+  groupExtra?: (key: string, path: Path) => ReactNode;
 };
 
 /** Formulaire généré depuis la description du schéma zod du template. */
@@ -161,6 +164,8 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
             online={ctx.studioOnline}
             onChange={(chemin) => {
               ctx.set(path, chemin);
+              // Nouvelle voix off : l'ancienne synchronisation ne vaut plus.
+              if (field.recordable) ctx.set([...path.slice(0, -1), "sync"], null);
               if (tracksDuration) {
                 ctx.set(durationPath, null);
                 studio
@@ -176,6 +181,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
               studioOnline={ctx.studioOnline}
               onSaved={(chemin, seconds) => {
                 ctx.set(path, chemin);
+                ctx.set([...path.slice(0, -1), "sync"], null);
                 ctx.set(durationPath, seconds);
               }}
             />
@@ -204,6 +210,7 @@ function Field({ field, siblings, ctx, path }: { field: FieldDesc; siblings: Fie
           )}
           <Help text={field.help} />
           {enabled && <ReelFields fields={field.fields} ctx={ctx} prefix={path} />}
+          {enabled && ctx.groupExtra?.(field.key, path)}
         </fieldset>
       );
     }

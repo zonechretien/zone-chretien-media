@@ -49,11 +49,12 @@ const common = (format: FormatId, theme: ThemeId) => ({
   durationSeconds: null,
   music: null,
   voiceOver: null,
+  language: "fr" as const,
 });
 
 /** Mise en page d'un projet (props → écrans → tailles, pages et minutage). */
 export function layoutFor<P extends BaseProps>(meta: Pick<TemplateMeta<P>, "spec">, props: P): ReelLayout {
-  return layoutReel(meta.spec(props), props.format, effectiveDuration(props));
+  return layoutReel(meta.spec(props), props.format, effectiveDuration(props), props.voiceOver);
 }
 
 function define<P extends BaseProps>(def: Omit<TemplateMeta<P>, "formats" | "metadata">): TemplateMeta<P> {

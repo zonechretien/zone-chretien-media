@@ -86,6 +86,37 @@ export const musicSchema = z.object({
 });
 export type MusicProps = z.infer<typeof musicSchema>;
 
+/**
+ * Synchronisation du texte sur la voix off : minutage de chaque mot du texte
+ * lu (voir lib/sync/script.ts), obtenu par Whisper (studio local) ou calé à la
+ * main dans l'éditeur. Ignorée si la voix ou le texte ont changé depuis
+ * (chemin et empreinte comparés) : le Reel reprend alors le minutage automatique.
+ */
+export const voiceSyncSchema = z.object({
+  source: z.enum(["auto", "manuel"]),
+  /** Voix off synchronisée (doit être celle du projet). */
+  audioPath: z.string().max(260),
+  /** Empreinte du texte lu au moment de la synchronisation. */
+  scriptHash: z.string().regex(/^[0-9a-f]{8}$/),
+  /** Silence retiré au début de l'enregistrement (secondes). */
+  trimStartSeconds: z.number().min(0).max(30),
+  /** [début, fin] de chaque mot, en secondes depuis le début du fichier audio. */
+  words: z.array(z.tuple([z.number().min(0), z.number().min(0)])).max(2000),
+  /** Part du texte retrouvée dans la voix (0 à 1) ; 1 pour un calage manuel. */
+  confidence: z.number().min(0).max(1),
+  /** Modèle Whisper utilisé (information). */
+  model: z.string().max(40).nullable(),
+  /** Phrases peu ou pas retrouvées dans la voix (minutage estimé), signalées dans l'éditeur. */
+  weakSentences: z.array(z.number().int().min(0)).max(2000).default([]),
+});
+export type VoiceSyncProps = z.infer<typeof voiceSyncSchema>;
+
+export const REEL_LANGUAGES = ["fr", "ht"] as const;
+export type ReelLanguage = (typeof REEL_LANGUAGES)[number];
+
+export const TEXT_STYLES = ["phrase", "mot"] as const;
+export type TextStyle = (typeof TEXT_STYLES)[number];
+
 /** Voix off enregistrée depuis l'éditeur (dossier VoixOff/ du disque). */
 export const voiceOverSchema = z.object({
   path: mediaPathSchema.meta(field({ label: "Voix off", widget: "voice", mediaKind: "audio", folders: ["VoixOff"] })),
@@ -103,6 +134,10 @@ export const voiceOverSchema = z.object({
     .max(1)
     .meta(field({ label: "Musique pendant la voix", widget: "slider", defaultValue: 0.25, help: "La musique baisse automatiquement à ce niveau pendant la voix off." })),
   fitDuration: z.boolean().meta(field({ label: "Caler la durée de la vidéo sur la voix off", defaultValue: true })),
+  // Facultatifs, avec valeur par défaut : les projets enregistrés avant la synchronisation restent valides.
+  /** Affichage du texte synchronisé : phrase par phrase, ou mot par mot avec surbrillance. */
+  textStyle: z.enum(TEXT_STYLES).default("phrase").meta(field({ label: "Affichage du texte", widget: "hidden", defaultValue: "phrase" })),
+  sync: voiceSyncSchema.nullable().default(null).meta(field({ label: "Synchronisation", widget: "hidden" })),
 });
 export type VoiceOverProps = z.infer<typeof voiceOverSchema>;
 
@@ -118,6 +153,8 @@ export const baseTemplateSchema = z.object({
     .nullable()
     .meta(field({ label: "Durée (secondes)", help: "Vide = durée calculée selon la longueur du texte (ou calée sur la voix off si demandé)." })),
   // Facultatifs, avec null par défaut : les projets enregistrés avant l'audio restent valides.
+  /** Langue du Reel (voix off et synchronisation) : français ou créole haïtien. */
+  language: z.enum(REEL_LANGUAGES).default("fr").meta(field({ label: "Langue", widget: "hidden", defaultValue: "fr" })),
   music: musicSchema.nullable().default(null).meta(field({ label: "Musique" })),
   voiceOver: voiceOverSchema.nullable().default(null).meta(field({ label: "Voix off" })),
 });
